@@ -1,0 +1,24 @@
+node_modules
+.local_db
+.git
+.github
+.env
+.env.*
+!.env.example
+*.log
+dist
+coverage
+backups
+.DS_Store
+Thumbs.db
+
+# Agent/skill tooling (not needed in Docker images)
+.agents
+.claude
+agent
+skills-lock.json
+
+# Documentation and scripts (not needed in runtime images)
+docs
+scripts
+*.md

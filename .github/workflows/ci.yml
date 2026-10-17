@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-verify:
+    name: Build, Test & Verify
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: projectpilot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm run build:packages
+
+      - name: TypeScript typecheck
+        run: pnpm run typecheck
+
+      - name: ESLint check
+        run: pnpm run lint
+
+      - name: Prettier formatting check
+        run: pnpm run format:check
+
+      - name: Wait for PostgreSQL service and migrate test database
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/projectpilot_test
+        run: |
+          until pg_isready -h 127.0.0.1 -p 5432 -U postgres -d projectpilot_test; do
+            echo "Waiting for PostgreSQL..."
+            sleep 1
+          done
+          pnpm run db:migrate
+
+      - name: Run test suites (Domain, Contracts, API, Security, Web)
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/projectpilot_test
+          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/projectpilot_test
+          NODE_ENV: test
+        run: pnpm test
+
+      - name: Verify PostgreSQL backup & restore integrity
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/projectpilot_test
+        run: pnpm run db:backup-verify
+
+      - name: Build production bundle
+        run: pnpm -r run build
+
+  docker-validation:
+    name: Validate Docker Containers
+    needs: test-and-verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate API Dockerfile build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: projectpilot-api:ci
+
+      - name: Validate Web Dockerfile build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          tags: projectpilot-web:ci

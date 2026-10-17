@@ -1,0 +1,38 @@
+{
+  "name": "vouchlock",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Turn a project brief into a plan your team can actually use.",
+  "scripts": {
+    "build:packages": "pnpm --filter \"./packages/*\" run build",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm run build:packages && pnpm -r run typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r run test",
+    "test:unit": "pnpm --filter @projectpilot/domain test && pnpm --filter @projectpilot/contracts test && pnpm --filter @projectpilot/web test && pnpm --filter @projectpilot/api run test:unit",
+    "dev:api": "pnpm --filter @projectpilot/api dev",
+    "dev:web": "pnpm --filter @projectpilot/web dev",
+    "dev": "pnpm --filter @projectpilot/web dev",
+    "dev:all": "pnpm -r --parallel run dev",
+    "db:generate": "pnpm --filter @projectpilot/api db:generate",
+    "db:migrate": "pnpm --filter @projectpilot/api db:migrate",
+    "db:studio": "pnpm --filter @projectpilot/api db:studio",
+    "db:backup-verify": "node scripts/verify-backup-restore.mjs",
+    "db:backup-verify:populated": "node scripts/verify-populated-backup.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "clean": "node scripts/clean.mjs",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.71.1"
+  }
+}

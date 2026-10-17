@@ -1,0 +1,9 @@
+dist
+node_modules
+pnpm-lock.yaml
+apps/api/drizzle/meta
+docs
+.git
+.agents
+.claude
+.pytest_cache

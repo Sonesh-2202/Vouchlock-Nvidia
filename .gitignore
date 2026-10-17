@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.env
+.env.local
+.local_db/
+.data/
+*.log
+coverage/
+.turbo/
+.pnpm-store/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+.venv/
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# Database backups (mounted by docker-compose, never tracked)
+backups/
+
+# Test recordings & screenshots
+docs/before*/
+docs/after*/
+*.png
+*.jpg
+*.jpeg
+*.webp
