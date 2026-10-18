@@ -1,20 +1,23 @@
 /**
- * Copilot Context Reader
+ * Copilot / Delivery Agent Context Reader
  * Reads strictly bounded project records for authenticated users.
  * Enforces workspace isolation and role permissions.
  * Never leaks data across workspace boundaries or unassigned projects.
  */
 
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
 import {
   projects,
   milestones,
   tasks,
   requirements,
+  requirementTasks,
   evidence,
+  verifications,
   projectBriefRevisions,
   workspaceMembers,
+  auditEvents,
   users,
 } from '../db/schema.js';
 import type { CopilotContext } from './types.js';
@@ -31,7 +34,7 @@ export class CopilotAccessError extends Error {
 }
 
 /**
- * Reads bounded, typed context for Copilot analysis.
+ * Reads bounded, typed context for Copilot / Delivery Agent analysis.
  */
 export async function readCopilotContext(
   db: Database,
@@ -73,6 +76,7 @@ export async function readCopilotContext(
     evidenceList,
     briefRevisionsList,
     workspaceUsersList,
+    auditEventsList,
   ] = await Promise.all([
     db
       .select({
@@ -82,7 +86,8 @@ export async function readCopilotContext(
         dueDate: milestones.dueDate,
       })
       .from(milestones)
-      .where(eq(milestones.projectId, projectId)),
+      .where(eq(milestones.projectId, projectId))
+      .orderBy(milestones.sortOrder),
 
     db
       .select({
@@ -95,7 +100,8 @@ export async function readCopilotContext(
         milestoneId: tasks.milestoneId,
       })
       .from(tasks)
-      .where(eq(tasks.projectId, projectId)),
+      .where(eq(tasks.projectId, projectId))
+      .orderBy(tasks.sortOrder),
 
     db
       .select({
@@ -139,7 +145,84 @@ export async function readCopilotContext(
       .from(workspaceMembers)
       .innerJoin(users, eq(workspaceMembers.userId, users.id))
       .where(eq(workspaceMembers.workspaceId, project.workspaceId)),
+
+    db
+      .select({
+        action: auditEvents.action,
+        subjectType: auditEvents.subjectType,
+        subjectId: auditEvents.subjectId,
+        createdAt: auditEvents.createdAt,
+      })
+      .from(auditEvents)
+      .where(eq(auditEvents.workspaceId, project.workspaceId))
+      .orderBy(desc(auditEvents.createdAt))
+      .limit(10),
   ]);
+
+  const reqIds = requirementsList.map((r) => r.id);
+
+  // Fetch requirement-task links and verifications if requirements exist
+  let reqTaskLinks: Array<{ requirementId: string; taskId: string }> = [];
+  let verificationsList: Array<{
+    id: string;
+    requirementId: string;
+    status: string;
+    notes: string | null;
+    createdAt: Date;
+  }> = [];
+
+  if (reqIds.length > 0) {
+    const [links, verifs] = await Promise.all([
+      db
+        .select({
+          requirementId: requirementTasks.requirementId,
+          taskId: requirementTasks.taskId,
+        })
+        .from(requirementTasks)
+        .where(inArray(requirementTasks.requirementId, reqIds)),
+      db
+        .select({
+          id: verifications.id,
+          requirementId: verifications.requirementId,
+          status: verifications.status,
+          notes: verifications.notes,
+          createdAt: verifications.createdAt,
+        })
+        .from(verifications)
+        .where(inArray(verifications.requirementId, reqIds))
+        .orderBy(desc(verifications.createdAt)),
+    ]);
+    reqTaskLinks = links;
+    verificationsList = verifs;
+  }
+
+  // Pre-calculate linkage maps
+  const taskToReqsMap = new Map<string, string[]>();
+  const reqToTasksMap = new Map<string, string[]>();
+
+  for (const link of reqTaskLinks) {
+    const existingReqs = taskToReqsMap.get(link.taskId) ?? [];
+    existingReqs.push(link.requirementId);
+    taskToReqsMap.set(link.taskId, existingReqs);
+
+    const existingTasks = reqToTasksMap.get(link.requirementId) ?? [];
+    existingTasks.push(link.taskId);
+    reqToTasksMap.set(link.requirementId, existingTasks);
+  }
+
+  // Pre-calculate evidence count map
+  const reqEvidenceCountMap = new Map<string, number>();
+  for (const ev of evidenceList) {
+    reqEvidenceCountMap.set(ev.requirementId, (reqEvidenceCountMap.get(ev.requirementId) ?? 0) + 1);
+  }
+
+  // Pre-calculate latest verification status map
+  const reqVerificationMap = new Map<string, string>();
+  for (const v of verificationsList) {
+    if (!reqVerificationMap.has(v.requirementId)) {
+      reqVerificationMap.set(v.requirementId, v.status);
+    }
+  }
 
   const memberNames = workspaceUsersList.map((u) => u.displayName);
 
@@ -168,6 +251,7 @@ export async function readCopilotContext(
       priority: t.priority,
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       milestoneId: t.milestoneId,
+      linkedRequirementIds: taskToReqsMap.get(t.id) ?? [],
     })),
     requirements: requirementsList.map((r) => ({
       id: r.id,
@@ -177,6 +261,9 @@ export async function readCopilotContext(
       priority: r.priority,
       status: r.status,
       sourceReference: r.sourceReference,
+      linkedTaskIds: reqToTasksMap.get(r.id) ?? [],
+      evidenceCount: reqEvidenceCountMap.get(r.id) ?? 0,
+      verificationStatus: reqVerificationMap.get(r.id) ?? null,
     })),
     evidence: evidenceList.map((e) => ({
       id: e.id,
@@ -186,11 +273,25 @@ export async function readCopilotContext(
       title: e.title,
       content: e.content,
     })),
+    verifications: verificationsList.map((v) => ({
+      id: v.id,
+      requirementId: v.requirementId,
+      status: v.status,
+      notes: v.notes,
+      createdAt: v.createdAt.toISOString(),
+    })),
     briefRevisions: briefRevisionsList.map((b) => ({
       id: b.id,
       revisionNumber: b.revisionNumber,
       title: b.title,
       content: b.content,
+    })),
+    requirementTasks: reqTaskLinks,
+    recentAuditEvents: auditEventsList.map((a) => ({
+      action: a.action,
+      subjectType: a.subjectType,
+      subjectId: a.subjectId,
+      createdAt: a.createdAt.toISOString(),
     })),
     memberNames,
   };

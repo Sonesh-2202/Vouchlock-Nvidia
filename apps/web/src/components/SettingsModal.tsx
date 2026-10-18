@@ -52,7 +52,7 @@ export function SettingsModal({
   // Providers state
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [activeSessions, setActiveSessions] = useState<ProviderSession[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState('gemini');
+  const [selectedProvider, setSelectedProvider] = useState('nebius');
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | undefined>(workspaceId);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [testingKey, setTestingKey] = useState(false);
@@ -98,7 +98,12 @@ export function SettingsModal({
           ? api.mcp.listTokens(resolvedWorkspaceId).catch(() => ({ tokens: [] }))
           : Promise.resolve({ tokens: [] }),
       ]);
-      setProviders(provRes.providers || []);
+      const available = provRes.providers || [];
+      setProviders(available);
+      const first = available[0];
+      if (first && !available.some((p) => p.id === selectedProvider)) {
+        setSelectedProvider(first.id);
+      }
       setActiveSessions(sessRes.sessions || []);
       setMcpTokens(tokRes.tokens || []);
     } catch {
@@ -480,8 +485,8 @@ export function SettingsModal({
                   <input
                     type="password"
                     placeholder={
-                      selectedProvider === 'gemini'
-                        ? 'Google AI Studio API key'
+                      selectedProvider === 'nebius'
+                        ? 'Nebius Token Factory API key'
                         : 'Paste provider API key'
                     }
                     value={apiKeyInput}

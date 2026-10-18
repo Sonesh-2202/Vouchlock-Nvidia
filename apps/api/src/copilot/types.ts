@@ -1,9 +1,10 @@
 /**
- * ProjectPilot Copilot Types & Interfaces
+ * ProjectPilot Copilot / Delivery Agent Types & Interfaces
  */
 
 import type {
   CopilotReport,
+  CopilotWorkflowStage,
   CopilotQuestion,
   CopilotRisk,
   CopilotBlocker,
@@ -15,6 +16,7 @@ import type {
 
 export type {
   CopilotReport,
+  CopilotWorkflowStage,
   CopilotQuestion,
   CopilotRisk,
   CopilotBlocker,
@@ -49,6 +51,7 @@ export interface CopilotTaskContext {
   priority: string;
   dueDate?: string | null;
   milestoneId?: string | null;
+  linkedRequirementIds?: string[];
 }
 
 export interface CopilotRequirementContext {
@@ -59,6 +62,9 @@ export interface CopilotRequirementContext {
   priority: string;
   status: string;
   sourceReference?: string | null;
+  linkedTaskIds?: string[];
+  evidenceCount?: number;
+  verificationStatus?: string | null;
 }
 
 export interface CopilotEvidenceContext {
@@ -70,11 +76,26 @@ export interface CopilotEvidenceContext {
   content: string;
 }
 
+export interface CopilotVerificationContext {
+  id: string;
+  requirementId: string;
+  status: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
 export interface CopilotBriefContext {
   id: string;
   revisionNumber: number;
   title: string;
   content: string;
+}
+
+export interface CopilotAuditItem {
+  action: string;
+  subjectType: string;
+  subjectId: string;
+  createdAt: string;
 }
 
 export interface CopilotContext {
@@ -84,6 +105,9 @@ export interface CopilotContext {
   tasks: CopilotTaskContext[];
   requirements: CopilotRequirementContext[];
   evidence: CopilotEvidenceContext[];
+  verifications: CopilotVerificationContext[];
   briefRevisions: CopilotBriefContext[];
+  requirementTasks: Array<{ requirementId: string; taskId: string }>;
+  recentAuditEvents: CopilotAuditItem[];
   memberNames: string[];
 }

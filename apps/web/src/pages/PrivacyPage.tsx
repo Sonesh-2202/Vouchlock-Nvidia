@@ -102,7 +102,7 @@ export function PrivacyPage() {
                 2. AI Provider Isolation & Ephemeral BYOK Keys
               </h2>
               <p>
-                Project briefs are transmitted to the selected AI provider (Google Gemini or OpenAI)
+                Project briefs are transmitted to Nebius Token Factory (serving NVIDIA Nemotron)
                 only when you explicitly request analysis or extract requirement proposals. When
                 Bring Your Own Key (BYOK) is utilized:
               </p>
@@ -118,8 +118,8 @@ export function PrivacyPage() {
                   server logs, or external third-party storage.
                 </li>
                 <li>
-                  <strong>Tested Providers Only:</strong> Google Gemini and OpenAI are available for
-                  active use. Providers that have not passed validation remain gated.
+                  <strong>Validated Runtime:</strong> Nebius Token Factory running NVIDIA Nemotron is
+                  the sole production AI runtime. Unverified or legacy providers are not supported.
                 </li>
               </ul>
             </section>

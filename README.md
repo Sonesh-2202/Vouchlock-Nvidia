@@ -8,16 +8,17 @@
 [![Fastify](https://img.shields.io/badge/Fastify-5.1-000000.svg?logo=fastify&logoColor=white)](https://fastify.dev/)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.35-C5F74F.svg?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
-[![Vitest](https://img.shields.io/badge/Vitest-Automated_Tests-6E9F18.svg?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Nebius Token Factory](https://img.shields.io/badge/Nebius-Token_Factory-00E5FF.svg)](https://tokenfactory.nebius.com/)
+[![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA-Nemotron--70B-76B900.svg?logo=nvidia&logoColor=white)](https://build.nvidia.com/)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-00C7B7.svg)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/License-Founder_Controlled-purple.svg)](./docs/decisions.md)
 
 [Why Vouchlock?](#-why-vouchlock) •
+[Hackathon Updates](#-hackathon-updates-nebius-x-nvidia) •
 [Key Features](#-key-features) •
 [Architecture](#️-architecture) •
 [Quick Start](#-quick-start) •
-[Testing](#-testing--verification) •
-[Agentic Assistant](#-agentic-project-assistant) •
+[Agentic Delivery Agent](#-agentic-delivery-agent-nvidia-nemotron) •
 [API Reference](#-api-reference) •
 [Security](#-security--privacy)
 
@@ -35,11 +36,31 @@ Most project management tools jump straight into to-do lists without clarifying 
 └──────────────┘      └────────────────────────┘      └────────────────────┘      └─────────────────┘      └─────────────────────────┘
 ```
 
-- 🎯 **Clarity Before Activity:** AI parses incoming briefs to extract candidate requirements, assumptions, and risks into a structured roadmap.
-- 🛡️ **Zero Phantom Mutations:** AI never writes directly to your production project. Generated plans and extracted requirements are proposed as candidate envelopes requiring human review and explicit acceptance.
-- 📜 **The Delivery Ledger:** Requirements connect to code tasks, tasks connect to real proof artifacts (PRs, test logs, audit documents), and named engineers certify the record.
+- 🎯 **Clarity Before Activity:** The delivery agent extracts candidate requirements with source quote citations, assumptions, and risks from incoming briefs.
+- 🛡️ **Zero Phantom Mutations:** AI never writes directly to your production project records. Generated plans and extracted requirements are proposed as bounded candidate envelopes requiring human review and explicit acceptance.
+- 📜 **The Delivery Ledger:** Requirements connect to code tasks, tasks connect to real proof artifacts (PRs, test logs, audit documents), and named engineers certify the record. A completed task does **not** automatically prove a requirement was satisfied without evidence and human attestation.
 - 🤝 **Multi-Tenant Collaboration:** Role-based permissions (`owner`, `admin`, `member`), secure 7-day invite tokens, and immutable verification audit trails.
-- 🤖 **Agentic Project Intelligence:** Autonomous Copilot analyzes project records, surfaces evidence gaps and blockers, and prepares concrete changes requiring explicit human review and approval.
+- 🤖 **Grounded Project Intelligence:** The Delivery Agent analyzes project records, surfaces evidence gaps, identifies unlinked tasks, explains the most useful next action, and prepares concrete proposals requiring human review and approval.
+
+---
+
+## 🏆 Hackathon Updates (Nebius x NVIDIA)
+
+**Submission Track:** Best Apps and Agents
+
+Vouchlock's AI architecture has been refocused around **NVIDIA open-source models** served through **Nebius Token Factory**:
+
+1. **Nebius Token Factory Runtime:** Replaced all legacy AI providers with a dedicated, server-side `NebiusTokenFactoryProvider` communicating with `https://api.tokenfactory.nebius.com/v1` using NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`).
+2. **Legacy Provider Removal:** Completely excised Google Gemini and OpenAI provider adapters, fallback logic, credential testing forms, settings controls, and documentation.
+3. **End-to-End Brief-to-Proof Agent:** Evolved the Copilot surface into a multi-stage **Delivery Agent** that monitors the entire delivery lifecycle:
+   - *Stage 1: Brief Intake* (source brief coverage and review)
+   - *Stage 2: Requirement Analysis* (candidate requirement extraction with source citations)
+   - *Stage 3: Task Planning* (linking execution tasks to canonical requirements)
+   - *Stage 4: Evidence Collection* (surfacing unproven tasks and proof artifact gaps)
+   - *Stage 5: Verification* (human attestation stamp)
+4. **Bounded Proposal & Approval Flow:** The agent formulates the **Most Useful Next Action** and prepares concrete proposal cards (`create_requirement`, `link_task_requirement`, `request_evidence`, `create_task`, `update_task`). Authorized team members approve or reject with one click.
+5. **Truthful UI Distinction:** Project facts, source passages, model suggestions, and items needing review are visibly and semantically segregated with distinct badges (`Project record`, `Source passage`, `AI suggestion`, `Needs review`).
+6. **Immutable Audit Trail:** All agent analyses, proposal approvals, and rejections are immutably recorded in the workspace audit trail.
 
 ---
 
@@ -47,14 +68,15 @@ Most project management tools jump straight into to-do lists without clarifying 
 
 | Feature | Description |
 | :--- | :--- |
-| **✨ AI Brief Decomposition** | Turns project briefs, RFPs, or client statements into structured milestones, tasks, risks, and candidate requirements with source quote citations. |
-| **🤖 Agentic Project Copilot** | Grounded project reasoning with human-in-the-loop approvals. Strictly segregates verified facts from model inferences; zero autonomous unreviewed writes. |
-| **🔑 Secure BYOK Providers** | User-managed tested providers (Google Gemini & OpenAI; Mock deterministic fallback). Authenticated server-side encryption with AES-256-GCM. Never leaked. |
-| **🔌 Standard MCP Server** | Official `@modelcontextprotocol/sdk` Streamable HTTP server at `/mcp` with scoped cryptographic tokens, rate/concurrency limits, and read-only audit tools. |
+| **🤖 Delivery Agent (NVIDIA Nemotron)** | Grounded delivery agent powered by NVIDIA Nemotron on Nebius Token Factory. Evaluates brief coverage, requirement linkages, and evidence gaps. |
+| **✨ AI Brief Decomposition** | Turns unstructured client briefs into structured candidate requirements with source quote citations, assumptions, and risks. |
+| **🛡️ Proposal-Before-Write Pattern** | AI never writes directly to canonical records. All changes are generated as bounded proposals requiring explicit human approval. |
+| **🔑 Server-Side Nebius Security** | Nebius Token Factory keys are held exclusively server-side in ephemeral memory or environment config. Keys are never exposed to browsers, client storage, or logs. |
+| **🔌 Standard MCP Server** | Official `@modelcontextprotocol/sdk` Streamable HTTP server at `/mcp` with scoped cryptographic tokens and read-only project audit tools. |
 | **📑 Requirements & Traceability** | Expandable ledger rows with vertical traceability chains: _Requirement Claim_ → _Linked Tasks_ → _Proof Artifacts_ → _Human Attestation Stamp_. |
-| **📋 5-Column Horizontal Kanban** | Equal-width horizontal board (`Backlog`, `To Do`, `In Progress`, `Blocked`, `Done`) with card lift, blocker alerts, and accessible keyboard move alternatives. |
-| **📊 Truthful Delivery Reports** | Client-ready printable attestation documents featuring delivery verdicts, tabular metric registers, claims-vs-proof matrix, and formal sign-off blocks. |
-| **👥 Executive Briefing Dashboard** | Single-row state-of-delivery metric strip across all projects, ruled Projects ledger table, and compact team roster with plain-text roles. |
+| **📋 5-Column Horizontal Kanban** | Equal-width horizontal board (`Backlog`, `To Do`, `In Progress`, `Blocked`, `Done`) with card lift, blocker alerts, and accessible keyboard moves. |
+| **📊 Truthful Delivery Reports** | Printable attestation documents featuring delivery verdicts, tabular metric registers, claims-vs-proof matrix, and formal sign-off blocks. |
+| **👥 Executive Briefing Dashboard** | State-of-delivery metric strip across all projects, ruled Projects ledger table, and compact team roster. |
 | **📥 Full Data Portability** | One-click JSON exports for projects, tasks, comments, and workspace audit trails. |
 
 ---
@@ -89,7 +111,7 @@ graph TD
     API --> Domain["packages/domain (Pure Business Logic)"]
     API --> Contracts["packages/contracts (Zod Validation)"]
     API --> DB[("PostgreSQL 16 (Drizzle ORM)")]
-    API --> AIProviders["AI Provider Engine (Gemini / OpenAI / Deterministic Mock)"]
+    API --> Nebius["Nebius Token Factory (NVIDIA Nemotron-70B)"]
 ```
 
 ---
@@ -106,101 +128,91 @@ graph TD
 
 ```bash
 # Clone the repository
-git clone [https://github.com/Sonesh-2202/ProjectPilot.git](https://github.com/Sonesh-2202/ProjectPilot.git)
-cd ProjectPilot
+git clone https://github.com/Sonesh-2202/Vouchlock-Nvidia.git
+cd Vouchlock-Nvidia
 
 # Install all workspace dependencies
 pnpm install
 
 # Option A: Start PostgreSQL via Docker Compose
-docker compose up -d
+docker compose up -d postgres
 
 # Option B: Native PostgreSQL (if Docker is unavailable)
-# Ensure PostgreSQL is running on port 5432 and create the databases:
+# Ensure PostgreSQL is running on port 5432 and create the database:
 createdb -h 127.0.0.1 -p 5432 -U postgres projectpilot
-createdb -h 127.0.0.1 -p 5432 -U postgres projectpilot_test
 
 # Configure environment
 cp .env.example .env
-# Set DATABASE_URL in .env (e.g. postgresql://postgres@localhost:5432/projectpilot)
+# Edit .env with your PostgreSQL credentials and Nebius Token Factory API key:
+# NEBIUS_API_KEY=your_token_factory_key
+# NEBIUS_MODEL_ID=nvidia/Llama-3.1-Nemotron-70B-Instruct
+# NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1
 
 # Build shared TypeScript libraries
 pnpm run build:packages
 
-# Apply database migrations to main and test databases
+# Apply database migrations
 pnpm run db:migrate
-DATABASE_URL="postgresql://postgres@localhost:5432/projectpilot_test" pnpm run db:migrate
 ```
 
 ### 3. Run Development Servers
 
 ```bash
-# Terminal 1: Start Fastify backend on http://localhost:3001
+# Terminal 1: Start Fastify backend on http://localhost:4000
 pnpm dev:api
 
 # Terminal 2: Start React frontend on http://localhost:5173
 pnpm dev:web
 ```
 
----
+### 4. Reviewer Walkthrough: Brief-to-Proof Agent Workflow
 
-## 🧪 Testing & Verification
+Follow this step-by-step path to evaluate the live agent workflow:
 
-The repository enforces strict test automation, type safety, and runtime verification across all packages:
+1. Open your browser to **`http://localhost:5173`**.
+2. Register an account or log in with an existing user.
+3. Open or create a project. Enter a realistic source brief containing delivery goals, technical requirements, and constraints.
+4. Navigate to the **Delivery Agent (Nemotron)** tab in the project navigation bar.
+5. Click **"Run Delivery Agent Analysis (Nemotron)"**:
+   - The backend server assembles authorized, sanitized project context (brief text, requirements, tasks, evidence links, verification status, and blockers).
+   - Server-side runtime inference executes against **Nebius Token Factory** using **NVIDIA Nemotron-70B** (`nvidia/Llama-3.1-Nemotron-70B-Instruct`).
+   - The response is parsed and validated against application-owned domain schemas.
+6. Inspect the resulting delivery analysis:
+   - **5-Stage Pipeline Progress:** See real-time progress across *Brief Intake*, *Requirement Analysis*, *Task Planning*, *Evidence Collection*, and *Verification*.
+   - **Most Useful Next Action:** Read the model's grounded analysis explaining exactly why a specific next action is needed, citing concrete project facts.
+   - **Visibly Segregated Fact Badges:** Confirm that items are explicitly tagged with `Project record` (verified fact), `Source passage` (brief citation), `AI suggestion` (unverified inference), and `Needs review` (human review required).
+   - **Grounded Action Envelopes:** Inspect proposed change cards (such as candidate requirement generation with source quote citations, task-to-requirement linking, or evidence requests).
+7. Test the **Human-in-the-Loop Approval Gate**:
+   - Click **"Approve Action"** on a proposed card.
+   - Observe that the canonical project ledger updates immediately (e.g. creating the requirement or linking the task).
+   - Switch to the **Audit Log** tab to verify that the approved mutation was immutably recorded with actor identity, timestamp, and entity reference.
+   - Or click **"Reject"** and confirm that the rejection reason is logged to the audit trail without modifying project state.
 
-```bash
-# Run all automated tests across domain, contracts, api, and web
-# (API integration tests require a running PostgreSQL instance)
-pnpm test
-
-# Run unit tests offline without PostgreSQL
-pnpm run test:unit
-
-# Run strict TypeScript typecheck across all packages (0 errors)
-pnpm typecheck
-
-# Full CI validation (typecheck + lint + format:check + test)
-pnpm check
-
-# Run end-to-end full-stack smoke test workflow (requires PostgreSQL)
-pnpm run smoke
-
-# Verify PostgreSQL backup & restore integrity with populated data
-pnpm run db:backup-verify:populated
-
-# Verify production builds
-pnpm -r run build
-```
-
-### Test Coverage Highlights
-
-| Suite | Scope |
-| :--- | :--- |
-| **`@projectpilot/domain`** | Status transitions, member removals, role hierarchy, date boundaries, plan draft validation. |
-| **`@projectpilot/contracts`** | Zod input parsing, string sanitization, UUID constraints, MCP scope enum, MCP pagination schemas, concurrency tokens. |
-| **`@projectpilot/api`** | MCP server, BYOK registry, Copilot, planner, Gemini adapter, security, persistence, and workflow integration. |
-| **`@projectpilot/web`** | Web API recovery, settings flows, UI contract adherence, and navigation. |
+> **Feature Credential Notice:**
+> - **Requires Nebius Token Factory Key (`NEBIUS_API_KEY`):** Delivery Agent Nemotron reasoning reports, AI Brief Decomposition (candidate requirement extraction), and AI Plan Proposal generation.
+> - **Operates Without Credentials:** The complete delivery ledger, manual requirement registration, 5-column Kanban task board, manual task-requirement linking, proof artifact submission, human verification attestation, Truthful Delivery Reports, full JSON export, and standard MCP audit tools.
 
 ---
 
-## 🤖 Agentic Project Assistant
+## 🤖 Agentic Delivery Agent (NVIDIA Nemotron)
 
-Vouchlock features an agentic project delivery assistant designed to turn unstructured briefs into actionable work while enforcing absolute human-in-the-loop safety:
+Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotron** on **Nebius Token Factory**, built to guide projects from source brief to verified proof with strict human-in-the-loop safety:
 
 ### Core Principles
 
-1. **Grounded Context:** Reads authorized project records (brief revisions, requirements, milestones, tasks, evidence, blockers, and evidence gaps) within the authenticated workspace.
-2. **Explicit Fact vs. Inference Separation:** Project facts are derived from database records; model inferences, suggestions, and proposed actions are strictly labeled as unverified until human review.
-3. **Proposal-Before-Write Pattern:** The agent **never** autonomously writes to your production database. Instead, it generates a structured `ProposedAction` with a deterministic SHA-256 `proposalId`.
-4. **Interactive Human Approval:** A team lead or project member reviews the proposed action (creating tasks, milestones, evidence collection, or requirement updates) and clicks **Approve** or **Reject**. Only explicit approval triggers the state mutation.
+1. **Grounded Context Assembly:** Only authorized project records (brief revisions, requirements, tasks, evidence artifacts, and blocker logs) within the authenticated workspace are provided to the model.
+2. **Strict Fact vs. Inference Separation:** Project facts are derived from database records. Model inferences, suggestions, and proposed actions are strictly labeled as unverified until human review.
+3. **Proposal-Before-Write Pattern:** The model **never** autonomously writes to canonical project records. It cannot call arbitrary URLs, execute shell commands, or mutate tables directly. Instead, it generates a structured action proposal with a deterministic SHA-256 `proposalId`.
+4. **Interactive Human Approval:** A project member reviews the proposed action card (`create_requirement`, `link_task_requirement`, `request_evidence`, `create_task`, `update_task`) and clicks **Approve** or **Reject**. Only explicit approval triggers the state mutation.
 5. **Full Audit Traceability:** Every agent analysis, approved action, and rejected proposal is immutably logged in `auditEvents` with actor ID, timestamp, and entity references.
 
-### Bring-Your-Own-Key (BYOK) Security
+### Nebius Token Factory Integration Details
 
-- **Supported Providers:** Google Gemini (`gemini-3.8-flash`), OpenAI (`gpt-4o`, `gpt-4o-mini`), and a deterministic offline Mock provider.
-- **Authenticated Server Encryption:** User keys are encrypted with AES-256-GCM using a server-side secret (`ENCRYPTION_SECRET` or derived from `JWT_SECRET`).
-- **Zero Key Leakage:** Keys are never returned in full to the client (only masked suffixes like `...1234`), never stored in browser `localStorage` or cookies, and never included in error logs or analytics.
-- **Session Scoping & Expiry:** Keys are isolated per-user and per-workspace with an explicit TTL and instant revocation.
+- **Official Endpoint:** `https://api.tokenfactory.nebius.com/v1`
+- **Target Model:** `nvidia/Llama-3.1-Nemotron-70B-Instruct`
+- **Server-Side Security:** Credentials are never passed to the browser, stored in `localStorage`, or written to application logs. All requests originate strictly from the Fastify server.
+- **Resilience:** The backend adapter features client timeouts (30s), exponential backoff retries on rate limits (429) or transient 5xx errors, and safe secret redaction (`[REDACTED_SECRET]`).
+- **Validated JSON Envelopes:** Nemotron responses are validated against Zod schemas; invalid responses return safe, non-destructive error feedback without phantom mutations.
 
 ### Model Context Protocol (MCP)
 
@@ -300,26 +312,26 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 </details>
 
 <details>
-<summary><b>🤖 Standalone Copilot (Bounded Read → Propose → Approve)</b></summary>
+<summary><b>🤖 Delivery Agent (Bounded Read → Nemotron Reasoning → Propose → Approve)</b></summary>
 <br>
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/v1/copilot/reports` | Generate bounded project analysis, open questions, risks, and proposed action envelopes |
+| `POST` | `/api/v1/copilot/reports` | Generate bounded project analysis, 5-stage progress, most useful next action, and proposed action envelopes |
 | `POST` | `/api/v1/copilot/approve` | Execute action with human approval gate, permission check & content-hash verification |
 | `POST` | `/api/v1/copilot/reject` | Record explicit rejection with reason in immutable audit trail |
 
 </details>
 
 <details>
-<summary><b>🔑 Bring Your Own Key (BYOK) Providers</b></summary>
+<summary><b>🔑 Nebius Token Factory & Ephemeral BYOK Sessions</b></summary>
 <br>
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/me/providers/available` | List tested/configured AI providers (`mock` & `openai` supported; `anthropic` gated) |
+| `GET` | `/api/v1/me/providers/available` | List supported AI providers (`nebius` powered by NVIDIA Nemotron-70B) |
 | `GET` | `/api/v1/me/providers` | List active ephemeral session status (masked keys only, zero plaintext) |
-| `POST` | `/api/v1/me/provider-test` | Test provider credentials before session activation |
+| `POST` | `/api/v1/me/provider-test` | Test Nebius Token Factory credentials before session activation |
 | `POST` | `/api/v1/me/providers` | Set ephemeral session API key (in-memory only, 24h TTL, wiped on logout) |
 | `DELETE` | `/api/v1/me/providers/:provider` | Clear ephemeral provider session key |
 
@@ -355,6 +367,9 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 ## 📄 License
 
 **Founder-controlled.** Project delivery and traceability suite with agentic intelligence. See [decisions.md](./docs/decisions.md) for architectural records.
+
+> ⚠️ **Hackathon Submission Blocker — Licensing:**
+> The Nebius x NVIDIA Global AI Hackathon requires a recognized open-source license visible at the repository root. The current repository is under a Founder-Controlled license. In accordance with strict agent boundaries, consent to relicense cannot be assumed without explicit repository owner action. The repository owner must commit a recognized open-source license file (e.g. Apache 2.0 or MIT) to the root before submission.
 
 <div align="center">
   <sub>Built with precision by <a href="https://github.com/Sonesh-2202">Sonesh-2202</a> • <b>ProjectPilot / Vouchlock</b></sub>

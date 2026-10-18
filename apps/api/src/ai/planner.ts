@@ -10,8 +10,12 @@ import type { PlanDraft, PlanValidationError, RequirementProposal } from '@proje
 import { validatePlanDraft } from '@projectpilot/domain';
 import type { AppConfig } from '../config.js';
 import { MockAiProvider } from './mock-provider.js';
-import { OpenAiProvider } from './openai-provider.js';
-import { GeminiProvider } from './gemini-provider.js';
+import {
+  NebiusTokenFactoryProvider,
+  verifyNebiusApiKey,
+  DEFAULT_NVIDIA_NEMOTRON_MODEL,
+  DEFAULT_NEBIUS_BASE_URL,
+} from './nebius-provider.js';
 import { getProviderDescriptor } from './registry.js';
 import {
   AiProviderAuthError,
@@ -26,8 +30,12 @@ export * from './types.js';
 export * from './registry.js';
 export * from './ephemeral-store.js';
 export { MockAiProvider } from './mock-provider.js';
-export { OpenAiProvider, verifyOpenAiApiKey } from './openai-provider.js';
-export { GeminiProvider, verifyGeminiApiKey } from './gemini-provider.js';
+export {
+  NebiusTokenFactoryProvider,
+  verifyNebiusApiKey,
+  DEFAULT_NVIDIA_NEMOTRON_MODEL,
+  DEFAULT_NEBIUS_BASE_URL,
+} from './nebius-provider.js';
 
 export interface PlanGenerationResult {
   provider: string;
@@ -82,63 +90,54 @@ export function getAiProvider(
     return customProvider;
   }
 
-  const providerType = typeof config === 'string' ? config : config.aiProvider || 'gemini';
-  const apiKey = sessionApiKey || (typeof config === 'string' ? '' : config.aiApiKey || '');
-  const configuredModel = typeof config === 'string' ? '' : config.aiModel || '';
-  const model =
-    configuredModel && (providerType !== 'gemini' || configuredModel.startsWith('gemini-'))
-      ? configuredModel
-      : providerType === 'gemini'
-        ? 'gemini-3.8-flash'
-        : 'gpt-4o';
+  const isConfigObj = typeof config === 'object' && config !== null;
+  const providerType = isConfigObj ? config.aiProvider || 'nebius' : config || 'nebius';
+
+  if (providerType === 'mock') {
+    return new MockAiProvider();
+  }
 
   const descriptor = getProviderDescriptor(providerType);
-  if (!descriptor) {
+  if (!descriptor && providerType !== 'nebius') {
     throw new AiProviderError(
-      `Unsupported AI provider: "${providerType}". Must be "mock" or "openai".`,
+      `Unsupported AI provider: "${providerType}". Nebius Token Factory with NVIDIA Nemotron is the active provider.`,
       'unknown_provider',
       false,
     );
   }
 
-  if (descriptor.id === 'mock') {
-    return new MockAiProvider();
-  }
+  const apiKey =
+    sessionApiKey ||
+    (isConfigObj ? config.nebiusApiKey || config.aiApiKey : '') ||
+    process.env['NEBIUS_API_KEY'] ||
+    process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
+    process.env['AI_API_KEY'] ||
+    '';
 
-  if (descriptor.id === 'openai') {
-    if (!apiKey || apiKey.trim().length === 0) {
-      throw new AiProviderAuthError(
-        'AI_PROVIDER is set to "openai" but AI_API_KEY is missing. Configure a valid key in your server environment or switch AI_PROVIDER=mock.',
-      );
-    }
-    return new OpenAiProvider({
-      apiKey,
-      model,
-    });
-  }
+  const model =
+    (isConfigObj ? config.nebiusModelId || config.aiModel : '') ||
+    process.env['NEBIUS_MODEL_ID'] ||
+    process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
+    process.env['AI_MODEL'] ||
+    DEFAULT_NVIDIA_NEMOTRON_MODEL;
 
-  if (descriptor.id === 'gemini') {
-    if (!apiKey || apiKey.trim().length === 0) {
-      throw new AiProviderAuthError(
-        'Google Gemini API key is missing. Add your Google AI Studio key in Settings.',
-      );
-    }
-    return new GeminiProvider({ apiKey, model });
-  }
+  const baseUrl =
+    (isConfigObj ? config.nebiusBaseUrl : '') ||
+    process.env['NEBIUS_BASE_URL'] ||
+    process.env['NEBIUS_TOKEN_FACTORY_BASE_URL'] ||
+    DEFAULT_NEBIUS_BASE_URL;
 
-  if (!descriptor.tested) {
-    throw new AiProviderError(
-      `Anthropic provider is not configured in this release slice. Use AI_PROVIDER=openai or AI_PROVIDER=mock.`,
-      'unsupported_provider',
-      false,
+  if (!apiKey || apiKey.trim().length === 0) {
+    throw new AiProviderAuthError(
+      'Nebius Token Factory API key is missing. Configure NEBIUS_API_KEY in your server environment.',
     );
   }
 
-  throw new AiProviderError(
-    `Unsupported AI provider: "${providerType}". Must be "mock" or "openai".`,
-    'unknown_provider',
-    false,
-  );
+  return new NebiusTokenFactoryProvider({
+    apiKey,
+    model,
+    baseUrl,
+  });
 }
 
 /**

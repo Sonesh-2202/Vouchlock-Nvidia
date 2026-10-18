@@ -26,6 +26,7 @@ import {
   tasks,
   milestones,
   requirements,
+  requirementTasks,
   evidence,
 } from '../db/schema.js';
 import type { AppConfig } from '../config.js';
@@ -126,9 +127,7 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
           code: errorObj.code || 'ai_generation_failed',
           message:
             errorObj.message ||
-            (effectiveProvider === 'gemini'
-              ? 'Google Gemini API key is missing. Add your Google AI Studio key in Settings.'
-              : 'Failed to generate Copilot report.'),
+            'Failed to generate Delivery Agent report. Verify NEBIUS_API_KEY is configured in the server environment.',
         },
       });
     }
@@ -348,6 +347,74 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
           })
           .returning({ id: evidence.id });
         if (newEvidence) entityId = newEvidence.id;
+        break;
+      }
+
+      case 'create_requirement': {
+        if (!hasPermission(member.role, 'requirement:create')) {
+          return reply.code(403).send({
+            error: { code: 'forbidden', message: 'Insufficient permission to create requirements' },
+          });
+        }
+        const [newReq] = await db
+          .insert(requirements)
+          .values({
+            projectId,
+            title: payload.title || action.description,
+            description: payload.description || null,
+            category: payload.category || 'functional',
+            priority: payload.priority || 'normal',
+            status: 'draft',
+            sourceReference: payload.sourceReference || null,
+          })
+          .returning({ id: requirements.id });
+        if (newReq) entityId = newReq.id;
+        break;
+      }
+
+      case 'link_task_requirement': {
+        if (!hasPermission(member.role, 'requirement:update')) {
+          return reply.code(403).send({
+            error: {
+              code: 'forbidden',
+              message: 'Insufficient permission to link tasks to requirements',
+            },
+          });
+        }
+        const reqId = payload.requirementId;
+        const taskId = payload.taskId;
+        if (!reqId || !taskId) {
+          return reply.code(400).send({
+            error: {
+              code: 'validation_error',
+              message: 'Missing requirementId or taskId in payload',
+            },
+          });
+        }
+        const [req] = await db
+          .select()
+          .from(requirements)
+          .where(and(eq(requirements.id, reqId), eq(requirements.projectId, projectId)))
+          .limit(1);
+        const [tsk] = await db
+          .select()
+          .from(tasks)
+          .where(and(eq(tasks.id, taskId), eq(tasks.projectId, projectId)))
+          .limit(1);
+        if (!req || !tsk) {
+          return reply.code(404).send({
+            error: { code: 'not_found', message: 'Requirement or task not found in this project' },
+          });
+        }
+        try {
+          await db
+            .insert(requirementTasks)
+            .values({ requirementId: reqId, taskId })
+            .onConflictDoNothing();
+        } catch {
+          // ignore duplicate
+        }
+        entityId = reqId;
         break;
       }
 

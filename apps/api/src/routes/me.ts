@@ -12,8 +12,7 @@ import {
   ephemeralSessionStore,
   listSupportedProviders,
   getProviderDescriptor,
-  verifyGeminiApiKey,
-  verifyOpenAiApiKey,
+  verifyNebiusApiKey,
 } from '../ai/planner.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
@@ -176,23 +175,13 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
       }
     }
 
-    if (provider === 'gemini') {
+    if (provider === 'nebius') {
       try {
-        await verifyGeminiApiKey(apiKey || '');
-      } catch (err) {
-        const error = err as { code?: string; message?: string };
-        const status =
-          error.code === 'ai_auth_error' ? 401 : error.code === 'ai_model_not_found' ? 422 : 502;
-        return reply.code(status).send({
-          error: {
-            code: error.code || 'provider_check_failed',
-            message: error.message || 'Could not verify Google Gemini credentials.',
-          },
-        });
-      }
-    } else if (provider === 'openai') {
-      try {
-        await verifyOpenAiApiKey(apiKey || '');
+        await verifyNebiusApiKey(
+          apiKey || '',
+          config.nebiusBaseUrl,
+          config.nebiusModelId,
+        );
       } catch (err) {
         const error = err as { code?: string; message?: string };
         const status =
@@ -206,10 +195,17 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
         return reply.code(status).send({
           error: {
             code: error.code || 'provider_check_failed',
-            message: error.message || 'Could not verify OpenAI credentials.',
+            message: error.message || 'Could not verify Nebius Token Factory credentials.',
           },
         });
       }
+    } else {
+      return reply.code(422).send({
+        error: {
+          code: 'unsupported_provider',
+          message: `Provider "${provider}" is not supported. Nebius Token Factory with NVIDIA Nemotron is the active inference provider.`,
+        },
+      });
     }
 
     return reply.code(200).send({

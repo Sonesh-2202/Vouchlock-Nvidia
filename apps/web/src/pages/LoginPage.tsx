@@ -169,7 +169,7 @@ export function LoginPage() {
               <li>Create an account and personal workspace.</li>
               <li>Enter your project brief and delivery goals.</li>
               <li>Add tasks, requirements, evidence, and reviewers.</li>
-              <li>Optionally connect your Google Gemini API key in Settings.</li>
+              <li>Optionally connect your Nebius Token Factory API key in Settings.</li>
             </ol>
           </div>
           <p

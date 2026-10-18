@@ -79,12 +79,17 @@ export function ProjectPage() {
   const [activeTab, setActiveTab] = useState<TabType>('requirements');
   const [taskView, setTaskView] = useState<'board' | 'list'>('board');
 
-  // Copilot State
+  // Copilot / Delivery Agent State
   const [copilotReport, setCopilotReport] = useState<any | null>(null);
   const [loadingCopilot, setLoadingCopilot] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
-  const [selectedCopilotProvider, setSelectedCopilotProvider] = useState<string>('gemini');
+  const [selectedCopilotProvider, setSelectedCopilotProvider] = useState<string>('nebius');
   const [showCopilotSettings, setShowCopilotSettings] = useState(false);
+  const [lastActionNotice, setLastActionNotice] = useState<{
+    description: string;
+    actionType: string;
+    entityId?: string;
+  } | null>(null);
   const [approvingProposalId, setApprovingProposalId] = useState<string | null>(null);
   const [approvedProposals, setApprovedProposals] = useState<
     Record<string, { approved: boolean; entityId?: string; actionType?: string }>
@@ -358,6 +363,11 @@ export function ProjectPage() {
           actionType: res?.actionType || proposal.actionType,
         },
       }));
+      setLastActionNotice({
+        description: proposal.description,
+        actionType: res?.actionType || proposal.actionType,
+        entityId: res?.entityId,
+      });
       await refreshData();
     } catch (err: any) {
       alert(err?.error?.message || err?.message || 'Failed to approve proposal action.');
@@ -1502,7 +1512,7 @@ export function ProjectPage() {
                     handleGenerateCopilotReport();
                   }
                 }}
-                title="Review grounded project proposals and actions with Copilot"
+                title="Open Vouchlock Delivery Agent powered by NVIDIA Nemotron"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1512,8 +1522,8 @@ export function ProjectPage() {
                   fontWeight: 600,
                 }}
               >
-                <span>✨</span>
-                <span>Copilot Analysis</span>
+                <span>🤖</span>
+                <span>Delivery Agent</span>
               </button>
 
               <button
@@ -1586,10 +1596,10 @@ export function ProjectPage() {
               },
               {
                 id: 'copilot',
-                label: 'Copilot (AI Assistant)',
-                shortLabel: 'Copilot',
-                icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>✨</span>,
-                badge: copilotReport ? `${copilotReport.proposedActions.length} Actions` : 'AI',
+                label: 'Delivery Agent (Nemotron)',
+                shortLabel: 'Delivery Agent',
+                icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>🤖</span>,
+                badge: copilotReport ? `${copilotReport.proposedActions.length} Actions` : 'Nemotron',
               },
               {
                 id: 'activity',
@@ -4392,7 +4402,7 @@ export function ProjectPage() {
               boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05))',
             }}
           >
-            {/* Copilot Header */}
+            {/* Delivery Agent Header */}
             <div
               style={{
                 display: 'flex',
@@ -4415,7 +4425,7 @@ export function ProjectPage() {
                     textTransform: 'uppercase',
                   }}
                 >
-                  VOUCHLOCK COPILOT // BOUNDED REASONING SLICE
+                  VOUCHLOCK DELIVERY AGENT // NVIDIA NEMOTRON ON NEBIUS TOKEN FACTORY
                 </span>
                 <h1
                   className="serif-display title-fluid-display"
@@ -4425,7 +4435,7 @@ export function ProjectPage() {
                     margin: '4px 0',
                   }}
                 >
-                  Project Copilot
+                  Project Delivery Agent
                 </h1>
                 <p
                   style={{
@@ -4434,30 +4444,49 @@ export function ProjectPage() {
                     color: 'var(--text-secondary)',
                   }}
                 >
-                  Grounded analysis of authorized project records. Inferences are clearly labeled
-                  and require explicit human approval before any action executes.
+                  Truthful delivery orchestration. Connects source briefs to reviewed requirements,
+                  linked execution tasks, verification evidence, and named human sign-offs.
                 </p>
               </div>
 
-              {/* Provider Selector and Run Button */}
+              {/* Model Runtime Indicator & Run Button */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 'var(--space-2)',
+                  gap: 'var(--space-3)',
                   flexWrap: 'wrap',
                 }}
               >
-                <select
-                  className="input"
-                  value={selectedCopilotProvider}
-                  onChange={(e) => setSelectedCopilotProvider(e.target.value)}
-                  style={{ fontSize: 'var(--font-size-xs)', padding: '6px 10px' }}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                  }}
                 >
-                  <option value="gemini">Google Gemini (BYOK)</option>
-                  <option value="openai">OpenAI (BYOK Session)</option>
-                  <option value="mock">Deterministic Fallback (No Key / Heuristic)</option>
-                </select>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: '#10B981',
+                      display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Nebius Token Factory
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>/</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Nemotron-70B</span>
+                </div>
+
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -4465,12 +4494,71 @@ export function ProjectPage() {
                   disabled={loadingCopilot}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <span>{loadingCopilot ? 'Analyzing Records...' : 'Run Copilot Analysis'}</span>
-                  <span>✨</span>
+                  <span>{loadingCopilot ? 'Reasoning Across Ledger...' : 'Run Agent Analysis'}</span>
+                  <span>🤖</span>
                 </button>
               </div>
             </div>
 
+            {/* Success Audit Banner for Last Approved Action */}
+            {lastActionNotice && (
+              <div
+                style={{
+                  padding: 'var(--space-3) var(--space-4)',
+                  marginBottom: 'var(--space-4)',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid #10B981',
+                  color: '#059669',
+                  fontSize: 'var(--font-size-xs)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-3)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>✓</span>
+                  <span>
+                    <strong>Action committed to audit trail:</strong> {lastActionNotice.description}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      if (
+                        lastActionNotice.actionType === 'create_task' ||
+                        lastActionNotice.actionType === 'update_task'
+                      ) {
+                        if (lastActionNotice.entityId) {
+                          setSearchParams({ task: lastActionNotice.entityId });
+                        } else {
+                          setActiveTab('tasks');
+                        }
+                      } else {
+                        setActiveTab('requirements');
+                      }
+                    }}
+                    style={{ padding: '2px 8px', fontSize: '11px' }}
+                  >
+                    View in Ledger →
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setLastActionNotice(null)}
+                    style={{ padding: '2px 6px', color: 'var(--text-muted)' }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error Notification */}
             {copilotError && (
               <div
                 style={{
@@ -4493,49 +4581,189 @@ export function ProjectPage() {
                   <span>{copilotError}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {(copilotError.includes('503') ||
-                    copilotError.toLowerCase().includes('unavailable') ||
-                    copilotError.toLowerCase().includes('overloaded') ||
-                    copilotError.toLowerCase().includes('server error') ||
-                    copilotError.toLowerCase().includes('timed out')) && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleGenerateCopilotReport}
-                      disabled={loadingCopilot}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: 'var(--font-size-xs)',
-                        borderColor: '#EF4444',
-                        color: '#DC2626',
-                      }}
-                    >
-                      {loadingCopilot ? 'Retrying...' : 'Retry Analysis 🔄'}
-                    </button>
-                  )}
-                  {(copilotError.toLowerCase().includes('key') ||
-                    copilotError.toLowerCase().includes('settings') ||
-                    copilotError.toLowerCase().includes('auth') ||
-                    copilotError.toLowerCase().includes('credentials') ||
-                    copilotError.toLowerCase().includes('missing')) && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setShowCopilotSettings(true)}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: 'var(--font-size-xs)',
-                        borderColor: '#EF4444',
-                        color: '#DC2626',
-                      }}
-                    >
-                      Configure Gemini API Key in Settings →
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleGenerateCopilotReport}
+                    disabled={loadingCopilot}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 'var(--font-size-xs)',
+                      borderColor: '#EF4444',
+                      color: '#DC2626',
+                    }}
+                  >
+                    {loadingCopilot ? 'Retrying...' : 'Retry Analysis 🔄'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowCopilotSettings(true)}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 'var(--font-size-xs)',
+                      borderColor: '#EF4444',
+                      color: '#DC2626',
+                    }}
+                  >
+                    Configure Settings →
+                  </button>
                 </div>
               </div>
             )}
 
+            {/* 5-Stage Brief-to-Proof Delivery Pipeline Tracker */}
+            <div
+              style={{
+                marginBottom: 'var(--space-6)',
+                padding: 'var(--space-4)',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 'var(--space-3)',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  Brief-to-Proof Delivery Pipeline Status
+                </span>
+                <span
+                  className="badge badge-proof"
+                  style={{ fontSize: '10px', padding: '2px 6px' }}
+                >
+                  LEDGER AUDITABLE
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: 'var(--space-3)',
+                }}
+              >
+                {/* Stage 1: Brief Ingestion */}
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    backgroundColor:
+                      briefRevisions.length > 0 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
+                    border: `1px solid ${briefRevisions.length > 0 ? '#10B981' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    1. SOURCE BRIEF
+                  </div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                    {briefRevisions.length > 0
+                      ? `Rev #${selectedBrief?.revisionNumber ?? 1} Ingested`
+                      : 'Missing Brief'}
+                  </div>
+                </div>
+
+                {/* Stage 2: Requirements Coverage */}
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    backgroundColor:
+                      requirements.length > 0 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
+                    border: `1px solid ${requirements.length > 0 ? '#10B981' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    2. REQUIREMENTS
+                  </div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                    {requirements.length > 0
+                      ? `${requirements.length} Defined`
+                      : 'Needs Extraction'}
+                  </div>
+                </div>
+
+                {/* Stage 3: Task Linkage */}
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    backgroundColor:
+                      tasks.length > 0 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
+                    border: `1px solid ${tasks.length > 0 ? '#10B981' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    3. LINKED TASKS
+                  </div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                    {tasks.length > 0 ? `${tasks.length} Executing` : '0 Tasks'}
+                  </div>
+                </div>
+
+                {/* Stage 4: Proof & Evidence */}
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    backgroundColor:
+                      copilotReport && copilotReport.evidenceGaps?.length === 0
+                        ? 'rgba(16, 185, 129, 0.06)'
+                        : 'rgba(245, 158, 11, 0.06)',
+                    border: `1px solid ${
+                      copilotReport && copilotReport.evidenceGaps?.length === 0
+                        ? '#10B981'
+                        : '#F59E0B'
+                    }`,
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    4. PROOF / EVIDENCE
+                  </div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                    {copilotReport
+                      ? copilotReport.evidenceGaps?.length === 0
+                        ? 'Full Evidence Coverage'
+                        : `${copilotReport.evidenceGaps?.length} Evidence Gaps`
+                      : 'Audit in progress'}
+                  </div>
+                </div>
+
+                {/* Stage 5: Human Verification */}
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    backgroundColor:
+                      percentVerified === 100 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
+                    border: `1px solid ${percentVerified === 100 ? '#10B981' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    5. HUMAN VERIFICATION
+                  </div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                    {percentVerified}% Certified
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Empty State */}
             {!copilotReport && !loadingCopilot && (
               <div
                 style={{
@@ -4547,49 +4775,59 @@ export function ProjectPage() {
                 }}
               >
                 <span
-                  style={{ fontSize: '32px', display: 'block', marginBottom: 'var(--space-2)' }}
+                  style={{ fontSize: '36px', display: 'block', marginBottom: 'var(--space-2)' }}
                 >
-                  ✨
+                  🤖
                 </span>
                 <h3
                   className="serif-display"
-                  style={{ fontSize: 'var(--font-size-lg)', margin: '0 0 var(--space-2)' }}
+                  style={{ fontSize: 'var(--font-size-xl)', margin: '0 0 var(--space-2)' }}
                 >
-                  Grounded Project Intelligence
+                  Inspect the Ledger with NVIDIA Nemotron
                 </h3>
                 <p
                   style={{
-                    maxWidth: '500px',
+                    maxWidth: '560px',
                     margin: '0 auto var(--space-4)',
                     fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted)',
+                    lineHeight: '1.6',
                   }}
                 >
-                  Click &ldquo;Run Copilot Analysis&rdquo; to analyze your milestone schedule, task
-                  statuses, unverified requirements, and attached evidence records.
+                  The Vouchlock Delivery Agent inspects your project brief, requirement coverage,
+                  unlinked tasks, and evidence records to recommend the single most impactful next
+                  delivery action. Inferences remain separate from verified records.
                 </p>
                 <button
                   type="button"
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary"
                   onClick={handleGenerateCopilotReport}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  Start Analysis Now
+                  <span>Start Agent Analysis Now</span>
+                  <span>→</span>
                 </button>
               </div>
             )}
 
+            {/* Loading State */}
             {loadingCopilot && (
               <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
                 <div className="loading-spinner" style={{ margin: '0 auto var(--space-3)' }} />
-                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
-                  Reading authorized records & formulating bounded proposals...
+                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  NVIDIA Nemotron is reasoning across project ledger records...
+                </p>
+                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Calling Nebius Token Factory serverless runtime. Assembling brief citations, task
+                  links, and evidence audit trails.
                 </p>
               </div>
             )}
 
+            {/* Full Report & Proposals Surface */}
             {copilotReport && !loadingCopilot && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                {/* Grounding & Provenance Metadata */}
+                {/* Runtime & Grounding Provenance Strip */}
                 <div
                   style={{
                     display: 'flex',
@@ -4608,36 +4846,15 @@ export function ProjectPage() {
                   <div
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
                   >
-                    {copilotReport.provider === 'mock' ? (
-                      <span
-                        className="badge badge-pending"
-                        style={{ fontSize: '9px', padding: '2px 6px', fontWeight: 700 }}
-                      >
-                        NON-AI DETERMINISTIC FALLBACK
-                      </span>
-                    ) : (
-                      <span
-                        className="badge badge-proof"
-                        style={{ fontSize: '9px', padding: '2px 6px', fontWeight: 700 }}
-                      >
-                        LIVE AI PROVIDER ({copilotReport.provider.toUpperCase()})
-                      </span>
-                    )}
+                    <span
+                      className="badge badge-proof"
+                      style={{ fontSize: '9px', padding: '2px 6px', fontWeight: 700 }}
+                    >
+                      NEBIUS TOKEN FACTORY
+                    </span>
                     <span>
-                      {copilotReport.provider === 'mock' ? (
-                        <>
-                          Rule-based heuristic engine · No AI API key required · Grounded in{' '}
-                          <strong>{copilotReport.sourceRecords?.length ?? 0}</strong> verified
-                          project records
-                        </>
-                      ) : (
-                        <>
-                          Provider: <strong>{copilotReport.provider}</strong> ({copilotReport.model}
-                          ) · Grounded in{' '}
-                          <strong>{copilotReport.sourceRecords?.length ?? 0}</strong> verified
-                          records
-                        </>
-                      )}
+                      Model: <strong>{copilotReport.model || 'nvidia/Llama-3.1-Nemotron-70B-Instruct'}</strong> ·
+                      Grounded in <strong>{copilotReport.sourceRecords?.length ?? 0}</strong> authorized project records
                     </span>
                   </div>
                   <span className="mono-num">
@@ -4645,7 +4862,63 @@ export function ProjectPage() {
                   </span>
                 </div>
 
-                {/* Facts vs Inference Split */}
+                {/* Most Useful Next Action Card */}
+                {copilotReport.nextActionExplanation && (
+                  <div
+                    style={{
+                      padding: 'var(--space-4) var(--space-5)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                      border: '2px solid rgba(59, 130, 246, 0.4)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 'var(--space-2)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor: '#3B82F6',
+                            color: '#FFFFFF',
+                            fontSize: '10px',
+                            padding: '2px 8px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          RECOMMENDED NEXT ACTION
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600 }}>
+                          NVIDIA NEMOTRON REASONING
+                        </span>
+                      </div>
+                      <span
+                        className="badge badge-pending"
+                        style={{ fontSize: '9px', padding: '1px 6px' }}
+                      >
+                        AI suggestion
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 'var(--font-size-base)',
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        lineHeight: '1.5',
+                      }}
+                    >
+                      {copilotReport.nextActionExplanation}
+                    </p>
+                  </div>
+                )}
+
+                {/* Visible Distinctions: Project Records vs AI Suggestions */}
                 <div
                   style={{
                     display: 'grid',
@@ -4653,7 +4926,7 @@ export function ProjectPage() {
                     gap: 'var(--space-4)',
                   }}
                 >
-                  {/* Grounded Facts Card */}
+                  {/* Grounded Project Record Card */}
                   <div
                     style={{
                       padding: 'var(--space-4)',
@@ -4672,12 +4945,12 @@ export function ProjectPage() {
                     >
                       <span
                         className="badge badge-proof"
-                        style={{ fontSize: '9px', padding: '1px 5px' }}
+                        style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
                       >
-                        GROUNDED FACTS
+                        Project record
                       </span>
                       <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
-                        SOURCE DATA
+                        VERIFIED FACTS
                       </span>
                     </div>
                     <p
@@ -4692,7 +4965,7 @@ export function ProjectPage() {
                     </p>
                   </div>
 
-                  {/* Model Inference Card */}
+                  {/* Model Inference / AI Suggestion Card */}
                   <div
                     style={{
                       padding: 'var(--space-4)',
@@ -4711,12 +4984,12 @@ export function ProjectPage() {
                     >
                       <span
                         className="badge badge-pending"
-                        style={{ fontSize: '9px', padding: '1px 5px' }}
+                        style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
                       >
-                        MODEL INFERENCE
+                        AI suggestion
                       </span>
                       <span style={{ fontSize: '11px', color: '#D97706', fontWeight: 600 }}>
-                        SYNTHESIZED INSIGHT
+                        MODEL INFERENCE
                       </span>
                     </div>
                     <p
@@ -4732,21 +5005,36 @@ export function ProjectPage() {
                   </div>
                 </div>
 
-                {/* Blockers */}
+                {/* Blockers & Needs Review Section */}
                 {copilotReport.blockers?.length > 0 && (
                   <div>
-                    <h3
+                    <div
                       style={{
-                        fontSize: 'var(--font-size-xs)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        color: '#EF4444',
-                        margin: '0 0 var(--space-2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: 'var(--space-2)',
                       }}
                     >
-                      Active Blockers ({copilotReport.blockers.length})
-                    </h3>
+                      <span
+                        className="badge badge-blocked"
+                        style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
+                      >
+                        Needs review
+                      </span>
+                      <h3
+                        style={{
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          color: '#EF4444',
+                          margin: 0,
+                        }}
+                      >
+                        Active Ledger Blockers ({copilotReport.blockers.length})
+                      </h3>
+                    </div>
                     <div
                       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
                     >
@@ -4772,9 +5060,71 @@ export function ProjectPage() {
                                 marginTop: '2px',
                               }}
                             >
-                              Related: {b.relatedEntity}
+                              Target: {b.relatedEntity}
                             </span>
                           )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Evidence Gaps */}
+                {copilotReport.evidenceGaps?.length > 0 && (
+                  <div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: 'var(--space-2)',
+                      }}
+                    >
+                      <span
+                        className="badge badge-blocked"
+                        style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
+                      >
+                        Needs review
+                      </span>
+                      <h3
+                        style={{
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          color: 'var(--text-primary)',
+                          margin: 0,
+                        }}
+                      >
+                        Requirements Missing Proof ({copilotReport.evidenceGaps.length})
+                      </h3>
+                    </div>
+                    <div
+                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
+                    >
+                      {copilotReport.evidenceGaps.map((g: any) => (
+                        <div
+                          key={g.requirementId}
+                          style={{
+                            padding: 'var(--space-3)',
+                            backgroundColor: 'var(--bg-surface)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: 'var(--font-size-xs)',
+                          }}
+                        >
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            [{g.requirementTitle}]
+                          </span>
+                          <p
+                            style={{
+                              margin: '2px 0 0',
+                              color: 'var(--text-secondary)',
+                              fontSize: '11px',
+                            }}
+                          >
+                            {g.reason}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -4794,7 +5144,7 @@ export function ProjectPage() {
                         margin: '0 0 var(--space-2)',
                       }}
                     >
-                      Identified Risks ({copilotReport.risks.length})
+                      Delivery Risks ({copilotReport.risks.length})
                     </h3>
                     <div
                       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
@@ -4834,7 +5184,7 @@ export function ProjectPage() {
                                 fontSize: '11px',
                               }}
                             >
-                              Recommended Mitigation: {r.mitigation}
+                              Mitigation: {r.mitigation}
                             </p>
                           )}
                         </div>
@@ -4843,106 +5193,11 @@ export function ProjectPage() {
                   </div>
                 )}
 
-                {/* Evidence Gaps */}
-                {copilotReport.evidenceGaps?.length > 0 && (
-                  <div>
-                    <h3
-                      style={{
-                        fontSize: 'var(--font-size-xs)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        color: 'var(--text-muted)',
-                        margin: '0 0 var(--space-2)',
-                      }}
-                    >
-                      Truth Ledger Evidence Gaps ({copilotReport.evidenceGaps.length})
-                    </h3>
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
-                    >
-                      {copilotReport.evidenceGaps.map((g: any) => (
-                        <div
-                          key={g.requirementId}
-                          style={{
-                            padding: 'var(--space-3)',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: 'var(--radius-sm)',
-                            fontSize: 'var(--font-size-xs)',
-                          }}
-                        >
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                            [{g.requirementTitle}]
-                          </span>
-                          <p
-                            style={{
-                              margin: '2px 0 0',
-                              color: 'var(--text-secondary)',
-                              fontSize: '11px',
-                            }}
-                          >
-                            {g.reason}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Open Questions */}
-                {copilotReport.openQuestions?.length > 0 && (
-                  <div>
-                    <h3
-                      style={{
-                        fontSize: 'var(--font-size-xs)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        color: 'var(--text-muted)',
-                        margin: '0 0 var(--space-2)',
-                      }}
-                    >
-                      Open Questions ({copilotReport.openQuestions.length})
-                    </h3>
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
-                    >
-                      {copilotReport.openQuestions.map((q: any) => (
-                        <div
-                          key={q.id}
-                          style={{
-                            padding: 'var(--space-3)',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: 'var(--radius-sm)',
-                            fontSize: 'var(--font-size-xs)',
-                          }}
-                        >
-                          <span style={{ fontWeight: 600 }}>{q.question}</span>
-                          {q.context && (
-                            <span
-                              style={{
-                                display: 'block',
-                                color: 'var(--text-muted)',
-                                fontSize: '11px',
-                                marginTop: '2px',
-                              }}
-                            >
-                              {q.context}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Proposed Actions (Human-in-the-Loop) */}
+                {/* Proposed Action Envelopes (Human-in-the-Loop) */}
                 <div
                   style={{
                     borderTop: '2px solid var(--border-subtle)',
-                    paddingTop: 'var(--space-4)',
+                    paddingTop: 'var(--space-5)',
                   }}
                 >
                   <div
@@ -4950,25 +5205,25 @@ export function ProjectPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      marginBottom: 'var(--space-2)',
+                      marginBottom: 'var(--space-3)',
                     }}
                   >
                     <div>
                       <h3
                         style={{
-                          fontSize: 'var(--font-size-sm)',
+                          fontSize: 'var(--font-size-base)',
                           fontWeight: 700,
                           margin: 0,
                           color: 'var(--text-primary)',
                         }}
                       >
-                        Proposed Next Steps ({copilotReport.proposedActions?.length ?? 0})
+                        Proposed Action Envelopes ({copilotReport.proposedActions?.length ?? 0})
                       </h3>
                       <p
                         style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}
                       >
-                        All model actions require your explicit approval before committing to
-                        project records.
+                        Actions synthesized by NVIDIA Nemotron. Require authorized human approval
+                        before mutating project state or audit records.
                       </p>
                     </div>
                   </div>
@@ -4982,7 +5237,7 @@ export function ProjectPage() {
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 'var(--space-3)',
+                        gap: 'var(--space-4)',
                         marginTop: 'var(--space-3)',
                       }}
                     >
@@ -5019,6 +5274,8 @@ export function ProjectPage() {
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 marginBottom: 'var(--space-2)',
+                                flexWrap: 'wrap',
+                                gap: 'var(--space-2)',
                               }}
                             >
                               <div
@@ -5030,33 +5287,57 @@ export function ProjectPage() {
                               >
                                 <span
                                   className="badge badge-proof"
-                                  style={{ fontSize: '9px', padding: '1px 6px' }}
+                                  style={{ fontSize: '9px', padding: '2px 8px', fontWeight: 700 }}
                                 >
-                                  {p.actionType.toUpperCase().replace('_', ' ')}
+                                  {p.actionType.toUpperCase().replace(/_/g, ' ')}
                                 </span>
                                 <span
                                   className="badge badge-pending"
-                                  style={{ fontSize: '9px', padding: '1px 6px' }}
+                                  style={{ fontSize: '9px', padding: '2px 6px' }}
                                 >
-                                  PROPOSED INFERENCE
+                                  AI suggestion
+                                </span>
+                                <span
+                                  className="badge badge-blocked"
+                                  style={{ fontSize: '9px', padding: '2px 6px' }}
+                                >
+                                  Needs review
                                 </span>
                               </div>
+
                               <span
                                 style={{
                                   fontFamily: 'var(--font-mono)',
-                                  fontSize: '10px',
+                                  fontSize: '11px',
                                   color: 'var(--text-muted)',
                                 }}
                               >
-                                {p.groundingReference}
+                                {p.groundingReference?.startsWith('Requirement') ||
+                                p.groundingReference?.startsWith('Task') ||
+                                p.groundingReference?.startsWith('Project') ? (
+                                  <>
+                                    <strong style={{ color: 'var(--text-secondary)' }}>
+                                      Project record:
+                                    </strong>{' '}
+                                    {p.groundingReference}
+                                  </>
+                                ) : (
+                                  <>
+                                    <strong style={{ color: 'var(--text-secondary)' }}>
+                                      Source passage:
+                                    </strong>{' '}
+                                    &ldquo;{p.groundingReference}&rdquo;
+                                  </>
+                                )}
                               </span>
                             </div>
 
                             <p
                               style={{
                                 margin: '0 0 var(--space-3)',
-                                fontSize: 'var(--font-size-sm)',
+                                fontSize: 'var(--font-size-base)',
                                 fontWeight: 600,
+                                color: 'var(--text-primary)',
                               }}
                             >
                               {p.description}
@@ -5082,53 +5363,43 @@ export function ProjectPage() {
                                 >
                                   <span
                                     className="badge badge-proof"
-                                    style={{ fontSize: '11px', padding: '4px 8px' }}
+                                    style={{ fontSize: '11px', padding: '4px 10px', fontWeight: 700 }}
                                   >
-                                    ✓ APPROVED & EXECUTED
+                                    ✓ APPROVED & COMMITTED TO AUDIT TRAIL
                                   </span>
-                                  {approvedData?.entityId
-                                    ? (() => {
-                                        const entityId = approvedData.entityId!;
-                                        return p.actionType === 'create_task' ||
-                                          p.actionType === 'update_task' ? (
-                                          <button
-                                            type="button"
-                                            className="btn btn-secondary btn-sm"
-                                            onClick={() => setSearchParams({ task: entityId })}
-                                            style={{
-                                              padding: '3px 8px',
-                                              fontSize: '11px',
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              gap: '4px',
-                                            }}
-                                            title="Inspect updated task in drawer"
-                                          >
-                                            <span>View Task</span> <span>→</span>
-                                          </button>
-                                        ) : p.actionType === 'create_requirement' ||
-                                          p.actionType === 'update_requirement' ? (
-                                          <button
-                                            type="button"
-                                            className="btn btn-secondary btn-sm"
-                                            onClick={() => {
-                                              setActiveTab('requirements');
-                                              setSelectedReqId(entityId);
-                                            }}
-                                            style={{
-                                              padding: '3px 8px',
-                                              fontSize: '11px',
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              gap: '4px',
-                                            }}
-                                            title="Inspect requirement in workbench"
-                                          >
-                                            <span>View Requirement</span> <span>→</span>
-                                          </button>
-                                        ) : null;
-                                      })()
-                                    : null}
+                                  {approvedData && approvedData.entityId ? (
+                                    p.actionType === 'create_task' ||
+                                    p.actionType === 'update_task' ? (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => {
+                                          if (approvedData?.entityId) {
+                                            setSearchParams({ task: approvedData.entityId });
+                                          }
+                                        }}
+                                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                                      >
+                                        View Task →
+                                      </button>
+                                    ) : p.actionType === 'create_requirement' ||
+                                      p.actionType === 'update_requirement' ||
+                                      p.actionType === 'link_task_requirement' ? (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => {
+                                          setActiveTab('requirements');
+                                          if (approvedData?.entityId) {
+                                            setSelectedReqId(approvedData.entityId);
+                                          }
+                                        }}
+                                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                                      >
+                                        View Requirement →
+                                      </button>
+                                    ) : null
+                                  ) : null}
                                 </div>
                               ) : isRejected ? (
                                 <span
@@ -5152,8 +5423,9 @@ export function ProjectPage() {
                                     className="btn btn-primary btn-sm"
                                     onClick={() => handleApproveCopilotAction(p)}
                                     disabled={isApproving}
+                                    style={{ fontWeight: 600 }}
                                   >
-                                    {isApproving ? 'Executing...' : 'Approve & Execute'}
+                                    {isApproving ? 'Committing...' : 'Approve & Commit to Ledger'}
                                   </button>
                                 </>
                               )}

@@ -372,8 +372,10 @@ export const evidenceGapSchema = z.object({
 export const proposedActionTypeSchema = z.enum([
   'create_task',
   'update_task',
-  'update_requirement',
   'create_milestone',
+  'update_requirement',
+  'create_requirement',
+  'link_task_requirement',
   'request_evidence',
 ]);
 
@@ -392,9 +394,21 @@ export const sourceRecordSchema = z.object({
   nameOrTitle: z.string(),
 });
 
+export const copilotWorkflowStageSchema = z.enum([
+  'brief_ingestion',
+  'requirements_extraction',
+  'task_linkage',
+  'evidence_collection',
+  'verification',
+]);
+
 export const copilotReportSchema = z.object({
   groundedSummary: z.string().max(5000),
   inferredSummary: z.string().max(5000),
+  workflowStage: copilotWorkflowStageSchema.optional(),
+  nextActionExplanation: z.string().max(2000).optional(),
+  unlinkedTasksCount: z.number().int().optional(),
+  unverifiedRequirementsCount: z.number().int().optional(),
   openQuestions: z.array(copilotQuestionSchema),
   risks: z.array(copilotRiskSchema),
   blockers: z.array(copilotBlockerSchema),
@@ -433,6 +447,7 @@ export type ProposedActionType = z.infer<typeof proposedActionTypeSchema>;
 export type ProposedAction = z.infer<typeof proposedActionSchema>;
 export type SourceRecord = z.infer<typeof sourceRecordSchema>;
 export type CopilotReport = z.infer<typeof copilotReportSchema>;
+export type CopilotWorkflowStage = z.infer<typeof copilotWorkflowStageSchema>;
 export type GenerateCopilotReportInput = z.infer<typeof generateCopilotReportSchema>;
 export type ApproveCopilotActionInput = z.infer<typeof approveCopilotActionSchema>;
 export type RejectCopilotActionInput = z.infer<typeof rejectCopilotActionSchema>;

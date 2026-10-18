@@ -10,36 +10,26 @@ export interface ProviderDescriptor {
   readonly tested: boolean;
   readonly requiresApiKey: boolean;
   readonly description?: string;
+  readonly advertised?: boolean;
 }
 
 export const PROVIDER_REGISTRY = {
+  nebius: {
+    id: 'nebius',
+    label: 'NVIDIA Nemotron (Nebius Token Factory)',
+    tested: true,
+    requiresApiKey: true,
+    advertised: true,
+    description:
+      'Serverless inference endpoint hosting NVIDIA open-source Nemotron models via Nebius Token Factory.',
+  },
   mock: {
     id: 'mock',
-    label: 'Mock (Deterministic)',
+    label: 'Internal Mock Fixture',
     tested: true,
     requiresApiKey: false,
+    advertised: false, // Internal-only fixture, isolated from live product selection
     description: 'Deterministic test engine with zero network calls and zero credentials required.',
-  },
-  openai: {
-    id: 'openai',
-    label: 'OpenAI',
-    tested: true,
-    requiresApiKey: true,
-    description: 'Production adapter supporting live OpenAI models via structured JSON schema.',
-  },
-  gemini: {
-    id: 'gemini',
-    label: 'Google Gemini',
-    tested: true,
-    requiresApiKey: true,
-    description: 'Google AI Studio Gemini API using structured outputs. API keys are session-only.',
-  },
-  anthropic: {
-    id: 'anthropic',
-    label: 'Anthropic Claude',
-    tested: false, // gated on Anthropic adapter passing the 9-test matrix
-    requiresApiKey: true,
-    description: 'Anthropic Messages API adapter (planned; pending full test matrix validation).',
   },
 } as const satisfies Record<string, ProviderDescriptor>;
 
@@ -54,6 +44,10 @@ export function isProviderTested(id: string): boolean {
   return desc?.tested === true;
 }
 
+/**
+ * Returns only production-advertised providers for user-facing and API consumers.
+ * Internal mock fixtures are excluded from product selection.
+ */
 export function listSupportedProviders(): ProviderDescriptor[] {
-  return Object.values(PROVIDER_REGISTRY);
+  return Object.values(PROVIDER_REGISTRY).filter((p) => p.advertised !== false);
 }

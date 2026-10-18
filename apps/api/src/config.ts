@@ -55,7 +55,10 @@ export interface AppConfig {
   readonly jwtSecret: string;
   readonly sessionCookieName: string;
   readonly corsOrigin: string[] | string | boolean;
-  readonly aiProvider: 'mock' | 'openai' | 'anthropic' | 'gemini';
+  readonly aiProvider: 'nebius';
+  readonly nebiusApiKey: string;
+  readonly nebiusModelId: string;
+  readonly nebiusBaseUrl: string;
   readonly aiApiKey: string;
   readonly aiModel: string;
   readonly logLevel: string;
@@ -115,32 +118,31 @@ export function loadConfig(): AppConfig {
       (isProd ? 'http://localhost,http://localhost:80' : 'http://localhost:5173'),
   );
 
-  // 7. AI Provider reconciliation (AI_PROVIDER or PLANNER_PROVIDER)
-  const rawProvider = (
-    process.env['AI_PROVIDER'] ||
-    process.env['PLANNER_PROVIDER'] ||
-    'gemini'
-  ).toLowerCase();
-  const aiProvider = (
-    rawProvider === 'openai' || rawProvider === 'anthropic' || rawProvider === 'gemini'
-      ? rawProvider
-      : 'gemini'
-  ) as 'mock' | 'openai' | 'anthropic' | 'gemini';
+  // 7. AI Provider reconciliation: Nebius Token Factory exclusively
+  const aiProvider = 'nebius' as const;
 
-  // 8. AI API Key reconciliation (GEMINI_API_KEY, AI_API_KEY or OPENAI_API_KEY)
-  const aiApiKey =
-    process.env['GEMINI_API_KEY'] ||
+  // 8. Nebius Token Factory API Key (server-side only, never leaked)
+  const nebiusApiKey =
+    process.env['NEBIUS_API_KEY'] ||
+    process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
     process.env['AI_API_KEY'] ||
-    process.env['OPENAI_API_KEY'] ||
     '';
 
-  // 9. AI Model reconciliation (AI_MODEL or OPENAI_MODEL)
-  const aiModel =
+  // 9. NVIDIA Open-Source Model on Nebius Token Factory (default: nvidia/Llama-3.1-Nemotron-70B-Instruct)
+  const nebiusModelId =
+    process.env['NEBIUS_MODEL_ID'] ||
+    process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
     process.env['AI_MODEL'] ||
-    process.env['OPENAI_MODEL'] ||
-    (aiProvider === 'gemini' ? 'gemini-3.8-flash' : 'gpt-4o');
+    'nvidia/Llama-3.1-Nemotron-70B-Instruct';
 
-  // 10. Logging
+  // 10. Nebius Token Factory Base URL
+  const nebiusBaseUrl = (
+    process.env['NEBIUS_BASE_URL'] ||
+    process.env['NEBIUS_TOKEN_FACTORY_BASE_URL'] ||
+    'https://api.tokenfactory.nebius.com/v1'
+  ).replace(/\/+$/, '');
+
+  // 11. Logging
   const logLevel = process.env['LOG_LEVEL'] || 'info';
   const logRedact = process.env['LOG_REDACT'] !== 'false';
 
@@ -153,8 +155,11 @@ export function loadConfig(): AppConfig {
     sessionCookieName,
     corsOrigin,
     aiProvider,
-    aiApiKey,
-    aiModel,
+    nebiusApiKey,
+    nebiusModelId,
+    nebiusBaseUrl,
+    aiApiKey: nebiusApiKey,
+    aiModel: nebiusModelId,
     logLevel,
     logRedact,
   };

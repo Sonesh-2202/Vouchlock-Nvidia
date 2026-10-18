@@ -327,7 +327,7 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
         constraints: parsed.data.constraints ?? (project.constraints as Record<string, unknown>),
         memberNames,
       },
-      config.aiProvider,
+      config,
     );
 
     const [generation] = await db
