@@ -46,7 +46,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost,http://localhost:80,http://localhost:4000,http://localhost:5173}
       AI_PROVIDER: ${AI_PROVIDER:-nebius}
       NEBIUS_API_KEY: ${NEBIUS_API_KEY:-}
-      NEBIUS_MODEL_ID: ${NEBIUS_MODEL_ID:-nvidia/Llama-3.1-Nemotron-70B-Instruct}
+      NEBIUS_MODEL_ID: ${NEBIUS_MODEL_ID:-}
       NEBIUS_BASE_URL: ${NEBIUS_BASE_URL:-https://api.tokenfactory.nebius.com/v1}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:

@@ -162,8 +162,10 @@ export const generatePlanDraftSchema = z.object({
   audience: z.string().trim().max(500).optional(),
   deliverable: z.string().trim().max(500).optional(),
   deadline: isoDateSchema.optional(),
-  constraints: z.array(z.string().max(500)).optional(),
+  constraints: z.record(z.unknown()).optional(),
   providerOverride: z.string().optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
 });
 
 export const acceptPlanDraftSchema = z.object({
@@ -301,6 +303,8 @@ export const requirementProposalSchema = z.object({
 export const extractRequirementsInputSchema = z.object({
   briefRevisionId: uuidSchema,
   providerOverride: z.string().optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
 });
 
 export const acceptCandidateItemSchema = z.object({
@@ -420,6 +424,8 @@ export const copilotReportSchema = z.object({
   generatedAt: isoDateSchema,
   provider: z.string(),
   model: z.string(),
+  modelRole: z.string().optional(),
+  routingReason: z.string().optional(),
   requesterId: uuidSchema,
   projectId: uuidSchema,
 });
@@ -427,6 +433,8 @@ export const copilotReportSchema = z.object({
 export const generateCopilotReportSchema = z.object({
   projectId: uuidSchema,
   providerOverride: z.string().optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
 });
 
 export const approveCopilotActionSchema = z.object({
@@ -492,3 +500,95 @@ export type McpCallToolInput = z.infer<typeof mcpCallToolInputSchema>;
 export type McpCreateTokenInput = z.infer<typeof mcpCreateTokenSchema>;
 export type McpRevokeTokenInput = z.infer<typeof mcpRevokeTokenSchema>;
 export type McpPaginationInput = z.infer<typeof mcpPaginationSchema>;
+
+// ── Dynamic Model Discovery & Role Profiles ──
+
+export const modelRoleProfileEnum = z.enum(['fast', 'balanced', 'deep_reasoning', 'unclassified']);
+export type ModelRoleProfile = z.infer<typeof modelRoleProfileEnum>;
+
+export const discoveredModelSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().min(1),
+  vendor: z.string(),
+  family: z.string(),
+  isNemotron: z.boolean(),
+  roleSuggestion: modelRoleProfileEnum.default('unclassified'),
+  contextLength: z.number().int().positive().optional(),
+  pricing: z
+    .object({
+      prompt: z.union([z.string(), z.number()]).optional(),
+      completion: z.union([z.string(), z.number()]).optional(),
+    })
+    .optional(),
+  quantization: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  rawMetadata: z.record(z.unknown()).optional(),
+});
+export type DiscoveredModel = z.infer<typeof discoveredModelSchema>;
+
+export const modelCatalogResponseSchema = z.object({
+  provider: z.string(),
+  models: z.array(discoveredModelSchema),
+  nemotronModels: z.array(discoveredModelSchema),
+  roleAssignments: z.object({
+    fast: discoveredModelSchema.nullable(),
+    balanced: discoveredModelSchema.nullable(),
+    deep_reasoning: discoveredModelSchema.nullable(),
+  }),
+  fetchedAt: z.string(),
+  cached: z.boolean(),
+  source: z.literal('nebius_token_factory_catalog'),
+});
+export type ModelCatalogResponse = z.infer<typeof modelCatalogResponseSchema>;
+
+export const modelPreferencesSchema = z.object({
+  selectedModelId: z.string().optional(),
+  selectedRoleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
+  customRoleAssignments: z
+    .object({
+      fast: z.string().optional(),
+      balanced: z.string().optional(),
+      deep_reasoning: z.string().optional(),
+    })
+    .optional(),
+});
+export type ModelPreferences = z.infer<typeof modelPreferencesSchema>;
+
+// ── Nebius Serverless Jobs (Asynchronous Delivery Workflows) ──
+
+export const jobStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled']);
+export type JobStatus = z.infer<typeof jobStatusSchema>;
+
+export const jobExecutionTargetSchema = z.enum(['nebius_serverless_job', 'local_worker']);
+export type JobExecutionTarget = z.infer<typeof jobExecutionTargetSchema>;
+
+export const createPortfolioAuditJobSchema = z.object({
+  workspaceId: uuidSchema,
+  projectId: uuidSchema.optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
+  idempotencyKey: z.string().max(128).optional(),
+});
+export type CreatePortfolioAuditJobInput = z.infer<typeof createPortfolioAuditJobSchema>;
+
+export const serverlessJobRecordSchema = z.object({
+  id: uuidSchema,
+  workspaceId: uuidSchema,
+  projectId: uuidSchema.nullable().optional(),
+  userId: uuidSchema,
+  jobType: z.string(),
+  status: jobStatusSchema,
+  executionTarget: jobExecutionTargetSchema,
+  modelId: z.string().nullable().optional(),
+  modelRole: z.string().nullable().optional(),
+  progressPercent: z.number().int().min(0).max(100),
+  result: z.record(z.unknown()).nullable().optional(),
+  error: z.string().nullable().optional(),
+  cloudJobId: z.string().nullable().optional(),
+  startedAt: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type ServerlessJobRecord = z.infer<typeof serverlessJobRecordSchema>;
+

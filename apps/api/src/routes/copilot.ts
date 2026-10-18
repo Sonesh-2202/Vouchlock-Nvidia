@@ -104,6 +104,10 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
         config,
         sessionApiKey,
         providerOverride,
+        {
+          modelOverride: parsed.data.modelOverride,
+          roleProfile: parsed.data.roleProfile,
+        },
       );
     } catch (err: unknown) {
       logger.error(

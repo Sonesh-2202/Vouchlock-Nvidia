@@ -1,0 +1,53 @@
+# Declarative Specification for Nebius AI Cloud Serverless Endpoint
+# Service: Vouchlock Interactive Delivery Ledger & Agent Application
+# Note: Replace placeholders (<...>) with your actual Nebius account details. Do NOT commit real secrets.
+
+apiVersion: serverless.nebius.ai/v1alpha1
+kind: Endpoint
+metadata:
+  name: vouchlock-app-endpoint
+  project_id: "<NEBIUS_PROJECT_ID>"
+  region: "<NEBIUS_REGION>" # e.g. eu-north1-c
+spec:
+  container:
+    image: "<NEBIUS_REGISTRY_HOST>/<NEBIUS_PROJECT_ID>/vouchlock:latest"
+    port: 8080
+    resources:
+      cores: 2
+      memory: "4Gi"
+    env:
+      - name: NODE_ENV
+        value: "production"
+      - name: NEBIUS_BASE_URL
+        value: "https://api.tokenfactory.nebius.com/v1"
+      - name: CORS_ORIGIN
+        value: "*"
+      - name: LOG_LEVEL
+        value: "info"
+    secrets:
+      - name: DATABASE_URL
+        secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_DATABASE_URL>"
+        version_id: "<SECRET_VERSION_ID>"
+      - name: JWT_SECRET
+        secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_JWT_SECRET>"
+        version_id: "<SECRET_VERSION_ID>"
+      - name: NEBIUS_API_KEY
+        secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_TOKEN_FACTORY_KEY>"
+        version_id: "<SECRET_VERSION_ID>"
+  scaling:
+    min_instances: 1
+    max_instances: 5
+    concurrency_per_instance: 50
+  probes:
+    liveness:
+      http_get:
+        path: /health
+        port: 8080
+      initial_delay_seconds: 10
+      period_seconds: 15
+    readiness:
+      http_get:
+        path: /health/ready
+        port: 8080
+      initial_delay_seconds: 10
+      period_seconds: 10

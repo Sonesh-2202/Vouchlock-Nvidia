@@ -24,6 +24,7 @@ import {
 import { AppShell } from '../components/AppShell.js';
 import { TaskDrawer } from '../components/TaskDrawer.js';
 import { SettingsModal } from '../components/SettingsModal.js';
+import { ModelPicker } from '../components/ModelPicker.js';
 import {
   withViewTransition,
   animateVerificationStamp,
@@ -84,6 +85,9 @@ export function ProjectPage() {
   const [loadingCopilot, setLoadingCopilot] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [selectedCopilotProvider, setSelectedCopilotProvider] = useState<string>('nebius');
+  const [selectedModelOverride, setSelectedModelOverride] = useState<string>('');
+  const [selectedRoleProfile, setSelectedRoleProfile] = useState<'fast' | 'balanced' | 'deep_reasoning'>('balanced');
+  const [showModelPickerDrawer, setShowModelPickerDrawer] = useState(false);
   const [showCopilotSettings, setShowCopilotSettings] = useState(false);
   const [lastActionNotice, setLastActionNotice] = useState<{
     description: string;
@@ -341,7 +345,14 @@ export function ProjectPage() {
     setLoadingCopilot(true);
     setCopilotError(null);
     try {
-      const res = await api.copilot.generateReport(id, selectedCopilotProvider);
+      const res = await api.copilot.generateReport(
+        id,
+        selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        {
+          modelOverride: selectedModelOverride || undefined,
+          roleProfile: selectedRoleProfile,
+        },
+      );
       setCopilotReport(res.report);
     } catch (err: any) {
       setCopilotError(err?.error?.message || err?.message || 'Failed to generate Copilot report.');
@@ -4489,9 +4500,9 @@ export function ProjectPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    <option value="nebius">Nebius Token Factory (NVIDIA Nemotron-70B) — Hackathon Default</option>
+                    <option value="nebius">Nebius Token Factory (NVIDIA Nemotron) — Hackathon Default</option>
                     <option value="openai">OpenAI GPT-4o (Personal BYOK)</option>
-                    <option value="gemini">Google Gemini 1.5 (Personal BYOK)</option>
+                    <option value="gemini">Google Gemini (Personal BYOK)</option>
                   </select>
                 </div>
 
@@ -4527,10 +4538,22 @@ export function ProjectPage() {
                   />
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                     {selectedCopilotProvider === 'nebius'
-                      ? 'Server Default (Nemotron-70B)'
+                      ? 'Server Default (NVIDIA Nemotron)'
                       : `${selectedCopilotProvider.toUpperCase()} (Ephemeral Key)`}
                   </span>
                 </div>
+
+                {selectedCopilotProvider === 'nebius' && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowModelPickerDrawer(!showModelPickerDrawer)}
+                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                    title="Choose discovered NVIDIA Nemotron model or routing profile"
+                  >
+                    ⚡ Model: {selectedRoleProfile.toUpperCase()} {showModelPickerDrawer ? '▲' : '▼'}
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -4554,6 +4577,19 @@ export function ProjectPage() {
                 </button>
               </div>
             </div>
+
+            {/* Collapsible Model Picker Drawer for Delivery Agent */}
+            {showModelPickerDrawer && selectedCopilotProvider === 'nebius' && (
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                <ModelPicker
+                  workspaceId={typeof project?.workspaceId === 'string' ? project.workspaceId : undefined}
+                  selectedModelId={selectedModelOverride}
+                  selectedRoleProfile={selectedRoleProfile}
+                  onSelectModel={(modelId) => setSelectedModelOverride(modelId)}
+                  onSelectRole={(role) => setSelectedRoleProfile(role)}
+                />
+              </div>
+            )}
 
             {/* Success Audit Banner for Last Approved Action */}
             {lastActionNotice && (
@@ -4876,7 +4912,7 @@ export function ProjectPage() {
                 </p>
                 <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
                   {selectedCopilotProvider === 'nebius'
-                    ? 'Calling Nebius Token Factory serverless runtime (NVIDIA Nemotron-70B). Assembling brief citations, task links, and evidence audit trails.'
+                    ? 'Calling Nebius Token Factory serverless runtime. Assembling brief citations, task links, and evidence audit trails.'
                     : `Calling ${selectedCopilotProvider.toUpperCase()} personal BYOK runtime. Assembling brief citations, task links, and evidence audit trails.`}
                 </p>
               </div>
@@ -4919,10 +4955,20 @@ export function ProjectPage() {
                         : 'NEBIUS TOKEN FACTORY (DEFAULT)'}
                     </span>
                     <span>
-                      Model: <strong>{copilotReport.model || 'nvidia/Llama-3.1-Nemotron-70B-Instruct'}</strong> ·
+                      Model: <strong>{copilotReport.model || 'Discovered Nemotron'}</strong>
+                      {copilotReport.modelRole && (
+                        <span className="badge badge-subtle ml-1.5" style={{ fontSize: '9px', textTransform: 'uppercase' }}>
+                          Profile: {copilotReport.modelRole}
+                        </span>
+                      )} ·
                       Grounded in <strong>{copilotReport.sourceRecords?.length ?? 0}</strong> authorized project records
                     </span>
                   </div>
+                  {copilotReport.routingReason && (
+                    <div style={{ width: '100%', fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                      Routing: {copilotReport.routingReason}
+                    </div>
+                  )}
                   <span className="mono-num">
                     Generated: {new Date(copilotReport.generatedAt).toLocaleTimeString()}
                   </span>

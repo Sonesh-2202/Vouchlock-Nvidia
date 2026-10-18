@@ -182,7 +182,6 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
         await verifyNebiusApiKey(
           apiKey || '',
           config.nebiusBaseUrl,
-          config.nebiusModelId,
         );
       } catch (err) {
         const error = err as { code?: string; message?: string };
@@ -206,7 +205,7 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
         await verifyOpenAiApiKey(
           apiKey || '',
           config.openaiModel || 'gpt-4o',
-          config.openaiBaseUrl || 'https://api.openai.com/v1',
+          { baseUrl: config.openaiBaseUrl || 'https://api.openai.com/v1' },
         );
       } catch (err) {
         const error = err as { code?: string; message?: string };

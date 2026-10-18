@@ -3,6 +3,12 @@
  * Handles fetch calls with credentials, error parsing, and typed responses.
  */
 
+import type {
+  ModelCatalogResponse,
+  ModelPreferences,
+  ServerlessJobRecord,
+} from '@projectpilot/contracts';
+
 export type ResourceCategory = 'study' | 'architecture' | 'api' | 'design' | 'video';
 export type ResourceSourceType =
   'github' | 'figma' | 'docs' | 'youtube' | 'pdf' | 'notion' | 'link';
@@ -313,6 +319,7 @@ export const api = {
           additionalContext?: string;
           providerOverride?: string;
           modelOverride?: string;
+          roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
         },
       ) =>
         request<{
@@ -556,10 +563,16 @@ export const api = {
   },
 
   copilot: {
-    generateReport: (projectId: string, providerOverride?: string) =>
+    generateReport: (
+      projectId: string,
+      providerOverride?: string,
+      options?: { modelOverride?: string; roleProfile?: 'fast' | 'balanced' | 'deep_reasoning' },
+    ) =>
       request<{ report: any }>('POST', '/copilot/reports', {
         projectId,
         providerOverride,
+        modelOverride: options?.modelOverride,
+        roleProfile: options?.roleProfile,
       }),
     approveAction: (projectId: string, proposalId: string, action: unknown) =>
       request<{
@@ -662,5 +675,41 @@ export const api = {
     },
     revokeToken: (data: { token?: string; tokenId?: string; revokeAll?: boolean }) =>
       request<{ success: boolean; revokedCount: number }>('POST', '/mcp/v1/revoke', data),
+  },
+
+  models: {
+    getCatalog: (options?: { refresh?: boolean; workspaceId?: string }) => {
+      const params = new URLSearchParams();
+      if (options?.refresh) params.set('refresh', 'true');
+      if (options?.workspaceId) params.set('workspaceId', options.workspaceId);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      return request<ModelCatalogResponse>('GET', `/models/catalog${qs}`);
+    },
+    getPreferences: (workspaceId?: string) => {
+      const qs = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : '';
+      return request<{ preferences: ModelPreferences }>('GET', `/models/preferences${qs}`);
+    },
+    savePreferences: (preferences: ModelPreferences, workspaceId?: string) => {
+      const qs = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : '';
+      return request<{ ok: boolean; preferences: ModelPreferences }>(
+        'POST',
+        `/models/preferences${qs}`,
+        preferences,
+      );
+    },
+  },
+
+  jobs: {
+    submitPortfolioAudit: (data: {
+      workspaceId: string;
+      projectId?: string;
+      modelOverride?: string;
+      roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+      idempotencyKey?: string;
+    }) => request<{ job: ServerlessJobRecord }>('POST', '/jobs/portfolio-audit', data),
+    getJob: (jobId: string) => request<{ job: ServerlessJobRecord }>('GET', `/jobs/${jobId}`),
+    cancelJob: (jobId: string) => request<{ job: ServerlessJobRecord }>('POST', `/jobs/${jobId}/cancel`),
+    listWorkspaceJobs: (workspaceId: string) =>
+      request<{ jobs: ServerlessJobRecord[] }>('GET', `/jobs/workspace/${workspaceId}`),
   },
 };

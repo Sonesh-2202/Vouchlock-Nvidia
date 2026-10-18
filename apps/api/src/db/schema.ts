@@ -58,6 +58,17 @@ export const verificationStatusEnum = pgEnum('verification_status', [
   'rejected',
   'unverified',
 ]);
+export const jobStatusEnum = pgEnum('job_status', [
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+  'cancelled',
+]);
+export const jobExecutionTargetEnum = pgEnum('job_execution_target', [
+  'nebius_serverless_job',
+  'local_worker',
+]);
 
 // ── Users ──
 
@@ -481,3 +492,42 @@ export const mcpTokens = pgTable(
     workspaceIdIdx: index('mcp_tokens_workspace_id_idx').on(table.workspaceId),
   }),
 );
+
+// ── Serverless Jobs (Asynchronous Delivery Workflows) ──
+
+export const serverlessJobs = pgTable(
+  'serverless_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    jobType: varchar('job_type', { length: 100 }).notNull(),
+    status: jobStatusEnum('status').notNull().default('queued'),
+    executionTarget: jobExecutionTargetEnum('execution_target').notNull().default('local_worker'),
+    modelId: varchar('model_id', { length: 255 }),
+    modelRole: varchar('model_role', { length: 50 }),
+    idempotencyKey: varchar('idempotency_key', { length: 128 }),
+    inputParams: jsonb('input_params').notNull().$type<Record<string, unknown>>(),
+    progressPercent: integer('progress_percent').notNull().default(0),
+    result: jsonb('result').$type<Record<string, unknown>>(),
+    error: text('error'),
+    cloudJobId: varchar('cloud_job_id', { length: 255 }),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdIdx: index('serverless_jobs_workspace_id_idx').on(table.workspaceId),
+    projectIdIdx: index('serverless_jobs_project_id_idx').on(table.projectId),
+    userIdIdx: index('serverless_jobs_user_id_idx').on(table.userId),
+    idempotencyIdx: index('serverless_jobs_idempotency_idx').on(table.workspaceId, table.idempotencyKey),
+    statusIdx: index('serverless_jobs_status_idx').on(table.status),
+  }),
+);
+

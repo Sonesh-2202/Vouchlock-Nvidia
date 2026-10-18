@@ -14,6 +14,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiRequestError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { AppShell } from '../components/AppShell.js';
+import { PortfolioAuditModal } from '../components/PortfolioAuditModal.js';
 import {
   pauseSmoothScroll,
   resumeSmoothScroll,
@@ -61,6 +62,7 @@ export function DashboardPage() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   // Search filter for projects register
   const [projectQuery, setProjectQuery] = useState('');
@@ -369,6 +371,14 @@ export function DashboardPage() {
               >
                 <IconExport size={14} />
                 <span className="desktop-only">Export Ledger</span>
+              </button>
+
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowAuditModal(true)}
+                title="Launch asynchronous workspace portfolio delivery audit (Nebius Serverless Job)"
+              >
+                <span>⚡ Portfolio Audit</span>
               </button>
 
               <button
@@ -1524,6 +1534,15 @@ export function DashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Asynchronous Portfolio Delivery Audit Modal */}
+      {workspace && (
+        <PortfolioAuditModal
+          isOpen={showAuditModal}
+          onClose={() => setShowAuditModal(false)}
+          workspaceId={workspace.id}
+        />
       )}
     </AppShell>
   );

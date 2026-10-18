@@ -19,6 +19,8 @@ import { requirementRoutes } from './routes/requirements.js';
 import { meRoutes } from './routes/me.js';
 import { copilotRoutes } from './routes/copilot.js';
 import { mcpRoutes } from './routes/mcp.js';
+import { modelRoutes } from './routes/models.js';
+import { jobsRoutes } from './routes/jobs.js';
 import { nanoid } from 'nanoid';
 import { sql } from 'drizzle-orm';
 import type postgres from 'postgres';
@@ -108,12 +110,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   app.setErrorHandler((error, request, reply) => {
     logger.error({ reqId: request.id, err: error }, 'Unhandled request error');
 
-    // Database connection / network errors
-    const errMessage = error.message || '';
+    const err = (error ?? {}) as { code?: string; message?: string; statusCode?: number };
+    const errMessage = err.message || '';
     const isDbError =
-      error.code === 'ECONNREFUSED' ||
-      error.code === 'ENOTFOUND' ||
-      error.code === 'ETIMEDOUT' ||
+      err.code === 'ECONNREFUSED' ||
+      err.code === 'ENOTFOUND' ||
+      err.code === 'ETIMEDOUT' ||
       errMessage.includes('ECONNREFUSED') ||
       errMessage.includes('password authentication failed') ||
       (errMessage.includes('database') && errMessage.includes('does not exist')) ||
@@ -121,7 +123,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
 
     if (isDbError) {
       let friendlyMessage = 'Database service is unavailable. Please verify PostgreSQL is running and reachable.';
-      if (errMessage.includes('ECONNREFUSED') || error.code === 'ECONNREFUSED') {
+      if (errMessage.includes('ECONNREFUSED') || err.code === 'ECONNREFUSED') {
         friendlyMessage =
           'Database connection refused. PostgreSQL is not reachable at the configured host/port in DATABASE_URL. Please verify PostgreSQL is running or start it via Docker (docker compose up -d postgres).';
       } else if (errMessage.includes('password authentication failed')) {
@@ -140,14 +142,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
       });
     }
 
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = err.statusCode ?? 500;
     return reply.code(statusCode).send({
       error: {
-        code: error.code || 'internal_error',
+        code: err.code || 'internal_error',
         message:
           statusCode === 500
             ? 'An unexpected error occurred. Please try again.'
-            : error.message,
+            : err.message || 'An unexpected error occurred.',
       },
     });
   });
@@ -179,6 +181,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
       await api.register(meRoutes, { prefix: '/me', config, db: db!, logger });
       await api.register(copilotRoutes, { prefix: '/copilot', config, db: db!, logger });
       await api.register(mcpRoutes, { prefix: '/mcp', config, db: db!, logger });
+      await api.register(modelRoutes, { prefix: '/models', config, db: db!, logger });
+      await api.register(jobsRoutes, { prefix: '/jobs', config, db: db!, logger });
     },
     { prefix: '/api/v1' },
   );

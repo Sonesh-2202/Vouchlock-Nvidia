@@ -34,7 +34,6 @@ export interface NebiusProviderConfig {
 }
 
 export const DEFAULT_NEBIUS_BASE_URL = 'https://api.tokenfactory.nebius.com/v1';
-export const DEFAULT_NVIDIA_NEMOTRON_MODEL = 'nvidia/Llama-3.1-Nemotron-70B-Instruct';
 
 /**
  * Extracts raw JSON string from model response, handling markdown blocks or extra wrapper text.
@@ -75,7 +74,13 @@ export class NebiusTokenFactoryProvider implements AiProvider {
       );
     }
     this.apiKey = config.apiKey.trim();
-    this.model = config.model || DEFAULT_NVIDIA_NEMOTRON_MODEL;
+    if (!config.model || config.model.trim().length === 0) {
+      throw new AiProviderError(
+        'Nebius Token Factory model ID is missing. Model must be dynamically discovered from account catalog or specified via preferences.',
+        'missing_model',
+      );
+    }
+    this.model = config.model.trim();
     this.baseUrl = (config.baseUrl || DEFAULT_NEBIUS_BASE_URL).replace(/\/+$/, '');
     this.timeoutMs = config.timeoutMs ?? 45000;
     this.maxRetries = config.maxRetries ?? 2;
@@ -421,7 +426,6 @@ Extract the candidate requirements in valid JSON now.`;
 export async function verifyNebiusApiKey(
   apiKey: string,
   baseUrl = DEFAULT_NEBIUS_BASE_URL,
-  model = DEFAULT_NVIDIA_NEMOTRON_MODEL,
   fetchTransport: typeof fetch = globalThis.fetch,
 ): Promise<void> {
   const trimmedKey = (apiKey || '').trim();

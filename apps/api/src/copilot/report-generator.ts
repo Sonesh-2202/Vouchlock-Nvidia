@@ -9,7 +9,7 @@
 
 import { createHash } from 'crypto';
 import type { AppConfig } from '../config.js';
-import { getAiProvider } from '../ai/planner.js';
+import { getAiProvider, resolveAiProvider } from '../ai/planner.js';
 import { NebiusTokenFactoryProvider, extractJsonFromResponse } from '../ai/nebius-provider.js';
 import { OpenAiProvider } from '../ai/openai-provider.js';
 import type {
@@ -112,6 +112,10 @@ export async function generateCopilotReport(
   config: AppConfig | string = 'nebius',
   sessionApiKey?: string,
   providerOverride?: string,
+  options?: {
+    modelOverride?: string;
+    roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+  },
 ): Promise<CopilotReport> {
   const providerType =
     providerOverride ||
@@ -288,9 +292,25 @@ export async function generateCopilotReport(
     };
   }
 
-  // 9. Resolve configured AI runtime (default Nebius Token Factory or user BYOK)
-  const provider = getAiProvider(config, undefined, sessionApiKey, providerOverride);
+  // 9. Resolve configured AI runtime dynamically (default Nebius Token Factory with dynamic discovery or user BYOK)
+  const resolved = await resolveAiProvider(
+    config,
+    undefined,
+    sessionApiKey,
+    providerOverride,
+    {
+      modelOverride: options?.modelOverride,
+      roleProfile: options?.roleProfile,
+      defaultRole: 'balanced', // Delivery Agent ledger analysis uses balanced profile by default
+      workspaceId: context.workspaceId,
+      userId: requesterId,
+    },
+  );
+  const provider = resolved.provider;
   const isNebius = provider instanceof NebiusTokenFactoryProvider;
+  let modelUsed = resolved.modelId;
+  const modelRole = resolved.modelRole;
+  const routingReason = resolved.routingReason;
 
   const systemPrompt = `You are the Vouchlock Project Delivery Agent${
     isNebius ? ' powered by NVIDIA Nemotron served via Nebius Token Factory' : ''
@@ -373,10 +393,6 @@ ${JSON.stringify(sanitizedContextPayload, null, 2)}
 Analyze these delivery ledger records. Formulate the delivery status, identify blockers and gaps, explain the most useful next action, and generate bounded action proposals in valid JSON now.`;
 
   let responseContent = '';
-  let modelUsed =
-    typeof config === 'object'
-      ? config.nebiusModelId
-      : process.env['NEBIUS_MODEL_ID'] || 'nvidia/Llama-3.1-Nemotron-70B-Instruct';
 
   if (provider instanceof NebiusTokenFactoryProvider) {
     const res = await provider.callChatCompletions([
@@ -384,7 +400,9 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
       { role: 'user', content: userPrompt },
     ]);
     responseContent = res.content;
-    modelUsed = res.modelUsed;
+    if (res.modelUsed) {
+      modelUsed = res.modelUsed;
+    }
   } else if (provider instanceof OpenAiProvider) {
     const res = await provider.callChatCompletionsJson(
       [
@@ -520,6 +538,8 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
     generatedAt: new Date().toISOString(),
     provider: provider.id,
     model: modelUsed,
+    modelRole,
+    routingReason,
     requesterId,
     projectId: context.project.id,
   };

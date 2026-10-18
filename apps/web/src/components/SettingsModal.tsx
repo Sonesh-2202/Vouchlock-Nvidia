@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { api, type ApiRequestError } from '../api.js';
 import { CloseIcon, IconCopy, IconCheck, IconTrash } from './icons.js';
+import { ModelPicker } from './ModelPicker.js';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -369,7 +370,9 @@ export function SettingsModal({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div>
                     <strong>1. Product Default (Nebius x NVIDIA Hackathon Path):</strong> Runs NVIDIA
-                    Nemotron-70B served via Nebius Token Factory using server-configured credentials.
+                    open-source Nemotron models served via Nebius Token Factory using server-configured credentials.
+                    Models and role profiles (Nano/Super for fast everyday requests, Nemotron 3 Ultra for deep reasoning)
+                    are dynamically discovered from live catalog data.
                     Reviewers do <em>not</em> need to enter a personal key to evaluate the agent.
                   </div>
                   <div>
@@ -512,7 +515,7 @@ export function SettingsModal({
                   />
                   <p style={{ margin: 'var(--space-2) 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
                     {selectedProvider === 'nebius'
-                      ? '💡 Nebius Token Factory runs on server-configured credentials by default with NVIDIA Nemotron-70B. You only need to enter a key here if you want to use your personal Nebius account credits.'
+                      ? '💡 Nebius Token Factory runs on server-configured credentials by default with live discovered NVIDIA Nemotron models. You only need to enter a key here if you want to use your personal Nebius account credits.'
                       : selectedProvider === 'openai'
                       ? '🔑 Optional BYOK: Personal key used for GPT-4o / standard chat completions. Runs in ephemeral memory and does not consume Nebius credits.'
                       : selectedProvider === 'gemini'
@@ -539,6 +542,13 @@ export function SettingsModal({
                       {savingKey ? 'Saving...' : 'Save Session Key'}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Dynamic Model Discovery & Role Routing for Nebius Token Factory */}
+              {selectedProvider === 'nebius' && (
+                <div style={{ marginTop: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                  <ModelPicker workspaceId={activeWorkspaceId} />
                 </div>
               )}
 
@@ -570,7 +580,7 @@ export function SettingsModal({
                     }}
                   >
                     No personal BYOK keys configured in process memory. The app will use the default
-                    server-configured <strong>Nebius Token Factory (NVIDIA Nemotron-70B)</strong> engine
+                    server-configured <strong>Nebius Token Factory (NVIDIA Nemotron)</strong> engine
                     automatically.
                   </p>
                 ) : (

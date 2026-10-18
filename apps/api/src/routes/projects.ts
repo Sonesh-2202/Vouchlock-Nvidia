@@ -339,8 +339,14 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
         memberNames,
       },
       config,
-      undefined,
-      { sessionApiKey, providerOverride: parsed.data.providerOverride },
+      {
+        sessionApiKey,
+        providerOverride: parsed.data.providerOverride,
+        modelOverride: parsed.data.modelOverride,
+        roleProfile: parsed.data.roleProfile,
+        workspaceId: project.workspaceId,
+        userId,
+      },
     );
 
     const [generation] = await db
@@ -946,8 +952,14 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
           briefTitle: revision.title,
         },
         config,
-        undefined,
-        { sessionApiKey, providerOverride: parsed.data.providerOverride },
+        {
+          sessionApiKey,
+          providerOverride: parsed.data.providerOverride,
+          modelOverride: parsed.data.modelOverride,
+          roleProfile: parsed.data.roleProfile,
+          workspaceId: project.workspaceId,
+          userId,
+        },
       );
 
       const [generation] = await db

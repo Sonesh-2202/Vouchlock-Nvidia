@@ -9,7 +9,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.35-C5F74F.svg?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
 [![Nebius Token Factory](https://img.shields.io/badge/Nebius-Token_Factory-00E5FF.svg)](https://tokenfactory.nebius.com/)
-[![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA-Nemotron--70B-76B900.svg?logo=nvidia&logoColor=white)](https://build.nvidia.com/)
+[![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA-Nemotron-76B900.svg?logo=nvidia&logoColor=white)](https://build.nvidia.com/)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-00C7B7.svg)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/License-Founder_Controlled-purple.svg)](./docs/decisions.md)
 
@@ -53,7 +53,8 @@ Vouchlock implements a clean **Two-Path AI Architecture**:
 1. **Path 1: Nebius Token Factory with NVIDIA Nemotron (Product Default & Hackathon Path)**
    - **Zero-Config Reviewer Path:** Reviewers can experience the live Nemotron-backed agent workflow immediately without supplying their own API key. The server uses its pre-configured `NEBIUS_API_KEY`.
    - **Server-Side Security:** The Nebius API key remains strictly server-side. It is never exposed to browsers, client storage, or application logs.
-   - **Real Runtime Inference:** Makes live runtime inference calls to `https://api.tokenfactory.nebius.com/v1` targeting `nvidia/Llama-3.1-Nemotron-70B-Instruct`.
+   - **Dynamic Live Model Discovery:** Discovers available NVIDIA Nemotron models at runtime via `GET /v1/models` against `https://api.tokenfactory.nebius.com/v1`. Zero hardcoded model identifiers are used as defaults.
+   - **Task-Aware Role Profiles:** Classifies discovered models dynamically into **Fast / Everyday** (Nano/Super for low-latency summaries and candidate extraction), **Balanced** (Super for normal ledger analysis), and **Deep Reasoning** (Nemotron 3 Ultra for complex multi-stage dependency planning).
    - **Application-Controlled Safety:** Nemotron outputs are bounded and validated against strict domain schemas before presenting proposals to human reviewers.
 
 2. **Path 2: Optional User BYOK (Bring-Your-Own-Key) Alternatives**
@@ -122,7 +123,7 @@ graph TD
     API --> Domain["packages/domain (Pure Business Logic)"]
     API --> Contracts["packages/contracts (Zod Validation)"]
     API --> DB[("PostgreSQL 16 (Drizzle ORM)")]
-    API --> Nebius["Nebius Token Factory (NVIDIA Nemotron-70B)"]
+    API --> Nebius["Nebius Token Factory (Live NVIDIA Nemotron Discovery)"]
 ```
 
 ---
@@ -156,8 +157,8 @@ createdb -h 127.0.0.1 -p 5432 -U postgres projectpilot
 cp .env.example .env
 # Edit .env with your PostgreSQL credentials and Nebius Token Factory API key:
 # NEBIUS_API_KEY=your_token_factory_key
-# NEBIUS_MODEL_ID=nvidia/Llama-3.1-Nemotron-70B-Instruct
 # NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1
+# (Leave NEBIUS_MODEL_ID blank to use live catalog discovery)
 
 # Build shared TypeScript libraries
 pnpm run build:packages
@@ -186,7 +187,8 @@ Follow this step-by-step path to evaluate the live agent workflow:
 4. Navigate to the **Delivery Agent (Nemotron)** tab in the project navigation bar.
 5. Click **"Run Delivery Agent Analysis (Nemotron)"**:
    - The backend server assembles authorized, sanitized project context (brief text, requirements, tasks, evidence links, verification status, and blockers).
-   - Server-side runtime inference executes against **Nebius Token Factory** using **NVIDIA Nemotron-70B** (`nvidia/Llama-3.1-Nemotron-70B-Instruct`).
+   - Server-side runtime inference executes against **Nebius Token Factory** using dynamically discovered **NVIDIA Nemotron** models matched to the selected task profile.
+   - The exact model ID returned, profile, and routing reason are recorded and displayed in the result provenance strip.
    - The response is parsed and validated against application-owned domain schemas.
 6. Inspect the resulting delivery analysis:
    - **5-Stage Pipeline Progress:** See real-time progress across *Brief Intake*, *Requirement Analysis*, *Task Planning*, *Evidence Collection*, and *Verification*.
@@ -200,7 +202,8 @@ Follow this step-by-step path to evaluate the live agent workflow:
    - Or click **"Reject"** and confirm that the rejection reason is logged to the audit trail without modifying project state.
 
 > **Feature Credential & Reviewer Notice:**
-> - **Default Hackathon Experience (Zero-Config for Reviewers):** The server-side deployment comes pre-configured with `NEBIUS_API_KEY`. Reviewers can immediately evaluate the Delivery Agent (Nemotron-70B reasoning, candidate requirement extraction, plan proposals, and evidence gap analysis) without entering any personal credentials.
+> - **Default Hackathon Experience (Zero-Config for Reviewers):** The server-side deployment comes pre-configured with `NEBIUS_API_KEY`. Reviewers can immediately evaluate the Delivery Agent (Nemotron reasoning, candidate requirement extraction, plan proposals, and evidence gap analysis) without entering any personal credentials.
+> - **Dynamic Model Discovery:** Reviewers can inspect the exact discovered model IDs and catalog metadata via the in-app **Model Selection & Routing** panel.
 > - **Optional BYOK Providers (OpenAI & Gemini):** If desired, users can test alternative providers by entering their own API keys via **⚙️ BYOK Settings**. BYOK requests use exclusively the user's personal key in ephemeral memory and do not consume application Nebius credits.
 > - **Operates Without Any AI Credentials:** The complete delivery ledger, manual requirement registration, 5-column Kanban task board, manual task-requirement linking, proof artifact submission, human verification attestation stamps, Truthful Delivery Reports, full JSON export, and standard MCP audit tools.
 
@@ -221,10 +224,20 @@ Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotro
 ### Nebius Token Factory Integration Details
 
 - **Official Endpoint:** `https://api.tokenfactory.nebius.com/v1`
-- **Target Model:** `nvidia/Llama-3.1-Nemotron-70B-Instruct`
+- **Dynamic Discovery:** Models are discovered live via `GET /v1/models`. No hard-coded model identifiers are used as defaults or fallbacks.
+- **Model Role Profiles:**
+  - **Fast / Everyday:** Prefers discovered Nemotron Nano or Super for routine summaries and bounded brief candidate extraction.
+  - **Balanced:** Prefers discovered Nemotron Super for normal Delivery Agent ledger analysis.
+  - **Deep Reasoning:** Prefers discovered Nemotron 3 Ultra for complex multi-stage dependency planning and portfolio audits.
+- **Credential-Scoped Caching:** Successful discovery responses are cached per credential hash for 5 minutes (`NEBIUS_CATALOG_TTL_MS`), with an on-demand manual refresh button.
 - **Server-Side Security:** Credentials are never passed to the browser, stored in `localStorage`, or written to application logs. All requests originate strictly from the Fastify server.
 - **Resilience:** The backend adapter features client timeouts (30s), exponential backoff retries on rate limits (429) or transient 5xx errors, and safe secret redaction (`[REDACTED_SECRET]`).
 - **Validated JSON Envelopes:** Nemotron responses are validated against Zod schemas; invalid responses return safe, non-destructive error feedback without phantom mutations.
+
+### Nebius Cloud Deployment Artifacts
+
+- **Serverless Endpoint:** `deploy/nebius-serverless-endpoint/` contains the production single-container Dockerfile, declarative `endpoint.yaml`, and deployment guide for hosting the interactive web/API service on Nebius AI Cloud.
+- **Serverless Jobs:** `deploy/nebius-serverless-jobs/` contains `job-spec.yaml` and architecture documentation for the asynchronous workspace portfolio delivery audit. Includes a local simulation background worker fallback (`local_worker`) labeled explicitly in the UI.
 
 ### Model Context Protocol (MCP)
 
@@ -341,11 +354,36 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/me/providers/available` | List supported AI providers (default: Nebius / Nemotron-70B, optional BYOK: OpenAI, Gemini) |
+| `GET` | `/api/v1/me/providers/available` | List supported AI providers (default: Nebius / NVIDIA Nemotron, optional BYOK: OpenAI, Gemini) |
 | `GET` | `/api/v1/me/providers` | List active ephemeral session status (masked keys only, zero plaintext) |
 | `POST` | `/api/v1/me/provider-test` | Provider-specific credential verification (tested against selected provider's API) |
 | `POST` | `/api/v1/me/provider-session` | Store ephemeral in-memory BYOK key (24h TTL, auto-wiped on logout) |
 | `DELETE` | `/api/v1/me/provider-session/:provider` | Revoke ephemeral provider session key from process memory |
+
+</details>
+
+<details>
+<summary><b>🔍 Dynamic Model Discovery & Preferences</b></summary>
+<br>
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/models/catalog` | Live model discovery from authenticated Nebius Token Factory account (`?refresh=true` for manual refresh) |
+| `GET` | `/api/v1/models/preferences` | Retrieve user/workspace model preferences and role assignments |
+| `POST` | `/api/v1/models/preferences` | Save preferred model ID and role assignments (validated against live catalog) |
+
+</details>
+
+<details>
+<summary><b>⚡ Asynchronous Serverless Jobs (Portfolio Delivery Audits)</b></summary>
+<br>
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/jobs/portfolio-audit` | Queue asynchronous workspace portfolio delivery audit (idempotent submission) |
+| `GET` | `/api/v1/jobs/:jobId` | Poll job status, progress percentage, execution target, and completed report |
+| `POST` | `/api/v1/jobs/:jobId/cancel` | Cancel an in-flight portfolio audit job |
+| `GET` | `/api/v1/jobs/workspace/:workspaceId` | List previous portfolio audit jobs for workspace |
 
 </details>
 

@@ -4,8 +4,8 @@ import { defineConfig } from 'drizzle-kit';
 
 const candidates = [
   path.resolve(process.cwd(), '.env'),
-  path.resolve(process.cwd(), '../../.env'),
   path.resolve(process.cwd(), '../.env'),
+  path.resolve(process.cwd(), '../../.env'),
 ];
 for (const candidate of candidates) {
   if (fs.existsSync(candidate)) {

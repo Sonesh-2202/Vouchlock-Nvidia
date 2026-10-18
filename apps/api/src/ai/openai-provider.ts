@@ -123,7 +123,7 @@ export class OpenAiProvider implements AiProvider {
   readonly id: string;
   private readonly providerLabel: string;
   private readonly apiKey: string;
-  private readonly model: string;
+  readonly model: string;
   private readonly fallbackModels: string[];
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
@@ -145,10 +145,10 @@ export class OpenAiProvider implements AiProvider {
     this.fetchImpl = config.fetchTransport ?? globalThis.fetch;
   }
 
-  private async callChatCompletions(
+  async callChatCompletions(
     messages: Array<{ role: 'system' | 'user'; content: string }>,
-    schemaName: string,
-    jsonSchema: Record<string, unknown>,
+    schemaName?: string,
+    jsonSchema?: Record<string, unknown>,
     options?: { timeoutMs?: number; signal?: AbortSignal },
   ): Promise<{
     content: string;
@@ -186,14 +186,18 @@ export class OpenAiProvider implements AiProvider {
             body: JSON.stringify({
               model: currentModel,
               messages,
-              response_format: {
-                type: 'json_schema',
-                json_schema: {
-                  name: schemaName,
-                  strict: true,
-                  schema: jsonSchema,
-                },
-              },
+              ...(schemaName && jsonSchema
+                ? {
+                    response_format: {
+                      type: 'json_schema',
+                      json_schema: {
+                        name: schemaName,
+                        strict: true,
+                        schema: jsonSchema,
+                      },
+                    },
+                  }
+                : {}),
               temperature: 0.2,
             }),
             signal: controller.signal,
@@ -325,6 +329,19 @@ export class OpenAiProvider implements AiProvider {
       'ai_server_error',
       true,
     );
+  }
+
+  async callChatCompletionsJson(
+    messages: Array<{ role: 'system' | 'user'; content: string }>,
+    schemaName: string,
+    jsonSchema: Record<string, unknown>,
+    options?: { timeoutMs?: number; signal?: AbortSignal },
+  ): Promise<{
+    content: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    modelUsed?: string;
+  }> {
+    return this.callChatCompletions(messages, schemaName, jsonSchema, options);
   }
 
   async generatePlan(

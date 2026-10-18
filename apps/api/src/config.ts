@@ -7,8 +7,8 @@ import path from 'node:path';
 export function loadEnv(): void {
   const candidates = [
     path.resolve(process.cwd(), '.env'),
-    path.resolve(process.cwd(), '../../.env'),
     path.resolve(process.cwd(), '../.env'),
+    path.resolve(process.cwd(), '../../.env'),
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -59,6 +59,11 @@ export interface AppConfig {
   readonly nebiusApiKey: string;
   readonly nebiusModelId: string;
   readonly nebiusBaseUrl: string;
+  readonly nebiusJobsApiKey?: string;
+  readonly nebiusJobsEndpoint?: string;
+  readonly nebiusJobsRegion?: string;
+  readonly nebiusJobsProjectId?: string;
+  readonly nebiusCatalogTtlMs: number;
   readonly openaiApiKey?: string;
   readonly openaiModel?: string;
   readonly openaiBaseUrl?: string;
@@ -134,11 +139,11 @@ export function loadConfig(): AppConfig {
     process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
     '';
 
-  // 9. NVIDIA Open-Source Model on Nebius Token Factory (default: nvidia/Llama-3.1-Nemotron-70B-Instruct)
+  // 9. NVIDIA Open-Source Model on Nebius Token Factory (dynamically discovered from live catalog)
   const nebiusModelId =
     process.env['NEBIUS_MODEL_ID'] ||
     process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
-    'nvidia/Llama-3.1-Nemotron-70B-Instruct';
+    '';
 
   // 10. Nebius Token Factory Base URL
   const nebiusBaseUrl = (
@@ -147,14 +152,24 @@ export function loadConfig(): AppConfig {
     'https://api.tokenfactory.nebius.com/v1'
   ).replace(/\/+$/, '');
 
-  // 11. Optional server-side BYOK fallback configuration for development/testing
+  // 11. Nebius Serverless Jobs & Catalog Cache TTL
+  const nebiusJobsApiKey =
+    process.env['NEBIUS_JOBS_API_KEY'] ||
+    process.env['NEBIUS_API_KEY'] ||
+    '';
+  const nebiusJobsEndpoint = process.env['NEBIUS_JOBS_ENDPOINT'] || '';
+  const nebiusJobsRegion = process.env['NEBIUS_REGION'] || '';
+  const nebiusJobsProjectId = process.env['NEBIUS_PROJECT_ID'] || '';
+  const nebiusCatalogTtlMs = parseInt(process.env['NEBIUS_CATALOG_TTL_MS'] || '300000', 10);
+
+  // 12. Optional server-side BYOK fallback configuration for development/testing
   const openaiApiKey = process.env['OPENAI_API_KEY'] || '';
   const openaiModel = process.env['OPENAI_MODEL'] || 'gpt-4o';
   const openaiBaseUrl = process.env['OPENAI_BASE_URL'] || 'https://api.openai.com/v1';
   const aiApiKey = process.env['AI_API_KEY'] || nebiusApiKey;
   const aiModel = process.env['AI_MODEL'] || nebiusModelId;
 
-  // 12. Logging
+  // 13. Logging
   const logLevel = process.env['LOG_LEVEL'] || 'info';
   const logRedact = process.env['LOG_REDACT'] !== 'false';
 
@@ -170,6 +185,11 @@ export function loadConfig(): AppConfig {
     nebiusApiKey,
     nebiusModelId,
     nebiusBaseUrl,
+    nebiusJobsApiKey,
+    nebiusJobsEndpoint,
+    nebiusJobsRegion,
+    nebiusJobsProjectId,
+    nebiusCatalogTtlMs,
     openaiApiKey,
     openaiModel,
     openaiBaseUrl,

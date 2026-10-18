@@ -1,0 +1,35 @@
+# Declarative Specification for Nebius AI Cloud Serverless Job
+# Workflow: Workspace Portfolio Delivery Audit & Evidence Gap Analysis
+# Note: Replace placeholders (<...>) with your actual Nebius account details. Do NOT commit real secrets.
+
+apiVersion: serverless.nebius.ai/v1alpha1
+kind: Job
+metadata:
+  name: vouchlock-portfolio-audit-job
+  project_id: "<NEBIUS_PROJECT_ID>"
+  region: "<NEBIUS_REGION>" # e.g. eu-north1-c
+spec:
+  task:
+    container:
+      image: "<NEBIUS_REGISTRY_HOST>/<NEBIUS_PROJECT_ID>/vouchlock-audit-worker:latest"
+      command: ["node", "dist/jobs/runner.js"]
+      resources:
+        cores: 2
+        memory: "4Gi"
+      env:
+        - name: NODE_ENV
+          value: "production"
+        - name: NEBIUS_BASE_URL
+          value: "https://api.tokenfactory.nebius.com/v1"
+        - name: LOG_LEVEL
+          value: "info"
+      secrets:
+        - name: DATABASE_URL
+          secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_DATABASE_URL>"
+          version_id: "<SECRET_VERSION_ID>"
+        - name: NEBIUS_API_KEY
+          secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_TOKEN_FACTORY_KEY>"
+          version_id: "<SECRET_VERSION_ID>"
+    restart_policy: "OnFailure"
+    max_retries: 2
+    timeout_seconds: 600
