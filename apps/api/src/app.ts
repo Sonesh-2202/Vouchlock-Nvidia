@@ -104,6 +104,54 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
     done();
   });
 
+  // ── Global Error Handler ──
+  app.setErrorHandler((error, request, reply) => {
+    logger.error({ reqId: request.id, err: error }, 'Unhandled request error');
+
+    // Database connection / network errors
+    const errMessage = error.message || '';
+    const isDbError =
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ENOTFOUND' ||
+      error.code === 'ETIMEDOUT' ||
+      errMessage.includes('ECONNREFUSED') ||
+      errMessage.includes('password authentication failed') ||
+      (errMessage.includes('database') && errMessage.includes('does not exist')) ||
+      (errMessage.includes('relation') && errMessage.includes('does not exist'));
+
+    if (isDbError) {
+      let friendlyMessage = 'Database service is unavailable. Please verify PostgreSQL is running and reachable.';
+      if (errMessage.includes('ECONNREFUSED') || error.code === 'ECONNREFUSED') {
+        friendlyMessage =
+          'Database connection refused. PostgreSQL is not reachable at the configured host/port in DATABASE_URL. Please verify PostgreSQL is running or start it via Docker (docker compose up -d postgres).';
+      } else if (errMessage.includes('password authentication failed')) {
+        friendlyMessage =
+          'Database authentication failed. Please check the username and password in DATABASE_URL in your .env file.';
+      } else if (errMessage.includes('does not exist')) {
+        friendlyMessage =
+          'Database or table does not exist. Please create the database and run migrations with `pnpm db:migrate`.';
+      }
+
+      return reply.code(503).send({
+        error: {
+          code: 'database_unavailable',
+          message: friendlyMessage,
+        },
+      });
+    }
+
+    const statusCode = error.statusCode ?? 500;
+    return reply.code(statusCode).send({
+      error: {
+        code: error.code || 'internal_error',
+        message:
+          statusCode === 500
+            ? 'An unexpected error occurred. Please try again.'
+            : error.message,
+      },
+    });
+  });
+
   // ── Health endpoints ──
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 

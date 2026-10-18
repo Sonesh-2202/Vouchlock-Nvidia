@@ -76,7 +76,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         };
       }
     } catch {
-      error = { code: 'network_error', message: res.statusText };
+      error = {
+        code: 'network_error',
+        message:
+          res.status === 500 || res.status === 502 || res.status === 504
+            ? 'Backend API server is unreachable. Please ensure the backend server is running on port 3001.'
+            : res.statusText || 'Network request failed',
+      };
     }
     throw new ApiRequestError(res.status, error);
   }

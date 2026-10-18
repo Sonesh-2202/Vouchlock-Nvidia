@@ -15,7 +15,7 @@
     "test:unit": "pnpm --filter @projectpilot/domain test && pnpm --filter @projectpilot/contracts test && pnpm --filter @projectpilot/web test && pnpm --filter @projectpilot/api run test:unit",
     "dev:api": "pnpm --filter @projectpilot/api dev",
     "dev:web": "pnpm --filter @projectpilot/web dev",
-    "dev": "pnpm --filter @projectpilot/web dev",
+    "dev": "pnpm -r --parallel run dev",
     "dev:all": "pnpm -r --parallel run dev",
     "db:generate": "pnpm --filter @projectpilot/api db:generate",
     "db:migrate": "pnpm --filter @projectpilot/api db:migrate",
