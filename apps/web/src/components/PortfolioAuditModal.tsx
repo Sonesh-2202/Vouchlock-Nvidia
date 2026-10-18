@@ -143,10 +143,10 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
             <span style={{ fontSize: '18px' }}>🛡️</span>
             <div>
               <h2 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                Portfolio Delivery Audit (Nebius Serverless Jobs)
+                Portfolio Delivery Audit
               </h2>
               <p style={{ fontSize: '11px', color: 'var(--text-muted, #A1A1AA)', margin: '2px 0 0' }}>
-                Asynchronous delivery gap analysis across all workspace projects powered by NVIDIA Nemotron.
+                Asynchronous delivery gap analysis across all workspace projects. Supports Nebius Serverless Jobs (Cloud) when configured, or local background simulation worker.
               </p>
             </div>
           </div>

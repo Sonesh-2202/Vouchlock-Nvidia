@@ -220,15 +220,19 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
       {error && (
         <div className="p-3 bg-red-950/40 border border-red-800/60 rounded text-xs text-red-200 flex items-start justify-between">
           <div>
-            <strong className="font-semibold block text-red-300">Discovery Connection Error</strong>
+            <strong className="font-semibold block text-red-300">
+              {error.toLowerCase().includes('credential') || error.toLowerCase().includes('key')
+                ? 'Nebius Credentials Not Configured'
+                : 'Discovery Connection Error'}
+            </strong>
             <p className="mt-0.5 text-red-300/80">{error}</p>
             <p className="mt-1 text-[11px] text-zinc-400">
-              No stale default model IDs will be sent. Please check your Nebius credentials in Settings or verify Token Factory connectivity.
+              Model discovery queries the live Nebius Token Factory catalog server-side. No invented or stale fallback models will be displayed. Configure NEBIUS_API_KEY in your server environment, or set an ephemeral session key in BYOK Settings.
             </p>
           </div>
           <button
             onClick={() => fetchCatalog(true)}
-            className="px-2 py-1 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded text-xs text-red-100 transition"
+            className="px-2 py-1 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded text-xs text-red-100 transition cursor-pointer shrink-0 ml-3"
           >
             Retry
           </button>
@@ -314,8 +318,18 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
               </div>
               <div className="mt-2.5 pt-2 border-t border-zinc-800/80">
                 <span className="text-[10px] text-zinc-400 block font-mono">Discovered candidate:</span>
-                <span className="text-xs text-emerald-400 font-mono font-medium truncate block">
-                  {catalog?.roleAssignments.fast?.displayName || 'Discovering candidate...'}
+                <span className="text-xs font-mono font-medium truncate block">
+                  {catalog ? (
+                    catalog.roleAssignments.fast ? (
+                      <span className="text-emerald-400">{catalog.roleAssignments.fast.displayName}</span>
+                    ) : (
+                      <span className="text-amber-400">Unavailable (No Nano model in catalog)</span>
+                    )
+                  ) : error ? (
+                    <span className="text-zinc-500">Discovery required</span>
+                  ) : (
+                    <span className="text-zinc-400">Discovering candidate...</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -346,8 +360,18 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
               </div>
               <div className="mt-2.5 pt-2 border-t border-zinc-800/80">
                 <span className="text-[10px] text-zinc-400 block font-mono">Discovered candidate:</span>
-                <span className="text-xs text-emerald-400 font-mono font-medium truncate block">
-                  {catalog?.roleAssignments.balanced?.displayName || 'Discovering candidate...'}
+                <span className="text-xs font-mono font-medium truncate block">
+                  {catalog ? (
+                    catalog.roleAssignments.balanced ? (
+                      <span className="text-emerald-400">{catalog.roleAssignments.balanced.displayName}</span>
+                    ) : (
+                      <span className="text-amber-400">Unavailable (No Super model in catalog)</span>
+                    )
+                  ) : error ? (
+                    <span className="text-zinc-500">Discovery required</span>
+                  ) : (
+                    <span className="text-zinc-400">Discovering candidate...</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -378,8 +402,18 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
               </div>
               <div className="mt-2.5 pt-2 border-t border-zinc-800/80">
                 <span className="text-[10px] text-zinc-400 block font-mono">Discovered candidate:</span>
-                <span className="text-xs text-emerald-400 font-mono font-medium truncate block">
-                  {catalog?.roleAssignments.deep_reasoning?.displayName || 'Discovering candidate...'}
+                <span className="text-xs font-mono font-medium truncate block">
+                  {catalog ? (
+                    catalog.roleAssignments.deep_reasoning ? (
+                      <span className="text-emerald-400">{catalog.roleAssignments.deep_reasoning.displayName}</span>
+                    ) : (
+                      <span className="text-amber-400">Unavailable (No Ultra model in catalog)</span>
+                    )
+                  ) : error ? (
+                    <span className="text-zinc-500">Discovery required</span>
+                  ) : (
+                    <span className="text-zinc-400">Discovering candidate...</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -455,9 +489,13 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                             {model.vendor}
                           </span>
                         )}
-                        {model.roleSuggestion !== 'unclassified' && (
+                        {model.roleSuggestion !== 'unclassified' ? (
                           <span className="text-[9px] bg-zinc-800/80 text-zinc-300 border border-zinc-700 px-1.5 py-0.2 rounded font-mono">
                             {model.roleSuggestion}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] bg-zinc-900 text-zinc-400 border border-zinc-800 px-1.5 py-0.2 rounded font-mono">
+                            Unclassified
                           </span>
                         )}
                       </div>

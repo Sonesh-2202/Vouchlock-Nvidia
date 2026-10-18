@@ -465,16 +465,31 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
     db: Database,
     logger: Logger,
   ): Promise<void> {
-    try {
-      const endpoint = (config.nebiusJobsEndpoint || '').replace(/\/+$/, '');
-      const apiKey = config.nebiusJobsApiKey || config.nebiusApiKey;
+    const endpoint = (config.nebiusJobsEndpoint || '').replace(/\/+$/, '');
+    const iamKey = config.nebiusJobsApiKey;
 
+    if (!endpoint || !iamKey) {
+      const errMessage =
+        'Nebius Serverless Jobs cloud execution is not configured. Missing NEBIUS_JOBS_ENDPOINT or NEBIUS_JOBS_API_KEY. Cloud execution requires Nebius AI Cloud credentials separate from Token Factory.';
+      await db
+        .update(serverlessJobs)
+        .set({
+          status: 'failed',
+          error: errMessage,
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(serverlessJobs.id, jobId));
+      return;
+    }
+
+    try {
       logger.info({ jobId, endpoint }, 'dispatching job to Nebius Serverless Jobs endpoint');
 
       const response = await fetch(`${endpoint}/v1/jobs`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${iamKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -507,20 +522,21 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
 
       logger.info({ jobId, cloudJobId: resData.id }, 'Nebius Serverless Job dispatched to cloud');
     } catch (err: unknown) {
-      logger.warn(
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error(
         { err, jobId },
-        'Nebius Serverless Jobs cloud dispatch encountered error; falling back safely to local worker simulation',
+        'Nebius Serverless Jobs cloud dispatch failed',
       );
-      // Fallback safely to local simulation if cloud endpoint fails
+      // Mark as failed instead of silently executing a second billable execution without informing user
       await db
         .update(serverlessJobs)
         .set({
-          executionTarget: 'local_worker',
+          status: 'failed',
+          error: `Nebius Serverless Jobs cloud dispatch failed: ${errMsg}`,
+          completedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(serverlessJobs.id, jobId));
-
-      await this.executeLocalJob(jobId, input, config, db, logger);
     }
   }
 

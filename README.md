@@ -51,10 +51,11 @@ Most project management tools jump straight into to-do lists without clarifying 
 Vouchlock implements a clean **Two-Path AI Architecture**:
 
 1. **Path 1: Nebius Token Factory with NVIDIA Nemotron (Product Default & Hackathon Path)**
-   - **Zero-Config Reviewer Path:** Reviewers can experience the live Nemotron-backed agent workflow immediately without supplying their own API key. The server uses its pre-configured `NEBIUS_API_KEY`.
+   - **Server-Side Credential Requirement:** Model discovery and runtime inference require a live server-side Nebius Token Factory API key (`NEBIUS_API_KEY`). Without this key configured, the application truthfully explains that credentials are missing, shows zero invented models, and disables unverified role routing.
    - **Server-Side Security:** The Nebius API key remains strictly server-side. It is never exposed to browsers, client storage, or application logs.
-   - **Dynamic Live Model Discovery:** Discovers available NVIDIA Nemotron models at runtime via `GET /v1/models` against `https://api.tokenfactory.nebius.com/v1`. Zero hardcoded model identifiers are used as defaults.
-   - **Task-Aware Role Profiles:** Classifies discovered models dynamically into **Fast / Everyday** (Nano/Super for low-latency summaries and candidate extraction), **Balanced** (Super for normal ledger analysis), and **Deep Reasoning** (Nemotron 3 Ultra for complex multi-stage dependency planning).
+   - **Dynamic Live Model Discovery (`GET /v1/models?verbose=true`):** Discovers available NVIDIA Nemotron models at runtime directly from Nebius Token Factory API, capturing rich metadata (pricing, context length, modality). Zero hardcoded or guessed model identifiers are used as defaults.
+   - **Strict Metadata-Driven Role Profiles:** Classifies discovered models into **Fast / Everyday** (Nano), **Balanced** (Super), and **Deep Reasoning** (Ultra) strictly when confirmed by API metadata. No parameter heuristics (such as `70b`) or single-model fallbacks are used. If a role has no matching discovered model, it remains unavailable and unclassified.
+   - **Zero Silent Substitutions:** If an assigned model or role is unavailable, requests fail with an explicit error prompting model selection or catalog refresh—never silently switching providers or models.
    - **Application-Controlled Safety:** Nemotron outputs are bounded and validated against strict domain schemas before presenting proposals to human reviewers.
 
 2. **Path 2: Optional User BYOK (Bring-Your-Own-Key) Alternatives**
@@ -224,20 +225,27 @@ Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotro
 ### Nebius Token Factory Integration Details
 
 - **Official Endpoint:** `https://api.tokenfactory.nebius.com/v1`
-- **Dynamic Discovery:** Models are discovered live via `GET /v1/models`. No hard-coded model identifiers are used as defaults or fallbacks.
-- **Model Role Profiles:**
-  - **Fast / Everyday:** Prefers discovered Nemotron Nano or Super for routine summaries and bounded brief candidate extraction.
-  - **Balanced:** Prefers discovered Nemotron Super for normal Delivery Agent ledger analysis.
-  - **Deep Reasoning:** Prefers discovered Nemotron 3 Ultra for complex multi-stage dependency planning and portfolio audits.
+- **Dynamic Discovery (`GET /v1/models?verbose=true`):** Models are queried with the documented `verbose=true` query parameter (falling back to `/v1/models` if rejected) to obtain rich metadata (modality, pricing, context length).
+- **Exact Model ID Preservation:** The exact model IDs returned by Nebius are preserved for all routing and inference. IDs are never constructed, normalized, or guessed.
+- **Strict Role Profiles (Metadata-Derived):**
+  - **Fast / Everyday:** Discovered Nemotron Nano models.
+  - **Balanced:** Discovered Nemotron Super models.
+  - **Deep Reasoning:** Discovered Nemotron Ultra models.
+  - Models without clear Nano/Super/Ultra classification remain labeled as **Unclassified** and are never assigned default roles automatically.
+- **Zero Silent Fallback:** Parameter counts (e.g., `70b`) are never used to infer Ultra, and no model is assigned a role simply because it is the sole Nemotron model available. If an assigned model is unavailable or credentials are missing, inference fails with a clear, actionable error.
 - **Credential-Scoped Caching:** Successful discovery responses are cached per credential hash for 5 minutes (`NEBIUS_CATALOG_TTL_MS`), with an on-demand manual refresh button.
 - **Server-Side Security:** Credentials are never passed to the browser, stored in `localStorage`, or written to application logs. All requests originate strictly from the Fastify server.
-- **Resilience:** The backend adapter features client timeouts (30s), exponential backoff retries on rate limits (429) or transient 5xx errors, and safe secret redaction (`[REDACTED_SECRET]`).
 - **Validated JSON Envelopes:** Nemotron responses are validated against Zod schemas; invalid responses return safe, non-destructive error feedback without phantom mutations.
 
-### Nebius Cloud Deployment Artifacts
+### Nebius Cloud Deployment Artifacts & Job Execution
 
 - **Serverless Endpoint:** `deploy/nebius-serverless-endpoint/` contains the production single-container Dockerfile, declarative `endpoint.yaml`, and deployment guide for hosting the interactive web/API service on Nebius AI Cloud.
-- **Serverless Jobs:** `deploy/nebius-serverless-jobs/` contains `job-spec.yaml` and architecture documentation for the asynchronous workspace portfolio delivery audit. Includes a local simulation background worker fallback (`local_worker`) labeled explicitly in the UI.
+- **Serverless Jobs (Dedicated Control-Plane Integration):**
+  - `deploy/nebius-serverless-jobs/job-spec.yaml` adheres to official Nebius AI Cloud CLI (`nebius ai job create`) specifications.
+  - `deploy/nebius-serverless-jobs/Dockerfile.worker` packages the container worker entrypoint (`apps/api/src/jobs/worker-runner.ts`) with production dependencies.
+  - **Credential Separation:** Cloud job dispatch requires `NEBIUS_JOBS_ENDPOINT` and a dedicated `NEBIUS_JOBS_API_KEY` (Nebius AI Cloud IAM control-plane token). It strictly avoids reusing the Token Factory inference key.
+  - **Prerequisite Requirements:** In environments without configured cloud job credentials and endpoint, cloud job execution is marked as `Not Configured / Unavailable`. Failed cloud dispatches do not silently trigger local runs under mislabeled targets.
+- **Local Simulation Background Worker:** In local development, an asynchronous background worker handles portfolio delivery audits locally. It is truthfully labeled as `"Local Simulation (Background Worker)"` in the UI to prevent false claims of cloud execution.
 
 ### Model Context Protocol (MCP)
 

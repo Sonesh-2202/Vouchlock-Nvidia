@@ -376,7 +376,7 @@ export function DashboardPage() {
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowAuditModal(true)}
-                title="Launch asynchronous workspace portfolio delivery audit (Nebius Serverless Job)"
+                title="Launch asynchronous workspace portfolio delivery audit"
               >
                 <span>⚡ Portfolio Audit</span>
               </button>

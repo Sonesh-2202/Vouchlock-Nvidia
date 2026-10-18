@@ -1,0 +1,44 @@
+# Production Dockerfile for Nebius Serverless Job Worker
+# Packages the background portfolio delivery audit runner
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
+WORKDIR /app
+
+# Copy package manifests
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/contracts/package.json ./packages/contracts/
+COPY apps/api/package.json ./apps/api/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --prod=false
+
+# Copy source files
+COPY packages/domain/ ./packages/domain/
+COPY packages/contracts/ ./packages/contracts/
+COPY apps/api/ ./apps/api/
+
+# Build contracts, domain, and api
+RUN pnpm --filter @projectpilot/domain build && \
+    pnpm --filter @projectpilot/contracts build && \
+    pnpm --filter @projectpilot/api build
+
+# Production runtime stage
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy built artifacts and production dependencies
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/packages/domain ./packages/domain
+COPY --from=base /app/packages/contracts ./packages/contracts
+COPY --from=base /app/apps/api/package.json ./apps/api/
+COPY --from=base /app/apps/api/dist ./apps/api/dist
+COPY --from=base /app/apps/api/node_modules ./apps/api/node_modules
+
+WORKDIR /app/apps/api
+
+# Entrypoint runs the worker script
+ENTRYPOINT ["node", "dist/jobs/worker-runner.js"]

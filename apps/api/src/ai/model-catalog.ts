@@ -62,7 +62,7 @@ export class NebiusModelCatalogService {
 
     let response: Response;
     try {
-      response = await fetchFn(`${effectiveBaseUrl}/models`, {
+      response = await fetchFn(`${effectiveBaseUrl}/models?verbose=true`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${trimmedKey}`,
@@ -70,6 +70,17 @@ export class NebiusModelCatalogService {
         },
         signal: controller.signal,
       });
+
+      if (response.status === 400 || response.status === 422) {
+        response = await fetchFn(`${effectiveBaseUrl}/models`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${trimmedKey}`,
+            Accept: 'application/json',
+          },
+          signal: controller.signal,
+        });
+      }
     } catch (err: unknown) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === 'AbortError') {
@@ -151,10 +162,12 @@ export class NebiusModelCatalogService {
       const vendor = isNvidiaVendor ? 'NVIDIA' : ownedBy || 'unknown';
       const family = isNemotron ? 'Nemotron' : isNvidiaVendor ? 'NVIDIA' : 'unknown';
 
-      // Role suggestion heuristic based on official hackathon guidelines:
-      // - Nemotron Nano or Super for fast, everyday requests
-      // - Nemotron Super for balanced requests
-      // - Nemotron 3 Ultra for deep reasoning and complex project analysis
+      // Role classification based STRICTLY on confirmed metadata/identifiers.
+      // - Fast / Everyday: Nemotron Nano
+      // - Balanced: Nemotron Super
+      // - Deep Reasoning: Nemotron 3 Ultra
+      // Do NOT infer Ultra from parameter counts (e.g. 70b).
+      // Do NOT infer Nano from 8b/mini/small unless explicitly identified as Nemotron Nano.
       let roleSuggestion: ModelRoleProfile = 'unclassified';
       if (isNemotron) {
         if (lowerId.includes('nano')) {
@@ -163,11 +176,6 @@ export class NebiusModelCatalogService {
           roleSuggestion = 'deep_reasoning';
         } else if (lowerId.includes('super')) {
           roleSuggestion = 'balanced';
-        } else if (lowerId.includes('70b')) {
-          // Large model without explicit nano/super tag
-          roleSuggestion = 'deep_reasoning';
-        } else if (lowerId.includes('8b') || lowerId.includes('mini') || lowerId.includes('small')) {
-          roleSuggestion = 'fast';
         }
       }
 
@@ -221,24 +229,11 @@ export class NebiusModelCatalogService {
 
     const nemotronModels = models.filter((m) => m.isNemotron);
 
-    // Compute automatic role candidates based strictly on live discovered metadata
-    const fastCandidate =
-      nemotronModels.find((m) => m.roleSuggestion === 'fast') ||
-      nemotronModels.find((m) => m.roleSuggestion === 'balanced') ||
-      nemotronModels[0] ||
-      null;
-
-    const balancedCandidate =
-      nemotronModels.find((m) => m.roleSuggestion === 'balanced') ||
-      nemotronModels.find((m) => m.roleSuggestion === 'fast') ||
-      nemotronModels[0] ||
-      null;
-
-    const deepReasoningCandidate =
-      nemotronModels.find((m) => m.roleSuggestion === 'deep_reasoning') ||
-      nemotronModels.find((m) => m.roleSuggestion === 'balanced') ||
-      nemotronModels[0] ||
-      null;
+    // Compute automatic role candidates based strictly on live discovered metadata.
+    // Do NOT assign any model to a role merely because it is the only Nemotron model in the catalog.
+    const fastCandidate = nemotronModels.find((m) => m.roleSuggestion === 'fast') || null;
+    const balancedCandidate = nemotronModels.find((m) => m.roleSuggestion === 'balanced') || null;
+    const deepReasoningCandidate = nemotronModels.find((m) => m.roleSuggestion === 'deep_reasoning') || null;
 
     const catalogResult: ModelCatalogResponse = {
       provider: 'nebius',
@@ -291,8 +286,9 @@ export class NebiusModelCatalogService {
       const match = catalog.models.find((m) => m.id === explicitId);
       if (!match) {
         throw new AiProviderError(
-          `Requested model "${explicitId}" is not present in the authenticated Nebius Token Factory catalog for this account. Please select an available model.`,
-          'model_not_found',
+          `Requested model "${explicitId}" is not present in the live Nebius Token Factory catalog for your account. Please refresh the catalog or select an available model.`,
+          'requested_model_unavailable',
+          false,
         );
       }
       return {
@@ -308,21 +304,23 @@ export class NebiusModelCatalogService {
     const prefKey = params.workspaceId || params.userId || '';
     const prefs = prefKey ? this.preferences.get(prefKey) : undefined;
 
-    if (prefs?.selectedModelId) {
-      const savedModel = catalog.models.find((m) => m.id === prefs.selectedModelId);
+    if (prefs?.selectedModelId && prefs.selectedModelId.trim().length > 0) {
+      const savedId = prefs.selectedModelId.trim();
+      const savedModel = catalog.models.find((m) => m.id === savedId);
       if (savedModel) {
         return {
           modelId: savedModel.id,
-          modelRole: 'user_preferred',
-          routingReason: `User-selected preferred model: "${savedModel.id}"`,
+          modelRole: savedModel.roleSuggestion !== 'unclassified' ? savedModel.roleSuggestion : 'user_preferred',
+          routingReason: `User-selected preferred model: "${savedModel.id}" (${savedModel.displayName})`,
           displayName: savedModel.displayName,
           isNemotron: savedModel.isNemotron,
         };
       } else {
-        // Saved model is no longer available in catalog
+        // Saved model is no longer available in catalog — never silently substitute!
         throw new AiProviderError(
-          `Previously selected model "${prefs.selectedModelId}" is no longer available in the Nebius Token Factory catalog. Please refresh the catalog and select a new model.`,
+          `Previously selected model "${savedId}" is no longer available in the live Nebius Token Factory catalog. Vouchlock will not silently substitute an unconfirmed model. Please refresh the catalog and select a replacement model in Settings.`,
           'selected_model_unavailable',
+          false,
         );
       }
     }
@@ -335,10 +333,16 @@ export class NebiusModelCatalogService {
         return {
           modelId: assignedModel.id,
           modelRole: role,
-          routingReason: `Custom role assignment for "${role}": "${assignedModel.id}"`,
+          routingReason: `Custom role assignment for "${role}": "${assignedModel.id}" (${assignedModel.displayName})`,
           displayName: assignedModel.displayName,
           isNemotron: assignedModel.isNemotron,
         };
+      } else {
+        throw new AiProviderError(
+          `Model "${assignedId}" assigned to role "${role}" is no longer listed in your live Nebius Token Factory catalog. Please refresh the catalog and update your role assignment in Settings.`,
+          'assigned_role_model_unavailable',
+          false,
+        );
       }
     }
 
@@ -348,33 +352,31 @@ export class NebiusModelCatalogService {
       return {
         modelId: roleCandidate.id,
         modelRole: role,
-        routingReason: `Discovered NVIDIA Nemotron candidate for "${role}" profile (${roleCandidate.displayName})`,
+        routingReason: `Discovered NVIDIA Nemotron candidate for "${role}" profile: "${roleCandidate.id}" (${roleCandidate.displayName})`,
         displayName: roleCandidate.displayName,
         isNemotron: roleCandidate.isNemotron,
       };
     }
 
-    // 5. Fallback to any discovered Nemotron model
-    if (catalog.nemotronModels.length > 0) {
-      const fallback = catalog.nemotronModels[0]!;
-      return {
-        modelId: fallback.id,
-        modelRole: 'fallback_nemotron',
-        routingReason: `Discovered Nemotron model from live catalog (${fallback.displayName})`,
-        displayName: fallback.displayName,
-        isNemotron: true,
-      };
-    }
+    // 5. Fail truthfully if no suitable model is classified for this role.
+    // Do NOT fall back to an arbitrary model or nemotronModels[0]!
+    const roleLabel =
+      role === 'deep_reasoning'
+        ? 'Deep Reasoning (Nemotron 3 Ultra)'
+        : role === 'fast'
+          ? 'Fast / Everyday (Nemotron Nano / Super)'
+          : 'Balanced (Nemotron Super)';
 
-    // 6. If no Nemotron models discovered at all, fail truthfully
     throw new AiProviderError(
-      'No NVIDIA Nemotron models were found in your authenticated Nebius Token Factory catalog. Automatic routing requires at least one discovered Nemotron model or an explicit model assignment.',
-      'no_nemotron_models_available',
+      `No model discovered in your authenticated Nebius Token Factory catalog satisfies the "${roleLabel}" profile. Automatic routing is unavailable until an appropriate model is discovered or you configure an explicit model assignment in Settings.`,
+      'role_profile_unavailable',
+      false,
     );
   }
 
   /**
-   * Stores user/workspace model preferences.
+   * Stores user/workspace model preferences in process memory.
+   * Note: Scoped in-memory for active server process lifetime.
    */
   setPreferences(key: string, prefs: ModelPreferences): void {
     this.preferences.set(key, prefs);
