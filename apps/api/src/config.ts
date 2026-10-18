@@ -55,10 +55,13 @@ export interface AppConfig {
   readonly jwtSecret: string;
   readonly sessionCookieName: string;
   readonly corsOrigin: string[] | string | boolean;
-  readonly aiProvider: 'nebius';
+  readonly aiProvider: string;
   readonly nebiusApiKey: string;
   readonly nebiusModelId: string;
   readonly nebiusBaseUrl: string;
+  readonly openaiApiKey?: string;
+  readonly openaiModel?: string;
+  readonly openaiBaseUrl?: string;
   readonly aiApiKey: string;
   readonly aiModel: string;
   readonly logLevel: string;
@@ -118,21 +121,23 @@ export function loadConfig(): AppConfig {
       (isProd ? 'http://localhost,http://localhost:80' : 'http://localhost:5173'),
   );
 
-  // 7. AI Provider reconciliation: Nebius Token Factory exclusively
-  const aiProvider = 'nebius' as const;
+  // 7. AI Provider: default to nebius (NVIDIA Nemotron via Nebius Token Factory)
+  const aiProvider = (
+    process.env['AI_PROVIDER'] ||
+    process.env['PLANNER_PROVIDER'] ||
+    'nebius'
+  ).toLowerCase();
 
-  // 8. Nebius Token Factory API Key (server-side only, never leaked)
+  // 8. Nebius Token Factory API Key (server-side default, never leaked to client)
   const nebiusApiKey =
     process.env['NEBIUS_API_KEY'] ||
     process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
-    process.env['AI_API_KEY'] ||
     '';
 
   // 9. NVIDIA Open-Source Model on Nebius Token Factory (default: nvidia/Llama-3.1-Nemotron-70B-Instruct)
   const nebiusModelId =
     process.env['NEBIUS_MODEL_ID'] ||
     process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
-    process.env['AI_MODEL'] ||
     'nvidia/Llama-3.1-Nemotron-70B-Instruct';
 
   // 10. Nebius Token Factory Base URL
@@ -142,7 +147,14 @@ export function loadConfig(): AppConfig {
     'https://api.tokenfactory.nebius.com/v1'
   ).replace(/\/+$/, '');
 
-  // 11. Logging
+  // 11. Optional server-side BYOK fallback configuration for development/testing
+  const openaiApiKey = process.env['OPENAI_API_KEY'] || '';
+  const openaiModel = process.env['OPENAI_MODEL'] || 'gpt-4o';
+  const openaiBaseUrl = process.env['OPENAI_BASE_URL'] || 'https://api.openai.com/v1';
+  const aiApiKey = process.env['AI_API_KEY'] || nebiusApiKey;
+  const aiModel = process.env['AI_MODEL'] || nebiusModelId;
+
+  // 12. Logging
   const logLevel = process.env['LOG_LEVEL'] || 'info';
   const logRedact = process.env['LOG_REDACT'] !== 'false';
 
@@ -158,8 +170,11 @@ export function loadConfig(): AppConfig {
     nebiusApiKey,
     nebiusModelId,
     nebiusBaseUrl,
-    aiApiKey: nebiusApiKey,
-    aiModel: nebiusModelId,
+    openaiApiKey,
+    openaiModel,
+    openaiBaseUrl,
+    aiApiKey,
+    aiModel,
     logLevel,
     logRedact,
   };

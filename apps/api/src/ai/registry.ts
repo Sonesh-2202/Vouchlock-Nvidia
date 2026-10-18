@@ -16,12 +16,38 @@ export interface ProviderDescriptor {
 export const PROVIDER_REGISTRY = {
   nebius: {
     id: 'nebius',
-    label: 'NVIDIA Nemotron (Nebius Token Factory)',
+    label: 'NVIDIA Nemotron (Nebius Token Factory) [Default]',
     tested: true,
     requiresApiKey: true,
     advertised: true,
     description:
-      'Serverless inference endpoint hosting NVIDIA open-source Nemotron models via Nebius Token Factory.',
+      'Official hackathon runtime powered by NVIDIA Nemotron served via Nebius Token Factory. Uses server credentials by default.',
+  },
+  openai: {
+    id: 'openai',
+    label: 'OpenAI (Personal BYOK)',
+    tested: true,
+    requiresApiKey: true,
+    advertised: true,
+    description:
+      'Optional user-configured Bring-Your-Own-Key provider (e.g. gpt-4o). Runs in your personal ephemeral session.',
+  },
+  gemini: {
+    id: 'gemini',
+    label: 'Google Gemini (Personal BYOK)',
+    tested: true,
+    requiresApiKey: true,
+    advertised: true,
+    description:
+      'Optional user-configured Bring-Your-Own-Key provider (e.g. gemini-3.8-flash). Runs in your personal ephemeral session.',
+  },
+  anthropic: {
+    id: 'anthropic',
+    label: 'Anthropic Claude (Gated)',
+    tested: false,
+    requiresApiKey: true,
+    advertised: false,
+    description: 'Anthropic Claude adapter (gated pending test matrix validation).',
   },
   mock: {
     id: 'mock',

@@ -349,12 +349,12 @@ export function SettingsModal({
         <div style={{ padding: 'var(--space-6)', overflowY: 'auto', flex: 1 }}>
           {activeTab === 'providers' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-              {/* Privacy Disclosure Notice */}
+              {/* Two-Path AI Architecture & Privacy Safeguards */}
               <div
                 style={{
                   padding: 'var(--space-4)',
-                  backgroundColor: 'rgba(217, 119, 6, 0.08)',
-                  border: '1px solid rgba(217, 119, 6, 0.3)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.06)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: 'var(--font-size-xs)',
                   lineHeight: '1.5',
@@ -362,15 +362,27 @@ export function SettingsModal({
                 }}
               >
                 <strong
-                  style={{ display: 'block', marginBottom: '4px', color: 'var(--text-primary)' }}
+                  style={{ display: 'block', marginBottom: '6px', color: 'var(--text-primary)' }}
                 >
-                  🔒 Ephemeral Memory & Privacy Safeguards
+                  ⚡ Two-Path AI Engine Architecture
                 </strong>
-                Credentials you submit here are stored exclusively in temporary server process
-                memory for your current session. Keys are <strong>never</strong> saved to browser
-                localStorage, cookies, PostgreSQL database, analytics, or server log files. All
-                active provider keys are automatically wiped on logout or after 24 hours of
-                inactivity.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div>
+                    <strong>1. Product Default (Nebius x NVIDIA Hackathon Path):</strong> Runs NVIDIA
+                    Nemotron-70B served via Nebius Token Factory using server-configured credentials.
+                    Reviewers do <em>not</em> need to enter a personal key to evaluate the agent.
+                  </div>
+                  <div>
+                    <strong>2. Optional Personal BYOK (OpenAI / Google Gemini):</strong> You can optionally
+                    configure personal API keys for alternative model providers. BYOK requests run exclusively
+                    with your personal credentials and do not consume application Nebius credits.
+                  </div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>
+                    🔒 Ephemeral session security: All personal keys are stored exclusively in temporary
+                    server process memory (24h TTL, wiped automatically on logout). Keys are never written to disk,
+                    database, browser storage, or server logs.
+                  </div>
+                </div>
               </div>
 
               {providerMessage && (
@@ -486,7 +498,11 @@ export function SettingsModal({
                     type="password"
                     placeholder={
                       selectedProvider === 'nebius'
-                        ? 'Nebius Token Factory API key'
+                        ? 'Nebius Token Factory API key (optional — server default is active)'
+                        : selectedProvider === 'openai'
+                        ? 'OpenAI API key (sk-...)'
+                        : selectedProvider === 'gemini'
+                        ? 'Google AI Studio API key (AIza...)'
                         : 'Paste provider API key'
                     }
                     value={apiKeyInput}
@@ -494,6 +510,15 @@ export function SettingsModal({
                     className="input"
                     style={{ width: '100%', fontFamily: 'var(--font-mono)' }}
                   />
+                  <p style={{ margin: 'var(--space-2) 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {selectedProvider === 'nebius'
+                      ? '💡 Nebius Token Factory runs on server-configured credentials by default with NVIDIA Nemotron-70B. You only need to enter a key here if you want to use your personal Nebius account credits.'
+                      : selectedProvider === 'openai'
+                      ? '🔑 Optional BYOK: Personal key used for GPT-4o / standard chat completions. Runs in ephemeral memory and does not consume Nebius credits.'
+                      : selectedProvider === 'gemini'
+                      ? '🔑 Optional BYOK: Personal key used for Gemini 1.5 Flash. Runs in ephemeral memory and does not consume Nebius credits.'
+                      : 'Ephemeral key will be stored in server memory only for this session.'}
+                  </p>
                   <div
                     style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}
                   >
@@ -544,8 +569,9 @@ export function SettingsModal({
                       margin: 0,
                     }}
                   >
-                    No active credentials in process memory. Add and test a provider key before
-                    generating AI plans or Copilot reports.
+                    No personal BYOK keys configured in process memory. The app will use the default
+                    server-configured <strong>Nebius Token Factory (NVIDIA Nemotron-70B)</strong> engine
+                    automatically.
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

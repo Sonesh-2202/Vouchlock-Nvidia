@@ -16,6 +16,8 @@ import {
   DEFAULT_NVIDIA_NEMOTRON_MODEL,
   DEFAULT_NEBIUS_BASE_URL,
 } from './nebius-provider.js';
+import { OpenAiProvider, verifyOpenAiApiKey } from './openai-provider.js';
+import { GeminiProvider, verifyGeminiApiKey } from './gemini-provider.js';
 import { getProviderDescriptor } from './registry.js';
 import {
   AiProviderAuthError,
@@ -36,6 +38,8 @@ export {
   DEFAULT_NVIDIA_NEMOTRON_MODEL,
   DEFAULT_NEBIUS_BASE_URL,
 } from './nebius-provider.js';
+export { OpenAiProvider, verifyOpenAiApiKey } from './openai-provider.js';
+export { GeminiProvider, verifyGeminiApiKey } from './gemini-provider.js';
 
 export interface PlanGenerationResult {
   provider: string;
@@ -78,66 +82,141 @@ export function computeBriefHash(briefText: string): string {
 
 /**
  * Resolves the configured AI provider instance.
- * Throws explicit error if provider is misconfigured or credentials missing.
- * Accepts optional sessionApiKey for ephemeral BYOK overrides.
+ * Defaults to Nebius Token Factory (NVIDIA Nemotron).
+ * Routes to personal BYOK providers (OpenAI, Gemini) when explicitly selected by the user.
+ * Never silently falls back between providers.
  */
 export function getAiProvider(
   config: AppConfig | string,
   customProvider?: AiProvider,
   sessionApiKey?: string,
+  providerOverride?: string,
 ): AiProvider {
   if (customProvider) {
     return customProvider;
   }
 
   const isConfigObj = typeof config === 'object' && config !== null;
-  const providerType = isConfigObj ? config.aiProvider || 'nebius' : config || 'nebius';
+  const requestedProvider =
+    providerOverride ||
+    (isConfigObj ? config.aiProvider : config) ||
+    'nebius';
+  const providerType = requestedProvider.toLowerCase().trim();
 
   if (providerType === 'mock') {
     return new MockAiProvider();
   }
 
   const descriptor = getProviderDescriptor(providerType);
-  if (!descriptor && providerType !== 'nebius') {
+  if (!descriptor) {
     throw new AiProviderError(
-      `Unsupported AI provider: "${providerType}". Nebius Token Factory with NVIDIA Nemotron is the active provider.`,
+      `Unsupported AI provider: "${providerType}". Supported options are "nebius" (default hackathon runtime), "openai" (BYOK), and "gemini" (BYOK).`,
       'unknown_provider',
       false,
     );
   }
 
-  const apiKey =
-    sessionApiKey ||
-    (isConfigObj ? config.nebiusApiKey || config.aiApiKey : '') ||
-    process.env['NEBIUS_API_KEY'] ||
-    process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
-    process.env['AI_API_KEY'] ||
-    '';
-
-  const model =
-    (isConfigObj ? config.nebiusModelId || config.aiModel : '') ||
-    process.env['NEBIUS_MODEL_ID'] ||
-    process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
-    process.env['AI_MODEL'] ||
-    DEFAULT_NVIDIA_NEMOTRON_MODEL;
-
-  const baseUrl =
-    (isConfigObj ? config.nebiusBaseUrl : '') ||
-    process.env['NEBIUS_BASE_URL'] ||
-    process.env['NEBIUS_TOKEN_FACTORY_BASE_URL'] ||
-    DEFAULT_NEBIUS_BASE_URL;
-
-  if (!apiKey || apiKey.trim().length === 0) {
-    throw new AiProviderAuthError(
-      'Nebius Token Factory API key is missing. Configure NEBIUS_API_KEY in your server environment.',
+  if (!descriptor.tested) {
+    throw new AiProviderError(
+      `Provider "${descriptor.label}" (${providerType}) is not yet supported in this release slice.`,
+      'unsupported_provider',
+      false,
     );
   }
 
-  return new NebiusTokenFactoryProvider({
-    apiKey,
-    model,
-    baseUrl,
-  });
+  if (providerType === 'nebius') {
+    const apiKey =
+      sessionApiKey ||
+      (isConfigObj ? config.nebiusApiKey : '') ||
+      process.env['NEBIUS_API_KEY'] ||
+      process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
+      '';
+
+    const model =
+      (isConfigObj ? config.nebiusModelId : '') ||
+      process.env['NEBIUS_MODEL_ID'] ||
+      process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
+      DEFAULT_NVIDIA_NEMOTRON_MODEL;
+
+    const baseUrl =
+      (isConfigObj ? config.nebiusBaseUrl : '') ||
+      process.env['NEBIUS_BASE_URL'] ||
+      process.env['NEBIUS_TOKEN_FACTORY_BASE_URL'] ||
+      DEFAULT_NEBIUS_BASE_URL;
+
+    if (!apiKey || apiKey.trim().length === 0) {
+      throw new AiProviderAuthError(
+        'Nebius Token Factory API key is missing. Configure NEBIUS_API_KEY in the server environment, or provide an ephemeral session key.',
+      );
+    }
+
+    return new NebiusTokenFactoryProvider({
+      apiKey,
+      model,
+      baseUrl,
+    });
+  }
+
+  if (providerType === 'openai') {
+    const apiKey =
+      sessionApiKey ||
+      (isConfigObj ? config.openaiApiKey : '') ||
+      process.env['OPENAI_API_KEY'] ||
+      '';
+
+    const model =
+      (isConfigObj ? config.openaiModel : '') ||
+      process.env['OPENAI_MODEL'] ||
+      'gpt-4o';
+
+    const baseUrl =
+      (isConfigObj ? config.openaiBaseUrl : '') ||
+      process.env['OPENAI_BASE_URL'] ||
+      'https://api.openai.com/v1';
+
+    if (!apiKey || apiKey.trim().length === 0) {
+      throw new AiProviderAuthError(
+        'OpenAI API key is missing. Please configure an ephemeral BYOK session key for OpenAI in Settings.',
+      );
+    }
+
+    return new OpenAiProvider({
+      apiKey,
+      model,
+      baseUrl,
+    });
+  }
+
+  if (providerType === 'gemini') {
+    const apiKey =
+      sessionApiKey ||
+      (isConfigObj ? config.aiApiKey : '') ||
+      process.env['AI_API_KEY'] ||
+      process.env['GEMINI_API_KEY'] ||
+      '';
+
+    const model =
+      (isConfigObj ? config.aiModel : '') ||
+      process.env['AI_MODEL'] ||
+      'gemini-3.8-flash';
+
+    if (!apiKey || apiKey.trim().length === 0) {
+      throw new AiProviderAuthError(
+        'Google Gemini API key is missing. Please configure an ephemeral BYOK session key for Google Gemini in Settings.',
+      );
+    }
+
+    return new GeminiProvider({
+      apiKey,
+      model,
+    });
+  }
+
+  throw new AiProviderError(
+    `Unsupported AI provider: "${providerType}".`,
+    'unknown_provider',
+    false,
+  );
 }
 
 /**
@@ -147,10 +226,10 @@ export async function generatePlan(
   input: PlanGenerationInput,
   config: AppConfig | string = 'mock',
   customProvider?: AiProvider,
-  options?: { timeoutMs?: number; signal?: AbortSignal; sessionApiKey?: string },
+  options?: { timeoutMs?: number; signal?: AbortSignal; sessionApiKey?: string; providerOverride?: string },
 ): Promise<PlanGenerationResult> {
   const inputHash = computeInputHash(input);
-  const provider = getAiProvider(config, customProvider, options?.sessionApiKey);
+  const provider = getAiProvider(config, customProvider, options?.sessionApiKey, options?.providerOverride);
 
   const result = await provider.generatePlan(input, options);
   const validationErrors = validatePlanDraft(
@@ -176,10 +255,10 @@ export async function extractRequirementsProposal(
   input: RequirementExtractionInput,
   config: AppConfig | string = 'mock',
   customProvider?: AiProvider,
-  options?: { timeoutMs?: number; signal?: AbortSignal; sessionApiKey?: string },
+  options?: { timeoutMs?: number; signal?: AbortSignal; sessionApiKey?: string; providerOverride?: string },
 ): Promise<ProposalExtractionResult> {
   const inputHash = computeBriefHash(input.briefText);
-  const provider = getAiProvider(config, customProvider, options?.sessionApiKey);
+  const provider = getAiProvider(config, customProvider, options?.sessionApiKey, options?.providerOverride);
 
   const result = await provider.extractRequirements(input, options);
 

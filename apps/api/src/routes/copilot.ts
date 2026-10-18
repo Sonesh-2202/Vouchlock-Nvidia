@@ -89,7 +89,7 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       });
     }
 
-    const effectiveProvider = providerOverride || config.aiProvider || 'mock';
+    const effectiveProvider = providerOverride || config.aiProvider || 'nebius';
     const sessionApiKey = ephemeralSessionStore.getSessionKey(
       userId,
       effectiveProvider,
@@ -101,8 +101,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       report = await generateCopilotReport(
         context,
         userId,
-        providerOverride ? { ...config, aiProvider: providerOverride as any } : config,
+        config,
         sessionApiKey,
+        providerOverride,
       );
     } catch (err: unknown) {
       logger.error(
@@ -127,7 +128,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
           code: errorObj.code || 'ai_generation_failed',
           message:
             errorObj.message ||
-            'Failed to generate Delivery Agent report. Verify NEBIUS_API_KEY is configured in the server environment.',
+            (effectiveProvider === 'nebius'
+              ? 'Failed to generate Delivery Agent report. Verify NEBIUS_API_KEY is configured in the server environment.'
+              : `Failed to generate Delivery Agent report with provider "${effectiveProvider}". Configure your ephemeral BYOK key in Settings.`),
         },
       });
     }

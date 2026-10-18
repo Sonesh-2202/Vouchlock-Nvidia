@@ -34,7 +34,11 @@ import {
   requirements,
 } from '../db/schema.js';
 import { authenticate } from '../auth.js';
-import { generatePlan, extractRequirementsProposal } from '../ai/planner.js';
+import {
+  generatePlan,
+  extractRequirementsProposal,
+  ephemeralSessionStore,
+} from '../ai/planner.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
 import type { Logger } from '../logger.js';
@@ -318,6 +322,13 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
 
     const memberNames = members.map((m) => m.displayName);
 
+    const effectiveProvider = parsed.data.providerOverride || config.aiProvider || 'nebius';
+    const sessionApiKey = ephemeralSessionStore.getSessionKey(
+      userId,
+      effectiveProvider,
+      project.workspaceId,
+    );
+
     const result = await generatePlan(
       {
         goal: parsed.data.goal ?? project.goal,
@@ -328,6 +339,8 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
         memberNames,
       },
       config,
+      undefined,
+      { sessionApiKey, providerOverride: parsed.data.providerOverride },
     );
 
     const [generation] = await db
@@ -919,6 +932,13 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
       });
     }
 
+    const effectiveProvider = parsed.data.providerOverride || config.aiProvider || 'nebius';
+    const sessionApiKey = ephemeralSessionStore.getSessionKey(
+      userId,
+      effectiveProvider,
+      project.workspaceId,
+    );
+
     try {
       const result = await extractRequirementsProposal(
         {
@@ -926,6 +946,8 @@ export async function projectRoutes(app: FastifyInstance, opts: ProjectRouteOpts
           briefTitle: revision.title,
         },
         config,
+        undefined,
+        { sessionApiKey, providerOverride: parsed.data.providerOverride },
       );
 
       const [generation] = await db

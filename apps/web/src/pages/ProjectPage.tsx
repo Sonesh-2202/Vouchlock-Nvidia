@@ -647,7 +647,10 @@ export function ProjectPage() {
     if (!id || !selectedBrief) return;
     setExtractingProposal(true);
     try {
-      const res = await api.projects.proposals.extract(id, { briefRevisionId: selectedBrief.id });
+      const res = await api.projects.proposals.extract(id, {
+        briefRevisionId: selectedBrief.id,
+        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+      });
       setProposalData(res);
       const decisions: Record<string, 'accept' | 'defer' | 'reject'> = {};
       for (const c of res.proposal.candidates) {
@@ -4449,7 +4452,7 @@ export function ProjectPage() {
                 </p>
               </div>
 
-              {/* Model Runtime Indicator & Run Button */}
+              {/* Engine Selection, Runtime Indicator & Run Button */}
               <div
                 style={{
                   display: 'flex',
@@ -4458,14 +4461,56 @@ export function ProjectPage() {
                   flexWrap: 'wrap',
                 }}
               >
+                {/* Engine Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Engine:
+                  </label>
+                  <select
+                    value={selectedCopilotProvider}
+                    onChange={(e) => setSelectedCopilotProvider(e.target.value)}
+                    style={{
+                      padding: '5px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: 'var(--bg-surface)',
+                      color: 'var(--text-primary)',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-sans)',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="nebius">Nebius Token Factory (NVIDIA Nemotron-70B) — Hackathon Default</option>
+                    <option value="openai">OpenAI GPT-4o (Personal BYOK)</option>
+                    <option value="gemini">Google Gemini 1.5 (Personal BYOK)</option>
+                  </select>
+                </div>
+
+                {/* Runtime Mode Indicator Badge */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '6px 12px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
+                    padding: '5px 10px',
+                    backgroundColor:
+                      selectedCopilotProvider === 'nebius'
+                        ? 'rgba(16, 185, 129, 0.08)'
+                        : 'rgba(59, 130, 246, 0.08)',
+                    border: `1px solid ${
+                      selectedCopilotProvider === 'nebius'
+                        ? 'rgba(16, 185, 129, 0.3)'
+                        : 'rgba(59, 130, 246, 0.3)'
+                    }`,
                     borderRadius: 'var(--radius-sm)',
                     fontSize: '11px',
                     fontFamily: 'var(--font-mono)',
@@ -4473,19 +4518,29 @@ export function ProjectPage() {
                 >
                   <span
                     style={{
-                      width: 8,
-                      height: 8,
+                      width: 7,
+                      height: 7,
                       borderRadius: '50%',
-                      backgroundColor: '#10B981',
+                      backgroundColor: selectedCopilotProvider === 'nebius' ? '#10B981' : '#3B82F6',
                       display: 'inline-block',
                     }}
                   />
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                    Nebius Token Factory
+                    {selectedCopilotProvider === 'nebius'
+                      ? 'Server Default (Nemotron-70B)'
+                      : `${selectedCopilotProvider.toUpperCase()} (Ephemeral Key)`}
                   </span>
-                  <span style={{ color: 'var(--text-muted)' }}>/</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>Nemotron-70B</span>
                 </div>
+
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowCopilotSettings(true)}
+                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                  title="Configure personal BYOK credentials"
+                >
+                  ⚙️ BYOK Settings
+                </button>
 
                 <button
                   type="button"
@@ -4810,16 +4865,19 @@ export function ProjectPage() {
               </div>
             )}
 
-            {/* Loading State */}
+              {/* Loading State */}
             {loadingCopilot && (
               <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
                 <div className="loading-spinner" style={{ margin: '0 auto var(--space-3)' }} />
                 <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
-                  NVIDIA Nemotron is reasoning across project ledger records...
+                  {selectedCopilotProvider === 'nebius'
+                    ? 'NVIDIA Nemotron is reasoning across project ledger records...'
+                    : `${selectedCopilotProvider.toUpperCase()} is reasoning across project ledger records...`}
                 </p>
                 <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Calling Nebius Token Factory serverless runtime. Assembling brief citations, task
-                  links, and evidence audit trails.
+                  {selectedCopilotProvider === 'nebius'
+                    ? 'Calling Nebius Token Factory serverless runtime (NVIDIA Nemotron-70B). Assembling brief citations, task links, and evidence audit trails.'
+                    : `Calling ${selectedCopilotProvider.toUpperCase()} personal BYOK runtime. Assembling brief citations, task links, and evidence audit trails.`}
                 </p>
               </div>
             )}
@@ -4847,10 +4905,18 @@ export function ProjectPage() {
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
                   >
                     <span
-                      className="badge badge-proof"
+                      className={`badge ${
+                        copilotReport.provider === 'nebius' || !copilotReport.provider
+                          ? 'badge-proof'
+                          : 'badge-blocked'
+                      }`}
                       style={{ fontSize: '9px', padding: '2px 6px', fontWeight: 700 }}
                     >
-                      NEBIUS TOKEN FACTORY
+                      {copilotReport.provider === 'openai'
+                        ? 'OPENAI BYOK'
+                        : copilotReport.provider === 'gemini'
+                        ? 'GOOGLE GEMINI BYOK'
+                        : 'NEBIUS TOKEN FACTORY (DEFAULT)'}
                     </span>
                     <span>
                       Model: <strong>{copilotReport.model || 'nvidia/Llama-3.1-Nemotron-70B-Instruct'}</strong> ·
@@ -4894,7 +4960,11 @@ export function ProjectPage() {
                           RECOMMENDED NEXT ACTION
                         </span>
                         <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600 }}>
-                          NVIDIA NEMOTRON REASONING
+                          {copilotReport.provider === 'openai'
+                            ? 'OPENAI GPT-4O REASONING'
+                            : copilotReport.provider === 'gemini'
+                            ? 'GOOGLE GEMINI REASONING'
+                            : 'NVIDIA NEMOTRON REASONING'}
                         </span>
                       </div>
                       <span

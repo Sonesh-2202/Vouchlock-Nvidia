@@ -13,6 +13,8 @@ import {
   listSupportedProviders,
   getProviderDescriptor,
   verifyNebiusApiKey,
+  verifyOpenAiApiKey,
+  verifyGeminiApiKey,
 } from '../ai/planner.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
@@ -199,11 +201,60 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
           },
         });
       }
+    } else if (provider === 'openai') {
+      try {
+        await verifyOpenAiApiKey(
+          apiKey || '',
+          config.openaiModel || 'gpt-4o',
+          config.openaiBaseUrl || 'https://api.openai.com/v1',
+        );
+      } catch (err) {
+        const error = err as { code?: string; message?: string };
+        const status =
+          error.code === 'ai_auth_error'
+            ? 401
+            : error.code === 'ai_rate_limit'
+              ? 429
+              : error.code === 'ai_model_not_found'
+                ? 422
+                : 502;
+        return reply.code(status).send({
+          error: {
+            code: error.code || 'provider_check_failed',
+            message: error.message || 'Could not verify OpenAI credentials.',
+          },
+        });
+      }
+    } else if (provider === 'gemini') {
+      try {
+        await verifyGeminiApiKey(
+          apiKey || '',
+          config.aiModel || 'gemini-3.8-flash',
+        );
+      } catch (err) {
+        const error = err as { code?: string; message?: string };
+        const status =
+          error.code === 'ai_auth_error'
+            ? 401
+            : error.code === 'ai_rate_limit'
+              ? 429
+              : error.code === 'ai_model_not_found'
+                ? 422
+                : 502;
+        return reply.code(status).send({
+          error: {
+            code: error.code || 'provider_check_failed',
+            message: error.message || 'Could not verify Google Gemini credentials.',
+          },
+        });
+      }
+    } else if (provider === 'mock') {
+      // Mock fixture passes immediately
     } else {
       return reply.code(422).send({
         error: {
           code: 'unsupported_provider',
-          message: `Provider "${provider}" is not supported. Nebius Token Factory with NVIDIA Nemotron is the active inference provider.`,
+          message: `Provider "${provider}" is not supported. Supported providers are "nebius" (default), "openai" (BYOK), and "gemini" (BYOK).`,
         },
       });
     }

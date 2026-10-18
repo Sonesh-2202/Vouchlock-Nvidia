@@ -48,13 +48,24 @@ Most project management tools jump straight into to-do lists without clarifying 
 
 **Submission Track:** Best Apps and Agents
 
-Vouchlock's AI architecture has been refocused around **NVIDIA open-source models** served through **Nebius Token Factory**:
+Vouchlock implements a clean **Two-Path AI Architecture**:
 
-1. **Nebius Token Factory Runtime:** Replaced all legacy AI providers with a dedicated, server-side `NebiusTokenFactoryProvider` communicating with `https://api.tokenfactory.nebius.com/v1` using NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`).
-2. **Legacy Provider Removal:** Completely excised Google Gemini and OpenAI provider adapters, fallback logic, credential testing forms, settings controls, and documentation.
-3. **End-to-End Brief-to-Proof Agent:** Evolved the Copilot surface into a multi-stage **Delivery Agent** that monitors the entire delivery lifecycle:
+1. **Path 1: Nebius Token Factory with NVIDIA Nemotron (Product Default & Hackathon Path)**
+   - **Zero-Config Reviewer Path:** Reviewers can experience the live Nemotron-backed agent workflow immediately without supplying their own API key. The server uses its pre-configured `NEBIUS_API_KEY`.
+   - **Server-Side Security:** The Nebius API key remains strictly server-side. It is never exposed to browsers, client storage, or application logs.
+   - **Real Runtime Inference:** Makes live runtime inference calls to `https://api.tokenfactory.nebius.com/v1` targeting `nvidia/Llama-3.1-Nemotron-70B-Instruct`.
+   - **Application-Controlled Safety:** Nemotron outputs are bounded and validated against strict domain schemas before presenting proposals to human reviewers.
+
+2. **Path 2: Optional User BYOK (Bring-Your-Own-Key) Alternatives**
+   - **Supported BYOK Providers:** Users can optionally configure personal credentials for supported alternatives, including **OpenAI** (GPT-4o) and **Google Gemini** (Gemini 1.5 Flash), or personal Nebius account keys.
+   - **Strict Provider Isolation:** Credentials, models, and endpoints are strictly scoped together. The app's Nebius key is never sent to OpenAI or Gemini; user BYOK keys are never sent to Nebius.
+   - **No Silent Fallbacks:** Requests only use the provider explicitly selected by the user. If a selected provider lacks credentials or is unavailable, Vouchlock returns a clear, actionable error instead of silently falling back.
+   - **Independent Quota:** BYOK requests run exclusively against the user's personal provider credentials and do not consume application Nebius credits.
+   - **Ephemeral In-Memory Security:** User keys live strictly in temporary server process memory (24-hour TTL, automatically wiped on logout). Keys are never written to disk, database, or client storage.
+
+3. **End-to-End Brief-to-Proof Delivery Agent:**
    - *Stage 1: Brief Intake* (source brief coverage and review)
-   - *Stage 2: Requirement Analysis* (candidate requirement extraction with source citations)
+   - *Stage 2: Requirement Analysis* (candidate requirement extraction with grounded source citations)
    - *Stage 3: Task Planning* (linking execution tasks to canonical requirements)
    - *Stage 4: Evidence Collection* (surfacing unproven tasks and proof artifact gaps)
    - *Stage 5: Verification* (human attestation stamp)
@@ -188,9 +199,10 @@ Follow this step-by-step path to evaluate the live agent workflow:
    - Switch to the **Audit Log** tab to verify that the approved mutation was immutably recorded with actor identity, timestamp, and entity reference.
    - Or click **"Reject"** and confirm that the rejection reason is logged to the audit trail without modifying project state.
 
-> **Feature Credential Notice:**
-> - **Requires Nebius Token Factory Key (`NEBIUS_API_KEY`):** Delivery Agent Nemotron reasoning reports, AI Brief Decomposition (candidate requirement extraction), and AI Plan Proposal generation.
-> - **Operates Without Credentials:** The complete delivery ledger, manual requirement registration, 5-column Kanban task board, manual task-requirement linking, proof artifact submission, human verification attestation, Truthful Delivery Reports, full JSON export, and standard MCP audit tools.
+> **Feature Credential & Reviewer Notice:**
+> - **Default Hackathon Experience (Zero-Config for Reviewers):** The server-side deployment comes pre-configured with `NEBIUS_API_KEY`. Reviewers can immediately evaluate the Delivery Agent (Nemotron-70B reasoning, candidate requirement extraction, plan proposals, and evidence gap analysis) without entering any personal credentials.
+> - **Optional BYOK Providers (OpenAI & Gemini):** If desired, users can test alternative providers by entering their own API keys via **⚙️ BYOK Settings**. BYOK requests use exclusively the user's personal key in ephemeral memory and do not consume application Nebius credits.
+> - **Operates Without Any AI Credentials:** The complete delivery ledger, manual requirement registration, 5-column Kanban task board, manual task-requirement linking, proof artifact submission, human verification attestation stamps, Truthful Delivery Reports, full JSON export, and standard MCP audit tools.
 
 ---
 
@@ -329,11 +341,11 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/me/providers/available` | List supported AI providers (`nebius` powered by NVIDIA Nemotron-70B) |
+| `GET` | `/api/v1/me/providers/available` | List supported AI providers (default: Nebius / Nemotron-70B, optional BYOK: OpenAI, Gemini) |
 | `GET` | `/api/v1/me/providers` | List active ephemeral session status (masked keys only, zero plaintext) |
-| `POST` | `/api/v1/me/provider-test` | Test Nebius Token Factory credentials before session activation |
-| `POST` | `/api/v1/me/providers` | Set ephemeral session API key (in-memory only, 24h TTL, wiped on logout) |
-| `DELETE` | `/api/v1/me/providers/:provider` | Clear ephemeral provider session key |
+| `POST` | `/api/v1/me/provider-test` | Provider-specific credential verification (tested against selected provider's API) |
+| `POST` | `/api/v1/me/provider-session` | Store ephemeral in-memory BYOK key (24h TTL, auto-wiped on logout) |
+| `DELETE` | `/api/v1/me/provider-session/:provider` | Revoke ephemeral provider session key from process memory |
 
 </details>
 

@@ -163,6 +163,7 @@ export const generatePlanDraftSchema = z.object({
   deliverable: z.string().trim().max(500).optional(),
   deadline: isoDateSchema.optional(),
   constraints: z.array(z.string().max(500)).optional(),
+  providerOverride: z.string().optional(),
 });
 
 export const acceptPlanDraftSchema = z.object({
@@ -299,6 +300,7 @@ export const requirementProposalSchema = z.object({
 
 export const extractRequirementsInputSchema = z.object({
   briefRevisionId: uuidSchema,
+  providerOverride: z.string().optional(),
 });
 
 export const acceptCandidateItemSchema = z.object({

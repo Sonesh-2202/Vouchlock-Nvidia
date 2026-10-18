@@ -11,6 +11,7 @@ import { createHash } from 'crypto';
 import type { AppConfig } from '../config.js';
 import { getAiProvider } from '../ai/planner.js';
 import { NebiusTokenFactoryProvider, extractJsonFromResponse } from '../ai/nebius-provider.js';
+import { OpenAiProvider } from '../ai/openai-provider.js';
 import type {
   CopilotContext,
   CopilotReport,
@@ -22,6 +23,72 @@ import type {
   ProposedAction,
   SourceRecord,
 } from './types.js';
+
+const COPILOT_REPORT_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    inferredSummary: { type: 'string' },
+    nextActionExplanation: { type: 'string' },
+    openQuestions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          question: { type: 'string' },
+          context: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        },
+        required: ['id', 'question'],
+        additionalProperties: false,
+      },
+    },
+    risks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          risk: { type: 'string' },
+          severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+          mitigation: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        },
+        required: ['id', 'risk', 'severity'],
+        additionalProperties: false,
+      },
+    },
+    proposedActions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          actionType: {
+            type: 'string',
+            enum: [
+              'create_requirement',
+              'link_task_requirement',
+              'request_evidence',
+              'create_task',
+              'update_task',
+            ],
+          },
+          description: { type: 'string' },
+          groundingReference: { type: 'string' },
+          payload: { type: 'object' },
+        },
+        required: ['actionType', 'description', 'groundingReference', 'payload'],
+        additionalProperties: true,
+      },
+    },
+  },
+  required: [
+    'inferredSummary',
+    'nextActionExplanation',
+    'openQuestions',
+    'risks',
+    'proposedActions',
+  ],
+  additionalProperties: false,
+};
 
 /**
  * Generate a deterministic proposal ID using content hashing.
@@ -44,8 +111,11 @@ export async function generateCopilotReport(
   requesterId: string,
   config: AppConfig | string = 'nebius',
   sessionApiKey?: string,
+  providerOverride?: string,
 ): Promise<CopilotReport> {
-  const providerType = typeof config === 'string' ? config : config.aiProvider || 'nebius';
+  const providerType =
+    providerOverride ||
+    (typeof config === 'string' ? config : config.aiProvider || 'nebius');
 
   // 1. Identify source records used for grounding
   const sourceRecords: SourceRecord[] = [
@@ -218,10 +288,13 @@ export async function generateCopilotReport(
     };
   }
 
-  // 9. Live Nebius Token Factory Runtime (NVIDIA Nemotron)
-  const provider = getAiProvider(config, undefined, sessionApiKey);
+  // 9. Resolve configured AI runtime (default Nebius Token Factory or user BYOK)
+  const provider = getAiProvider(config, undefined, sessionApiKey, providerOverride);
+  const isNebius = provider instanceof NebiusTokenFactoryProvider;
 
-  const systemPrompt = `You are the Vouchlock Project Delivery Agent powered by NVIDIA Nemotron served via Nebius Token Factory.
+  const systemPrompt = `You are the Vouchlock Project Delivery Agent${
+    isNebius ? ' powered by NVIDIA Nemotron served via Nebius Token Factory' : ''
+  }.
 Vouchlock is a project delivery ledger connecting:
 Source Brief -> Reviewed Requirements -> Linked Tasks -> Proof/Evidence -> Named Human Verification.
 Your mission is to provide truthful delivery intelligence: a completed task does NOT prove a requirement was satisfied unless linked to real evidence.
@@ -312,6 +385,17 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
     ]);
     responseContent = res.content;
     modelUsed = res.modelUsed;
+  } else if (provider instanceof OpenAiProvider) {
+    const res = await provider.callChatCompletionsJson(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      'copilot_report',
+      COPILOT_REPORT_JSON_SCHEMA,
+    );
+    responseContent = res.content;
+    modelUsed = res.modelUsed || provider.model;
   } else {
     // Other provider instance
     const res = await provider.extractRequirements({
@@ -328,7 +412,7 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
   } catch {
     // If output formatting had an issue, provide safe structured fallback without fabricating data
     parsed = {
-      inferredSummary: `NVIDIA Nemotron analyzed project "${context.project.name}". Identified ${blockers.length} blocker(s), ${unlinkedTasks.length} unlinked task(s), and ${evidenceGaps.length} unverified requirement(s).`,
+      inferredSummary: `Delivery Agent analyzed project "${context.project.name}". Identified ${blockers.length} blocker(s), ${unlinkedTasks.length} unlinked task(s), and ${evidenceGaps.length} unverified requirement(s).`,
       nextActionExplanation:
         unlinkedTasks.length > 0
           ? `Link unlinked execution tasks to requirements to establish proof traceability.`
@@ -434,7 +518,7 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
     proposedActions: validatedProposedActions,
     sourceRecords,
     generatedAt: new Date().toISOString(),
-    provider: 'nebius',
+    provider: provider.id,
     model: modelUsed,
     requesterId,
     projectId: context.project.id,
