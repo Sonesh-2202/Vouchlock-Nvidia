@@ -87,7 +87,6 @@ export function ProjectPage() {
   const [selectedCopilotProvider, setSelectedCopilotProvider] = useState<string>('nebius');
   const [selectedModelOverride, setSelectedModelOverride] = useState<string>('');
   const [selectedRoleProfile, setSelectedRoleProfile] = useState<'fast' | 'balanced' | 'deep_reasoning'>('balanced');
-  const [showModelPickerDrawer, setShowModelPickerDrawer] = useState(false);
   const [showCopilotSettings, setShowCopilotSettings] = useState(false);
   const [lastActionNotice, setLastActionNotice] = useState<{
     description: string;
@@ -4638,145 +4637,32 @@ export function ProjectPage() {
                 </div>
               </div>
 
-              {/* Engine Selection, Runtime Indicator & Run Button */}
+              {/* Streamlined Action Cluster (Only Primary CTA + BYOK Settings) */}
               <div
                 style={{
                   display: 'flex',
-                  alignItems: isMobileView ? 'stretch' : 'center',
-                  flexDirection: isMobileView ? 'column' : 'row',
+                  alignItems: 'center',
                   gap: 'var(--space-3)',
                   flexWrap: 'wrap',
-                  width: isMobileView ? '100%' : 'auto',
                 }}
               >
-                {/* Engine Selector */}
-                <div
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowCopilotSettings(true)}
                   style={{
-                    display: 'flex',
+                    fontSize: '12px',
+                    padding: '8px 14px',
+                    minHeight: 42,
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    width: isMobileView ? '100%' : 'auto',
                   }}
+                  title="Configure personal BYOK credentials"
                 >
-                  <label
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      flexShrink: 0,
-                    }}
-                  >
-                    Engine:
-                  </label>
-                  <select
-                    value={selectedCopilotProvider}
-                    onChange={(e) => setSelectedCopilotProvider(e.target.value)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-subtle)',
-                      backgroundColor: 'var(--bg-surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '12px',
-                      fontFamily: 'var(--font-sans)',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      flex: 1,
-                      minWidth: 0,
-                      minHeight: 40,
-                    }}
-                  >
-                    <option value="nebius">Nebius Token Factory (NVIDIA Nemotron)</option>
-                    <option value="openai">OpenAI GPT-4o (Personal BYOK)</option>
-                    <option value="gemini">Google Gemini (Personal BYOK)</option>
-                  </select>
-                </div>
-
-                {/* Runtime Mode Indicator Badge */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isMobileView ? 'center' : 'flex-start',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    backgroundColor:
-                      selectedCopilotProvider === 'nebius'
-                        ? 'rgba(16, 185, 129, 0.08)'
-                        : 'rgba(59, 130, 246, 0.08)',
-                    border: `1px solid ${
-                      selectedCopilotProvider === 'nebius'
-                        ? 'rgba(16, 185, 129, 0.3)'
-                        : 'rgba(59, 130, 246, 0.3)'
-                    }`,
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '11px',
-                    fontFamily: 'var(--font-mono)',
-                    width: isMobileView ? '100%' : 'auto',
-                    minHeight: 36,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      backgroundColor: selectedCopilotProvider === 'nebius' ? '#10B981' : '#3B82F6',
-                      display: 'inline-block',
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {selectedCopilotProvider === 'nebius'
-                      ? 'Server Default (NVIDIA Nemotron)'
-                      : `${selectedCopilotProvider.toUpperCase()} (Ephemeral Key)`}
-                  </span>
-                </div>
-
-                {selectedCopilotProvider === 'nebius' && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setShowModelPickerDrawer(!showModelPickerDrawer)}
-                    style={{
-                      fontSize: '11px',
-                      padding: '8px 12px',
-                      width: isMobileView ? '100%' : 'auto',
-                      justifyContent: 'center',
-                      minHeight: 40,
-                    }}
-                    title="Choose discovered NVIDIA Nemotron model or routing profile"
-                  >
-                    ⚡ Model: {selectedRoleProfile.toUpperCase()} {showModelPickerDrawer ? '▲' : '▼'}
-                  </button>
-                )}
-
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    width: isMobileView ? '100%' : 'auto',
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setShowCopilotSettings(true)}
-                    style={{
-                      fontSize: '11px',
-                      padding: '8px 12px',
-                      width: isMobileView ? '100%' : 'auto',
-                      justifyContent: 'center',
-                      minHeight: 38,
-                    }}
-                    title="Configure personal BYOK credentials"
-                  >
-                    ⚙️ BYOK Settings
-                  </button>
-                </div>
+                  <span>⚙️</span>
+                  <span>API Keys</span>
+                </button>
 
                 <button
                   type="button"
@@ -4787,30 +4673,31 @@ export function ProjectPage() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
-                    width: isMobileView ? '100%' : 'auto',
-                    minHeight: 44,
-                    padding: '10px 16px',
+                    gap: '8px',
+                    minHeight: 42,
+                    padding: '10px 18px',
+                    fontWeight: 600,
                   }}
                 >
                   <span>{loadingCopilot ? 'Reasoning Across Ledger...' : 'Run Agent Analysis'}</span>
-                  <span>🤖</span>
+                  <span>{loadingCopilot ? '🔄' : '🤖'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Collapsible Model Picker Drawer for Delivery Agent */}
-            {showModelPickerDrawer && selectedCopilotProvider === 'nebius' && (
-              <div style={{ marginBottom: 'var(--space-4)' }}>
-                <ModelPicker
-                  workspaceId={typeof project?.workspaceId === 'string' ? project.workspaceId : undefined}
-                  selectedModelId={selectedModelOverride}
-                  selectedRoleProfile={selectedRoleProfile}
-                  onSelectModel={(modelId) => setSelectedModelOverride(modelId)}
-                  onSelectRole={(role) => setSelectedRoleProfile(role)}
-                />
-              </div>
-            )}
+            {/* Unified AI Brain & Speed Bar (Replaces the complicated multi-box setup) */}
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <ModelPicker
+                workspaceId={typeof project?.workspaceId === 'string' ? project.workspaceId : undefined}
+                selectedProvider={selectedCopilotProvider}
+                onSelectProvider={(p) => setSelectedCopilotProvider(p)}
+                selectedModelId={selectedModelOverride}
+                selectedRoleProfile={selectedRoleProfile}
+                onSelectModel={(modelId) => setSelectedModelOverride(modelId)}
+                onSelectRole={(role) => setSelectedRoleProfile(role)}
+                onOpenSettings={() => setShowCopilotSettings(true)}
+              />
+            </div>
 
             {/* Success Audit Banner for Last Approved Action */}
             {lastActionNotice && (
@@ -5146,27 +5033,49 @@ export function ProjectPage() {
             {!copilotReport && !loadingCopilot && (
               <div
                 style={{
-                  padding: 'var(--space-12) var(--space-6)',
+                  padding: 'var(--space-8) var(--space-6)',
                   textAlign: 'center',
                   backgroundColor: 'var(--bg-surface)',
                   borderRadius: 'var(--radius-lg)',
-                  border: '1px dashed var(--border-subtle)',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                  border: '1px solid var(--border-subtle)',
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minHeight: '260px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
+                {/* Subtle radial ambient glow */}
                 <div
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    position: 'absolute',
+                    top: '-30%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '380px',
+                    height: '220px',
+                    background: 'radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%)',
+                    pointerEvents: 'none',
+                  }}
+                />
+
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '14px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
-                    margin: '0 auto var(--space-3)',
-                    boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
+                    fontSize: '22px',
+                    marginBottom: 'var(--space-3)',
+                    boxShadow: '0 0 24px rgba(16, 185, 129, 0.25)',
+                    position: 'relative',
                   }}
                 >
                   ⚡
@@ -5176,7 +5085,7 @@ export function ProjectPage() {
                     fontFamily: 'var(--font-sans)',
                     fontWeight: 700,
                     letterSpacing: '-0.02em',
-                    fontSize: 'var(--font-size-xl)',
+                    fontSize: 'var(--font-size-lg)',
                     margin: '0 0 var(--space-2)',
                     color: 'var(--text-primary)',
                   }}
@@ -5185,9 +5094,9 @@ export function ProjectPage() {
                 </h3>
                 <p
                   style={{
-                    maxWidth: '560px',
+                    maxWidth: '540px',
                     margin: '0 auto var(--space-4)',
-                    fontSize: 'var(--font-size-sm)',
+                    fontSize: 'var(--font-size-xs)',
                     color: 'var(--text-muted)',
                     lineHeight: '1.6',
                   }}
@@ -5196,11 +5105,18 @@ export function ProjectPage() {
                   unlinked tasks, and evidence records to recommend the single most impactful next
                   delivery action. Inferences remain strictly separate from verified ledger records.
                 </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>🛡️ Verified Ledger Only</span>
+                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>🔍 Zero Hallucination Gate</span>
+                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>📋 Auditable Proposals</span>
+                </div>
+
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={handleGenerateCopilotReport}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 22px' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 22px', fontSize: '12px', fontWeight: 600 }}
                 >
                   <span>Start Agent Analysis Now</span>
                   <span>→</span>
@@ -5210,14 +5126,27 @@ export function ProjectPage() {
 
             {/* Loading State */}
             {loadingCopilot && (
-              <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
+              <div
+                style={{
+                  padding: 'var(--space-8) var(--space-6)',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-subtle)',
+                  minHeight: '260px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <div className="loading-spinner" style={{ margin: '0 auto var(--space-3)' }} />
                 <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
                   {selectedCopilotProvider === 'nebius'
                     ? 'NVIDIA Nemotron is reasoning across project ledger records...'
                     : `${selectedCopilotProvider.toUpperCase()} is reasoning across project ledger records...`}
                 </p>
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
+                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '480px' }}>
                   {selectedCopilotProvider === 'nebius'
                     ? 'Calling Nebius Token Factory serverless runtime. Assembling brief citations, task links, and evidence audit trails.'
                     : `Calling ${selectedCopilotProvider.toUpperCase()} personal BYOK runtime. Assembling brief citations, task links, and evidence audit trails.`}
