@@ -224,7 +224,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Live Discovery
             </span>
-            <span className="text-[11px] font-mono font-medium text-emerald-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-0.5 rounded-full truncate max-w-[280px]" title={effectiveActiveId}>
+            <span className="text-[11px] font-mono font-medium text-emerald-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-0.5 rounded-full truncate max-w-[180px] sm:max-w-[280px]" title={effectiveActiveId}>
               ⚡ Active: {effectiveActiveId}
             </span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium ${capability.badgeClass}`}>
@@ -502,7 +502,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                               <span className="text-xs font-semibold text-zinc-100 truncate">
                                 {humanTitle}
                               </span>
-                              <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900/80 px-2 py-0.5 rounded border border-zinc-800 truncate max-w-[260px]">
+                              <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900/80 px-2 py-0.5 rounded border border-zinc-800 truncate max-w-[150px] sm:max-w-[260px]" title={model.id}>
                                 {model.id}
                               </span>
                             </div>
@@ -543,7 +543,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
               </div>
 
               <div className="flex items-center justify-between flex-wrap gap-2 pt-0.5 font-mono text-[11px]">
-                <div>
+                <div style={{ wordBreak: 'break-all', overflowWrap: 'anywhere', minWidth: 0 }}>
                   <span className="text-zinc-400">ID: </span>
                   <span className="text-emerald-400 font-semibold">{currentActiveModelForRole.id}</span>
                 </div>

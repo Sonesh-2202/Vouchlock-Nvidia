@@ -434,10 +434,12 @@ export function LandingPage() {
               <h1
                 className="serif-display hero-line text-4xl sm:text-5xl lg:text-6xl"
                 style={{
+                  fontSize: 'clamp(2.1rem, 6vw, 4.25rem)',
                   lineHeight: 1.08,
                   letterSpacing: '-0.035em',
                   marginBottom: 'var(--space-6)',
                   fontWeight: 600,
+                  overflowWrap: 'break-word',
                 }}
               >
                 Know what you shipped, and{' '}
@@ -1177,7 +1179,7 @@ export function LandingPage() {
             style={{
               maxWidth: '920px',
               margin: '0 auto',
-              padding: 'var(--space-10) var(--space-12)',
+              padding: 'clamp(var(--space-5), 4vw, var(--space-10))',
             }}
           >
             {/* Top Sheet Header */}
@@ -1194,6 +1196,8 @@ export function LandingPage() {
                   alignItems: 'flex-start',
                   justifyContent: 'space-between',
                   marginBottom: 'var(--space-4)',
+                  flexWrap: 'wrap',
+                  gap: 'var(--space-3)',
                 }}
               >
                 <div>
@@ -1229,7 +1233,7 @@ export function LandingPage() {
                   </div>
                 </div>
 
-                <div className="stamp-seal" style={{ padding: '0.5rem 1rem' }}>
+                <div className="stamp-seal" style={{ padding: '0.5rem 1rem', flexShrink: 0 }}>
                   <IconVerified size={16} />
                   <span>AUTHENTIC RECORD</span>
                 </div>
@@ -1239,7 +1243,7 @@ export function LandingPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
                   gap: 'var(--space-4)',
                   paddingTop: 'var(--space-4)',
                   borderTop: '1px solid var(--rule)',
@@ -1307,58 +1311,60 @@ export function LandingPage() {
                 Claims & Empirical Evidence Summary
               </div>
 
-              <table className="table-ledger" style={{ width: '100%' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '15%' }}>Ref</th>
-                    <th style={{ width: '45%' }}>Agreed Requirement Claim</th>
-                    <th style={{ width: '25%' }}>Empirical Evidence</th>
-                    <th style={{ width: '15%', textAlign: 'right' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="mono-num">SEC-01</td>
-                    <td>HIPAA-compliant cryptographic audit trail on all query endpoints</td>
-                    <td style={{ fontSize: 'var(--font-size-meta)' }}>
-                      PR #482 • 120 tests passed
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className="badge badge-proof">Verified</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="mono-num">PERF-04</td>
-                    <td>P99 response latency under 120ms during 5,000 req/sec load</td>
-                    <td style={{ fontSize: 'var(--font-size-meta)' }}>
-                      K6 load run log (p99=84ms)
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className="badge badge-proof">Verified</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="mono-num">DAT-09</td>
-                    <td>Automated nightly cold-storage archive replication to S3 Glacier</td>
-                    <td style={{ fontSize: 'var(--font-size-meta)', color: 'var(--stamp)' }}>
-                      No backup manifest log
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className="badge badge-blocked">Gap Marked</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="mono-num">REL-02</td>
-                    <td>Zero-downtime Blue/Green rolling deployment rollback hook</td>
-                    <td style={{ fontSize: 'var(--font-size-meta)' }}>
-                      ArgoCD canary release hash
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className="badge badge-proof">Verified</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="mobile-table-wrapper">
+                <table className="table-ledger" style={{ width: '100%', minWidth: '520px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '15%' }}>Ref</th>
+                      <th style={{ width: '45%' }}>Agreed Requirement Claim</th>
+                      <th style={{ width: '25%' }}>Empirical Evidence</th>
+                      <th style={{ width: '15%', textAlign: 'right' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="mono-num">SEC-01</td>
+                      <td>HIPAA-compliant cryptographic audit trail on all query endpoints</td>
+                      <td style={{ fontSize: 'var(--font-size-meta)' }}>
+                        PR #482 • 120 tests passed
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="badge badge-proof">Verified</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="mono-num">PERF-04</td>
+                      <td>P99 response latency under 120ms during 5,000 req/sec load</td>
+                      <td style={{ fontSize: 'var(--font-size-meta)' }}>
+                        K6 load run log (p99=84ms)
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="badge badge-proof">Verified</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="mono-num">DAT-09</td>
+                      <td>Automated nightly cold-storage archive replication to S3 Glacier</td>
+                      <td style={{ fontSize: 'var(--font-size-meta)', color: 'var(--stamp)' }}>
+                        No backup manifest log
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="badge badge-blocked">Gap Marked</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="mono-num">REL-02</td>
+                      <td>Zero-downtime Blue/Green rolling deployment rollback hook</td>
+                      <td style={{ fontSize: 'var(--font-size-meta)' }}>
+                        ArgoCD canary release hash
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="badge badge-proof">Verified</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Hand-signed Verification Block */}
@@ -1367,8 +1373,8 @@ export function LandingPage() {
                 borderTop: '1px solid var(--rule)',
                 paddingTop: 'var(--space-6)',
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-                gap: 'var(--space-8)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: 'var(--space-6)',
                 alignItems: 'flex-end',
               }}
             >

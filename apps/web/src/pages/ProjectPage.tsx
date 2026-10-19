@@ -1429,10 +1429,11 @@ export function ProjectPage() {
           <div
             style={{
               display: 'flex',
-              alignItems: 'flex-start',
+              flexDirection: isMobileView ? 'column' : 'row',
+              alignItems: isMobileView ? 'stretch' : 'flex-start',
               justifyContent: 'space-between',
               gap: 'var(--space-3)',
-              flexWrap: 'wrap',
+              width: '100%',
             }}
           >
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -1440,7 +1441,7 @@ export function ProjectPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 'var(--space-3)',
+                  gap: 'var(--space-2)',
                   flexWrap: 'wrap',
                 }}
               >
@@ -1509,12 +1510,14 @@ export function ProjectPage() {
               </p>
             </div>
 
-            {/* Compact Header Actions */}
+            {/* Compact Header Actions Strip */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 'var(--space-2)',
+                flexWrap: 'wrap',
+                width: isMobileView ? '100%' : 'auto',
                 flexShrink: 0,
               }}
             >
@@ -1530,10 +1533,13 @@ export function ProjectPage() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '5px',
                   borderColor: 'var(--accent-primary)',
                   color: 'var(--accent-primary)',
                   fontWeight: 600,
+                  flex: isMobileView ? '1 1 auto' : 'none',
+                  minHeight: 36,
                 }}
               >
                 <span>🤖</span>
@@ -1545,6 +1551,13 @@ export function ProjectPage() {
                 onClick={handleFetchSummary}
                 disabled={loadingSummary}
                 title="Review current execution momentum and blockers"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 36,
+                  padding: isMobileView ? '6px 12px' : '4px 8px',
+                }}
               >
                 <IconSummary size={14} />
                 <span className="desktop-only">Execution Summary</span>
@@ -1554,6 +1567,13 @@ export function ProjectPage() {
                 className="btn btn-ghost btn-sm"
                 onClick={handleExportJson}
                 title="Export complete project ledger as JSON"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 36,
+                  padding: isMobileView ? '6px 12px' : '4px 8px',
+                }}
               >
                 <IconExport size={14} />
                 <span className="desktop-only">Export JSON</span>
@@ -1562,123 +1582,128 @@ export function ProjectPage() {
           </div>
 
           {/* ── Underlined Tab Bar with Shared Sliding Indicator (Sleek, Non-Clipping) ── */}
-          <nav
-            aria-label="Project views"
-            className="flex items-center overflow-x-auto no-scrollbar whitespace-nowrap border-b border-zinc-800/60 gap-1.5 px-4"
-            style={{
-              marginTop: 'var(--space-2)',
-              position: 'relative',
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: 6,
-            }}
-          >
-            {[
-              {
-                id: 'brief',
-                label: 'Source Brief',
-                icon: <IconBrief size={14} />,
-                badge: `Rev #${selectedBrief?.revisionNumber || 1}`,
-              },
-              {
-                id: 'requirements',
-                label: 'Requirements',
-                icon: <IconRequirement size={14} />,
-                badge: `${requirements.length}`,
-              },
-              {
-                id: 'tasks',
-                label: 'Tasks',
-                icon: <IconTask size={14} />,
-                badge: `${tasks.length}`,
-              },
-              {
-                id: 'resources',
-                label: 'Resources',
-                icon: <IconResource size={14} />,
-                badge: `${resources.length}`,
-              },
-              {
-                id: 'report',
-                label: 'Delivery Report',
-                icon: <IconReport size={14} />,
-                badge: `${percentVerified}%`,
-              },
-              {
-                id: 'copilot',
-                label: 'Nemotron Agent',
-                icon: <span style={{ fontSize: '13px', lineHeight: 1 }}>⚡</span>,
-                badge: copilotReport ? `${copilotReport.proposedActions?.length ?? 0}` : 'AI',
-                isAgent: true,
-              },
-              {
-                id: 'activity',
-                label: 'Audit Log',
-                icon: <IconActivity size={14} />,
-                badge: `${activityEvents.length}`,
-              },
-            ].map((tab) => {
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id as TabType)}
-                  style={{
-                    background: tab.isAgent
-                      ? isSelected
-                        ? 'rgba(16, 185, 129, 0.15)'
-                        : 'rgba(16, 185, 129, 0.05)'
-                      : isSelected
-                      ? 'var(--bg-surface-elevated)'
-                      : 'transparent',
-                    border: tab.isAgent
-                      ? isSelected
-                        ? '1px solid var(--accent-primary)'
-                        : '1px solid rgba(16, 185, 129, 0.25)'
-                      : '1px solid transparent',
-                    borderBottom: tab.isAgent
-                      ? isSelected
-                        ? '2px solid var(--accent-primary)'
-                        : '1px solid rgba(16, 185, 129, 0.25)'
-                      : isSelected
-                      ? '2px solid var(--accent-primary)'
-                      : '2px solid transparent',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '6px 12px',
-                    color: tab.isAgent
-                      ? 'var(--accent-primary)'
-                      : isSelected
-                      ? 'var(--text-primary)'
-                      : 'var(--text-muted)',
-                    fontWeight: isSelected ? 600 : 500,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '13px',
-                    flexShrink: 0,
-                    boxShadow: tab.isAgent && isSelected ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none',
-                    transition: 'all 160ms cubic-bezier(0.16, 1, 0.3, 1)',
-                  }}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                  <span
-                    className="mono-num"
+          <div className="nav-fade-mask" style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+            <nav
+              aria-label="Project views"
+              className="flex items-center overflow-x-auto no-scrollbar whitespace-nowrap border-b border-zinc-800/60 gap-1.5 px-4"
+              style={{
+                marginTop: 'var(--space-2)',
+                position: 'relative',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: 6,
+                scrollbarWidth: 'none',
+              }}
+            >
+              {[
+                {
+                  id: 'brief',
+                  label: 'Source Brief',
+                  icon: <IconBrief size={14} />,
+                  badge: `Rev #${selectedBrief?.revisionNumber || 1}`,
+                },
+                {
+                  id: 'requirements',
+                  label: 'Requirements',
+                  icon: <IconRequirement size={14} />,
+                  badge: `${requirements.length}`,
+                },
+                {
+                  id: 'tasks',
+                  label: 'Tasks',
+                  icon: <IconTask size={14} />,
+                  badge: `${tasks.length}`,
+                },
+                {
+                  id: 'resources',
+                  label: 'Resources',
+                  icon: <IconResource size={14} />,
+                  badge: `${resources.length}`,
+                },
+                {
+                  id: 'report',
+                  label: 'Delivery Report',
+                  icon: <IconReport size={14} />,
+                  badge: `${percentVerified}%`,
+                },
+                {
+                  id: 'copilot',
+                  label: 'Nemotron Agent',
+                  icon: <span style={{ fontSize: '13px', lineHeight: 1 }}>⚡</span>,
+                  badge: copilotReport ? `${copilotReport.proposedActions?.length ?? 0}` : 'AI',
+                  isAgent: true,
+                },
+                {
+                  id: 'activity',
+                  label: 'Audit Log',
+                  icon: <IconActivity size={14} />,
+                  badge: `${activityEvents.length}`,
+                },
+              ].map((tab) => {
+                const isSelected = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id as TabType)}
                     style={{
-                      fontSize: '10px',
-                      padding: '1px 5px',
-                      borderRadius: 'var(--radius-full)',
-                      backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-surface)',
-                      color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)',
-                      border: '1px solid var(--border-subtle)',
+                      background: tab.isAgent
+                        ? isSelected
+                          ? 'rgba(16, 185, 129, 0.15)'
+                          : 'rgba(16, 185, 129, 0.05)'
+                        : isSelected
+                        ? 'var(--bg-surface-elevated)'
+                        : 'transparent',
+                      border: tab.isAgent
+                        ? isSelected
+                          ? '1px solid var(--accent-primary)'
+                          : '1px solid rgba(16, 185, 129, 0.25)'
+                        : '1px solid transparent',
+                      borderBottom: tab.isAgent
+                        ? isSelected
+                          ? '2px solid var(--accent-primary)'
+                          : '1px solid rgba(16, 185, 129, 0.25)'
+                        : isSelected
+                        ? '2px solid var(--accent-primary)'
+                        : '2px solid transparent',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '8px 12px',
+                      color: tab.isAgent
+                        ? 'var(--accent-primary)'
+                        : isSelected
+                        ? 'var(--text-primary)'
+                        : 'var(--text-muted)',
+                      fontWeight: isSelected ? 600 : 500,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      minHeight: 38,
+                      boxShadow: tab.isAgent && isSelected ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none',
+                      transition: 'all 160ms cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
-                    {tab.badge}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                    <span
+                      className="mono-num"
+                      style={{
+                        fontSize: '10px',
+                        padding: '1px 5px',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-surface)',
+                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      {tab.badge}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </header>
 
         {/* ── AI Execution Status Margin-Note Block ── */}
@@ -2413,17 +2438,15 @@ export function ProjectPage() {
               </div>
             )}
 
-            {/* Kanban Board — Reverted to 5-column grid across screen with all boxes visible under tasks */}
+            {/* Kanban Board — Horizontal Swipe Track on Mobile / 5-Column Grid on Desktop */}
             {taskView === 'board' && (
               <div
                 data-lenis-prevent
+                className="mobile-kanban-track"
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobileView ? '1fr' : 'repeat(5, minmax(0, 1fr))',
-                  gap: 'var(--space-3)',
-                  width: '100%',
                   alignItems: 'start',
                   paddingBottom: 'var(--space-6)',
+                  width: '100%',
                 }}
               >
                 {(isMobileView && mobileKanbanLane !== 'all'
@@ -2436,6 +2459,7 @@ export function ProjectPage() {
                   return (
                     <div
                       key={colStatus}
+                      className="mobile-kanban-col"
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => handleDropOnColumn(e, colStatus)}
                       style={{
@@ -4618,13 +4642,22 @@ export function ProjectPage() {
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: isMobileView ? 'stretch' : 'center',
+                  flexDirection: isMobileView ? 'column' : 'row',
                   gap: 'var(--space-3)',
                   flexWrap: 'wrap',
+                  width: isMobileView ? '100%' : 'auto',
                 }}
               >
                 {/* Engine Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    width: isMobileView ? '100%' : 'auto',
+                  }}
+                >
                   <label
                     style={{
                       fontSize: '11px',
@@ -4632,6 +4665,7 @@ export function ProjectPage() {
                       color: 'var(--text-muted)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
+                      flexShrink: 0,
                     }}
                   >
                     Engine:
@@ -4640,18 +4674,21 @@ export function ProjectPage() {
                     value={selectedCopilotProvider}
                     onChange={(e) => setSelectedCopilotProvider(e.target.value)}
                     style={{
-                      padding: '5px 8px',
+                      padding: '8px 10px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-subtle)',
                       backgroundColor: 'var(--bg-surface)',
                       color: 'var(--text-primary)',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       fontFamily: 'var(--font-sans)',
                       fontWeight: 500,
                       cursor: 'pointer',
+                      flex: 1,
+                      minWidth: 0,
+                      minHeight: 40,
                     }}
                   >
-                    <option value="nebius">Nebius Token Factory (NVIDIA Nemotron) — Hackathon Default</option>
+                    <option value="nebius">Nebius Token Factory (NVIDIA Nemotron)</option>
                     <option value="openai">OpenAI GPT-4o (Personal BYOK)</option>
                     <option value="gemini">Google Gemini (Personal BYOK)</option>
                   </select>
@@ -4662,8 +4699,9 @@ export function ProjectPage() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: isMobileView ? 'center' : 'flex-start',
                     gap: '6px',
-                    padding: '5px 10px',
+                    padding: '8px 12px',
                     backgroundColor:
                       selectedCopilotProvider === 'nebius'
                         ? 'rgba(16, 185, 129, 0.08)'
@@ -4676,6 +4714,8 @@ export function ProjectPage() {
                     borderRadius: 'var(--radius-sm)',
                     fontSize: '11px',
                     fontFamily: 'var(--font-mono)',
+                    width: isMobileView ? '100%' : 'auto',
+                    minHeight: 36,
                   }}
                 >
                   <span
@@ -4685,6 +4725,7 @@ export function ProjectPage() {
                       borderRadius: '50%',
                       backgroundColor: selectedCopilotProvider === 'nebius' ? '#10B981' : '#3B82F6',
                       display: 'inline-block',
+                      flexShrink: 0,
                     }}
                   />
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -4699,29 +4740,58 @@ export function ProjectPage() {
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => setShowModelPickerDrawer(!showModelPickerDrawer)}
-                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                    style={{
+                      fontSize: '11px',
+                      padding: '8px 12px',
+                      width: isMobileView ? '100%' : 'auto',
+                      justifyContent: 'center',
+                      minHeight: 40,
+                    }}
                     title="Choose discovered NVIDIA Nemotron model or routing profile"
                   >
                     ⚡ Model: {selectedRoleProfile.toUpperCase()} {showModelPickerDrawer ? '▲' : '▼'}
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setShowCopilotSettings(true)}
-                  style={{ fontSize: '11px', padding: '4px 8px' }}
-                  title="Configure personal BYOK credentials"
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    width: isMobileView ? '100%' : 'auto',
+                  }}
                 >
-                  ⚙️ BYOK Settings
-                </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowCopilotSettings(true)}
+                    style={{
+                      fontSize: '11px',
+                      padding: '8px 12px',
+                      width: isMobileView ? '100%' : 'auto',
+                      justifyContent: 'center',
+                      minHeight: 38,
+                    }}
+                    title="Configure personal BYOK credentials"
+                  >
+                    ⚙️ BYOK Settings
+                  </button>
+                </div>
 
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={handleGenerateCopilotReport}
                   disabled={loadingCopilot}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    width: isMobileView ? '100%' : 'auto',
+                    minHeight: 44,
+                    padding: '10px 16px',
+                  }}
                 >
                   <span>{loadingCopilot ? 'Reasoning Across Ledger...' : 'Run Agent Analysis'}</span>
                   <span>🤖</span>
@@ -5634,8 +5704,9 @@ export function ProjectPage() {
                             <div
                               style={{
                                 display: 'flex',
-                                alignItems: 'center',
+                                alignItems: isMobileView ? 'flex-start' : 'center',
                                 justifyContent: 'space-between',
+                                flexDirection: isMobileView ? 'column' : 'row',
                                 marginBottom: 'var(--space-2)',
                                 flexWrap: 'wrap',
                                 gap: 'var(--space-2)',
@@ -5646,6 +5717,7 @@ export function ProjectPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 'var(--space-2)',
+                                  flexWrap: 'wrap',
                                 }}
                               >
                                 <span
@@ -5678,6 +5750,9 @@ export function ProjectPage() {
                                   fontFamily: 'var(--font-mono)',
                                   fontSize: '11px',
                                   color: 'var(--text-muted)',
+                                  wordBreak: 'break-all',
+                                  overflowWrap: 'anywhere',
+                                  maxWidth: '100%',
                                 }}
                               >
                                 {p.groundingReference?.startsWith('Requirement') ||
@@ -5719,8 +5794,10 @@ export function ProjectPage() {
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'flex-end',
+                                justifyContent: isMobileView ? 'stretch' : 'flex-end',
+                                flexDirection: isMobileView ? 'column' : 'row',
                                 gap: 'var(--space-2)',
+                                width: '100%',
                               }}
                             >
                               {isApproved ? (
@@ -5730,6 +5807,7 @@ export function ProjectPage() {
                                     alignItems: 'center',
                                     gap: '8px',
                                     flexWrap: 'wrap',
+                                    width: isMobileView ? '100%' : 'auto',
                                   }}
                                 >
                                   <span
@@ -5739,6 +5817,8 @@ export function ProjectPage() {
                                       padding: '4px 10px',
                                       fontWeight: 700,
                                       borderRadius: '9999px',
+                                      width: isMobileView ? '100%' : 'auto',
+                                      textAlign: 'center',
                                     }}
                                   >
                                     ✓ APPROVED & COMMITTED TO AUDIT TRAIL
@@ -5754,7 +5834,11 @@ export function ProjectPage() {
                                             setSearchParams({ task: approvedData.entityId });
                                           }
                                         }}
-                                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                                        style={{
+                                          padding: '6px 12px',
+                                          fontSize: '11px',
+                                          width: isMobileView ? '100%' : 'auto',
+                                        }}
                                       >
                                         View Task →
                                       </button>
@@ -5770,7 +5854,11 @@ export function ProjectPage() {
                                             setSelectedReqId(approvedData.entityId);
                                           }
                                         }}
-                                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                                        style={{
+                                          padding: '6px 12px',
+                                          fontSize: '11px',
+                                          width: isMobileView ? '100%' : 'auto',
+                                        }}
                                       >
                                         View Requirement →
                                       </button>
@@ -5780,7 +5868,12 @@ export function ProjectPage() {
                               ) : isRejected ? (
                                 <span
                                   className="badge badge-blocked"
-                                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                                  style={{
+                                    fontSize: '11px',
+                                    padding: '4px 8px',
+                                    width: isMobileView ? '100%' : 'auto',
+                                    textAlign: 'center',
+                                  }}
                                 >
                                   DISMISSED
                                 </span>
@@ -5790,7 +5883,11 @@ export function ProjectPage() {
                                     type="button"
                                     className="btn btn-ghost btn-sm"
                                     onClick={() => handleRejectCopilotAction(p.proposalId)}
-                                    style={{ color: 'var(--text-muted)' }}
+                                    style={{
+                                      color: 'var(--text-muted)',
+                                      width: isMobileView ? '100%' : 'auto',
+                                      minHeight: isMobileView ? 40 : 32,
+                                    }}
                                   >
                                     Dismiss
                                   </button>
@@ -5799,7 +5896,11 @@ export function ProjectPage() {
                                     className="btn btn-primary btn-sm"
                                     onClick={() => handleApproveCopilotAction(p)}
                                     disabled={isApproving}
-                                    style={{ fontWeight: 600 }}
+                                    style={{
+                                      fontWeight: 600,
+                                      width: isMobileView ? '100%' : 'auto',
+                                      minHeight: isMobileView ? 44 : 32,
+                                    }}
                                   >
                                     {isApproving ? 'Committing...' : 'Approve & Commit to Ledger'}
                                   </button>
