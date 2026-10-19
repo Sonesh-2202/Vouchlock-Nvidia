@@ -41,6 +41,14 @@ export function AppShell({
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
 
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  }
+
   // Destroy Lenis when inside workspace shell to guarantee 100% native uninhibited scrolling
   useEffect(() => {
     destroySmoothScroll();
@@ -354,7 +362,7 @@ export function AppShell({
                       {user.email || 'Local user'}
                     </div>
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={logout}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout}>
                     Exit
                   </button>
                 </div>
@@ -620,7 +628,7 @@ export function AppShell({
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            onClick={logout}
+            onClick={handleLogout}
             style={{
               width: '100%',
               justifyContent: 'flex-start',

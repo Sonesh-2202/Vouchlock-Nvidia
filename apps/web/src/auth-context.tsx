@@ -87,8 +87,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    await api.auth.logout();
-    setState({ user: null, loading: false, error: null });
+    try {
+      await api.auth.logout();
+    } catch (err) {
+      console.warn('Logout API call failed:', err);
+    } finally {
+      try {
+        localStorage.removeItem('projectpilot_demo_mode');
+        localStorage.removeItem('projectpilot_demo_store');
+        sessionStorage.clear();
+      } catch {
+        // Browser storage cleanup fallback
+      }
+      setState({ user: null, loading: false, error: null });
+    }
   }, []);
 
   const clearError = useCallback(() => {

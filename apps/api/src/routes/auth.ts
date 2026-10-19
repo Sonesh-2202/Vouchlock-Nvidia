@@ -7,7 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { registerSchema, loginSchema, resetPasswordSchema } from '@projectpilot/contracts';
 import { users } from '../db/schema.js';
-import { hashPassword, verifyPassword, createSessionToken, authenticate } from '../auth.js';
+import { hashPassword, verifyPassword, createSessionToken, verifySessionToken, authenticate } from '../auth.js';
 import { ephemeralSessionStore } from '../ai/ephemeral-store.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
@@ -252,15 +252,32 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRouteOpts) {
 
   // POST /api/v1/auth/logout
   app.post('/logout', async (request, reply) => {
-    try {
-      const userId = await authenticate(request, reply, config.jwtSecret, config.sessionCookieName);
-      if (userId) {
-        ephemeralSessionStore.clearUserSessions(userId);
+    // Attempt graceful extraction of userId to clean up ephemeral session store
+    const cookieToken = (request.cookies as Record<string, string | undefined>)?.[config.sessionCookieName];
+    const authHeader = request.headers.authorization;
+    const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const token = cookieToken ?? headerToken;
+
+    if (token) {
+      try {
+        const { userId } = await verifySessionToken(token, config.jwtSecret);
+        if (userId) {
+          ephemeralSessionStore.clearUserSessions(userId);
+        }
+      } catch {
+        // Expired or invalid token — proceed to clear cookie anyway
       }
-    } catch {
-      // Session was already expired or invalid; still clear the cookie
     }
-    reply.clearCookie(config.sessionCookieName, { path: '/' }).send({ ok: true });
+
+    return reply
+      .clearCookie(config.sessionCookieName, {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: config.nodeEnv === 'production',
+      })
+      .code(200)
+      .send({ ok: true });
   });
 
   // GET /api/v1/auth/me

@@ -185,7 +185,7 @@ export class PortfolioAuditJobService {
   /**
    * Local asynchronous worker execution (Simulation path when Nebius AI Cloud credentials are not supplied).
    */
-  private async executeLocalJob(
+  async executeLocalJob(
     jobId: string,
     input: CreatePortfolioAuditJobInput & { userId: string },
     config: AppConfig,

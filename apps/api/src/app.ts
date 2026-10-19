@@ -64,6 +64,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
     requestTimeout: 30000,
   });
 
+  // Gracefully handle empty JSON request bodies without throwing FST_ERR_CTP_EMPTY_JSON_BODY
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    if (!body || (typeof body === 'string' && body.trim() === '')) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(body as string));
+    } catch (err: unknown) {
+      const parseError = err as { statusCode?: number };
+      parseError.statusCode = 400;
+      done(err as Error, undefined);
+    }
+  });
+
   // ── Plugins ──
   await app.register(fastifyCookie);
 
