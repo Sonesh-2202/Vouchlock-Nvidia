@@ -119,14 +119,14 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
           width: '100%',
           maxWidth: '820px',
           maxHeight: '90vh',
-          backgroundColor: 'var(--bg-card, #18181B)',
-          border: '1px solid var(--border-subtle, #27272A)',
-          borderRadius: 'var(--radius-md, 8px)',
+          backgroundColor: 'var(--bg-document)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-lg, 14px)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-          color: 'var(--text-primary, #F4F4F5)',
+          boxShadow: 'var(--shadow-lg, 0 20px 40px rgba(0,0,0,0.5))',
+          color: 'var(--text-primary)',
         }}
       >
         {/* Header */}
@@ -135,8 +135,9 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: 'var(--space-4) var(--space-5)',
-            borderBottom: '1px solid var(--border-subtle, #27272A)',
+            padding: 'var(--space-4) var(--space-6)',
+            borderBottom: '1px solid var(--border-subtle)',
+            background: 'var(--bg-surface)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -172,14 +173,14 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: 'rgba(24, 24, 27, 0.6)',
+              backgroundColor: 'var(--bg-surface)',
               padding: 'var(--space-3) var(--space-4)',
-              borderRadius: '6px',
-              border: '1px solid #27272A',
+              borderRadius: 'var(--radius-md, 10px)',
+              border: '1px solid var(--border-subtle)',
             }}
           >
             <div>
-              <span style={{ fontSize: '12px', fontWeight: 600, display: 'block' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, display: 'block', color: 'var(--text-primary)' }}>
                 Truthful Delivery Assurance Run
               </span>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -197,7 +198,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
           </div>
 
           {error && (
-            <div style={{ padding: '8px 12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #EF4444', borderRadius: '6px', fontSize: '12px', color: '#FCA5A5' }}>
+            <div style={{ padding: '8px 12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-sm, 6px)', fontSize: '12px', color: '#FCA5A5' }}>
               {error}
             </div>
           )}
@@ -206,9 +207,9 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
           {activeJob ? (
             <div
               style={{
-                backgroundColor: '#09090B',
-                border: '1px solid #27272A',
-                borderRadius: '8px',
+                backgroundColor: 'var(--bg-surface-elevated, var(--bg-surface))',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md, 10px)',
                 padding: 'var(--space-4)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -329,24 +330,24 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
                 <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {/* Executive KPI Strip */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
-                    <div style={{ padding: '10px', backgroundColor: '#18181B', borderRadius: '6px', border: '1px solid #27272A' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm, 8px)', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Portfolio Integrity Score
                       </span>
                       <div style={{ fontSize: '20px', fontWeight: 800, color: resultData.portfolioIntegrityScore > 75 ? '#10B981' : '#F59E0B' }}>
                         {resultData.portfolioIntegrityScore} / 100
                       </div>
                     </div>
-                    <div style={{ padding: '10px', backgroundColor: '#18181B', borderRadius: '6px', border: '1px solid #27272A' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm, 8px)', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Truthful Proof Gap
                       </span>
                       <div style={{ fontSize: '20px', fontWeight: 800, color: '#EF4444' }}>
                         {resultData.auditMetadata?.deliveryProofGapRatePercent ?? 0}%
                       </div>
                     </div>
-                    <div style={{ padding: '10px', backgroundColor: '#18181B', borderRadius: '6px', border: '1px solid #27272A' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm, 8px)', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Integrity Classification
                       </span>
                       <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '4px', color: '#60A5FA', textTransform: 'capitalize' }}>
@@ -357,11 +358,11 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
 
                   {/* Executive Summary */}
                   {resultData.executiveSummary && (
-                    <div style={{ padding: '12px', backgroundColor: '#18181B', borderRadius: '6px', border: '1px solid #27272A' }}>
-                      <strong style={{ fontSize: '12px', color: '#E4E4E7', display: 'block', marginBottom: '4px' }}>
+                    <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm, 8px)', border: '1px solid var(--border-subtle)' }}>
+                      <strong style={{ fontSize: '12px', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>
                         Executive Delivery Assessment
                       </strong>
-                      <p style={{ fontSize: '12px', lineHeight: 1.5, color: '#A1A1AA', margin: 0 }}>
+                      <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
                         {resultData.executiveSummary}
                       </p>
                     </div>
@@ -369,16 +370,16 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
 
                   {/* Critical Gaps */}
                   {Array.isArray(resultData.criticalGaps) && resultData.criticalGaps.length > 0 && (
-                    <div style={{ padding: '12px', backgroundColor: '#18181B', borderRadius: '6px', border: '1px solid #27272A' }}>
+                    <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm, 8px)', border: '1px solid var(--border-subtle)' }}>
                       <strong style={{ fontSize: '12px', color: '#EF4444', display: 'block', marginBottom: '8px' }}>
                         Critical Verification &amp; Proof Gaps ({resultData.criticalGaps.length})
                       </strong>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {resultData.criticalGaps.map((gap: any, i: number) => (
-                          <div key={i} style={{ padding: '8px', backgroundColor: '#09090B', borderRadius: '4px', border: '1px solid #3F3F46', fontSize: '11px' }}>
-                            <div style={{ fontWeight: 600, color: '#F4F4F5' }}>{gap.title || gap.requirementId}</div>
+                          <div key={i} style={{ padding: '10px', backgroundColor: 'var(--bg-surface-elevated, var(--bg-surface))', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border-subtle)', fontSize: '11px' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{gap.title || gap.requirementId}</div>
                             <div style={{ color: '#F87171', marginTop: '2px' }}>{gap.riskAssessment}</div>
-                            <div style={{ color: '#A1A1AA', marginTop: '2px' }}>Mitigation: {gap.recommendedMitigation}</div>
+                            <div style={{ color: 'var(--text-muted)', marginTop: '2px' }}>Mitigation: {gap.recommendedMitigation}</div>
                           </div>
                         ))}
                       </div>
@@ -386,7 +387,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
                   )}
 
                   {/* Safe Provenance Strip */}
-                  <div style={{ padding: '8px 12px', backgroundColor: '#141416', borderRadius: '4px', border: '1px solid #27272A', fontSize: '11px', fontFamily: 'monospace', color: '#A1A1AA' }}>
+                  <div style={{ padding: '10px 14px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border-subtle)', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                     <div>Model ID: <strong style={{ color: '#10B981' }}>{activeJob.modelId || resultData.auditMetadata?.modelId || 'Confirmed Nemotron'}</strong></div>
                     <div>Routing Profile: <span style={{ color: '#60A5FA' }}>{activeJob.modelRole || 'deep_reasoning'}</span></div>
                     {resultData.auditMetadata?.routingReason && (
@@ -397,7 +398,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
               )}
             </div>
           ) : (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', border: '1px dashed #27272A', borderRadius: '8px' }}>
+            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md, 10px)', background: 'var(--bg-surface)' }}>
               No portfolio delivery audit runs recorded for this workspace yet. Click above to run an asynchronous analysis.
             </div>
           )}
@@ -405,7 +406,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
           {/* Job History Table */}
           {jobHistory.length > 1 && (
             <div>
-              <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <h4 style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
                 Previous Workspace Audit Runs
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -415,8 +416,9 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
                     onClick={() => setActiveJob(j)}
                     style={{
                       padding: '8px 12px',
-                      backgroundColor: activeJob?.id === j.id ? '#27272A' : '#18181B',
-                      borderRadius: '4px',
+                      backgroundColor: activeJob?.id === j.id ? 'var(--bg-surface-elevated, var(--bg-surface))' : 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm, 6px)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -426,7 +428,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
                   >
                     <span>{new Date(j.createdAt).toLocaleString()}</span>
                     <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{j.status}</span>
-                    <span style={{ color: '#71717A', fontFamily: 'monospace' }}>{j.executionTarget}</span>
+                    <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{j.executionTarget}</span>
                   </div>
                 ))}
               </div>

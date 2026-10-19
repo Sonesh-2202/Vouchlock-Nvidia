@@ -1561,65 +1561,59 @@ export function ProjectPage() {
             </div>
           </div>
 
-          {/* ── Underlined Tab Bar with Shared Sliding Indicator (Scrollable on Mobile) ── */}
+          {/* ── Underlined Tab Bar with Shared Sliding Indicator (Sleek, Non-Clipping) ── */}
           <nav
             aria-label="Project views"
-            className="flex overflow-x-auto no-scrollbar whitespace-nowrap border-b border-zinc-800/80 gap-2 px-4"
+            className="flex items-center overflow-x-auto no-scrollbar whitespace-nowrap border-b border-zinc-800/60 gap-1.5 px-4"
             style={{
               marginTop: 'var(--space-2)',
               position: 'relative',
               WebkitOverflowScrolling: 'touch',
-              paddingBottom: 2,
+              paddingBottom: 6,
             }}
           >
             {[
               {
                 id: 'brief',
                 label: 'Source Brief',
-                shortLabel: 'Brief',
-                icon: <IconBrief size={15} />,
+                icon: <IconBrief size={14} />,
                 badge: `Rev #${selectedBrief?.revisionNumber || 1}`,
               },
               {
                 id: 'requirements',
-                label: 'Requirements & Traceability',
-                shortLabel: 'Requirements',
-                icon: <IconRequirement size={15} />,
+                label: 'Requirements',
+                icon: <IconRequirement size={14} />,
                 badge: `${requirements.length}`,
               },
               {
                 id: 'tasks',
                 label: 'Tasks',
-                shortLabel: 'Tasks',
-                icon: <IconTask size={15} />,
+                icon: <IconTask size={14} />,
                 badge: `${tasks.length}`,
               },
               {
                 id: 'resources',
-                label: 'Resources & Study Hub',
-                shortLabel: 'Resources',
-                icon: <IconResource size={15} />,
+                label: 'Resources',
+                icon: <IconResource size={14} />,
                 badge: `${resources.length}`,
               },
               {
                 id: 'report',
-                label: 'Truthful Delivery Report',
-                shortLabel: 'Report',
-                icon: <IconReport size={15} />,
+                label: 'Delivery Report',
+                icon: <IconReport size={14} />,
                 badge: `${percentVerified}%`,
               },
               {
                 id: 'copilot',
-                label: 'Delivery Agent (Nemotron)',
-                shortLabel: 'Delivery Agent',
-                icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>🤖</span>,
-                badge: copilotReport ? `${copilotReport.proposedActions.length} Actions` : 'Nemotron',
+                label: 'Nemotron Agent',
+                icon: <span style={{ fontSize: '13px', lineHeight: 1 }}>⚡</span>,
+                badge: copilotReport ? `${copilotReport.proposedActions?.length ?? 0}` : 'AI',
+                isAgent: true,
               },
               {
                 id: 'activity',
-                label: 'Project Activity',
-                shortLabel: 'Activity',
-                icon: <IconActivity size={15} />,
+                label: 'Audit Log',
+                icon: <IconActivity size={14} />,
                 badge: `${activityEvents.length}`,
               },
             ].map((tab) => {
@@ -1629,31 +1623,57 @@ export function ProjectPage() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id as TabType)}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 'var(--space-2) var(--space-2)',
-                    borderBottom: isSelected ? '2px solid var(--proof)' : '2px solid transparent',
-                    color: isSelected ? 'var(--ink)' : 'var(--ink-muted)',
-                    fontWeight: isSelected ? 600 : 400,
+                    background: tab.isAgent
+                      ? isSelected
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : 'rgba(16, 185, 129, 0.05)'
+                      : isSelected
+                      ? 'var(--bg-surface-elevated)'
+                      : 'transparent',
+                    border: tab.isAgent
+                      ? isSelected
+                        ? '1px solid var(--accent-primary)'
+                        : '1px solid rgba(16, 185, 129, 0.25)'
+                      : '1px solid transparent',
+                    borderBottom: tab.isAgent
+                      ? isSelected
+                        ? '2px solid var(--accent-primary)'
+                        : '1px solid rgba(16, 185, 129, 0.25)'
+                      : isSelected
+                      ? '2px solid var(--accent-primary)'
+                      : '2px solid transparent',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '6px 12px',
+                    color: tab.isAgent
+                      ? 'var(--accent-primary)'
+                      : isSelected
+                      ? 'var(--text-primary)'
+                      : 'var(--text-muted)',
+                    fontWeight: isSelected ? 600 : 500,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    fontSize: 'var(--font-size-sm)',
+                    gap: '6px',
+                    fontSize: '13px',
                     flexShrink: 0,
-                    transition: 'color var(--t-fast) var(--ease-out)',
+                    boxShadow: tab.isAgent && isSelected ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none',
+                    transition: 'all 160ms cubic-bezier(0.16, 1, 0.3, 1)',
                   }}
                 >
                   {tab.icon}
-                  <span>{isMobileView ? tab.shortLabel : tab.label}</span>
+                  <span>{tab.label}</span>
                   <span
                     className="mono-num"
                     style={{
-                      fontSize: '11px',
-                      color: isSelected ? 'var(--proof)' : 'var(--ink-muted)',
+                      fontSize: '10px',
+                      padding: '1px 5px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-surface)',
+                      color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)',
+                      border: '1px solid var(--border-subtle)',
                     }}
                   >
-                    ({tab.badge})
+                    {tab.badge}
                   </span>
                 </button>
               );
@@ -1789,14 +1809,16 @@ export function ProjectPage() {
                     § 1.0 SOURCE SPECIFICATION REVISION #{selectedBrief?.revisionNumber || 1}
                   </span>
                   <h2
-                    className="serif-display"
                     style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontWeight: 700,
+                      letterSpacing: '-0.025em',
                       fontSize: 'var(--font-size-2xl)',
                       color: 'var(--text-primary)',
                       marginTop: 4,
                     }}
                   >
-                    {selectedBrief?.title || 'No source brief has been saved yet'}
+                    {selectedBrief?.title || 'Project Delivery Specification'}
                   </h2>
                 </div>
 
@@ -1804,6 +1826,7 @@ export function ProjectPage() {
                   className="btn btn-primary btn-sm"
                   onClick={handleExtractProposal}
                   disabled={extractingProposal}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <IconPlanDraft size={15} />
                   <span>
@@ -1812,19 +1835,84 @@ export function ProjectPage() {
                 </button>
               </div>
 
-              {/* 68ch Editorial Reading Column */}
-              <div
-                style={{
-                  whiteSpace: 'pre-wrap',
-                  lineHeight: 1.7,
-                  fontSize: 'var(--font-size-base)',
-                  color: 'var(--text-primary)',
-                  maxWidth: '68ch',
-                  fontFamily: 'var(--font-sans)',
-                }}
-              >
-                {selectedBrief?.content || 'No brief document content uploaded.'}
-              </div>
+              {/* Document Content or Empty State Dropzone */}
+              {!selectedBrief?.content ? (
+                <div
+                  style={{
+                    padding: 'var(--space-12) var(--space-6)',
+                    textAlign: 'center',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px dashed var(--border-subtle)',
+                    background: 'var(--bg-surface-elevated)',
+                    margin: 'var(--space-4) 0',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      margin: '0 auto var(--space-3)',
+                      boxShadow: '0 0 16px rgba(59, 130, 246, 0.12)',
+                    }}
+                  >
+                    📄
+                  </div>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontWeight: 700,
+                      fontSize: 'var(--font-size-lg)',
+                      margin: '0 0 var(--space-2)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    No Source Specification Ingested Yet
+                  </h3>
+                  <p
+                    style={{
+                      maxWidth: '480px',
+                      margin: '0 auto var(--space-4)',
+                      fontSize: 'var(--font-size-sm)',
+                      color: 'var(--text-muted)',
+                      lineHeight: '1.6',
+                    }}
+                  >
+                    The source brief forms the cryptographic root for requirement extraction and delivery audit trails.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleExtractProposal}
+                    disabled={extractingProposal}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <IconPlanDraft size={14} />
+                    <span>Extract Requirements from Brief</span>
+                  </button>
+                </div>
+              ) : (
+                /* 68ch Editorial Reading Column */
+                <div
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.7,
+                    fontSize: 'var(--font-size-base)',
+                    color: 'var(--text-primary)',
+                    maxWidth: '68ch',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {selectedBrief.content}
+                </div>
+              )}
             </div>
 
             {/* Revisions Marginalia Rail */}
@@ -2351,15 +2439,17 @@ export function ProjectPage() {
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => handleDropOnColumn(e, colStatus)}
                       style={{
-                        background: 'var(--bg-surface)',
+                        background: 'var(--bg-document)',
                         border: '1px solid var(--border-subtle)',
                         borderTop: isBlockedCol
-                          ? '3px solid #ef4444'
-                          : '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
+                          ? '3px solid #EF4444'
+                          : colStatus === 'done'
+                            ? '3px solid #10B981'
+                            : '3px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: 'var(--radius-lg)',
                         display: 'flex',
                         flexDirection: 'column',
-                        minHeight: 460,
+                        minHeight: 480,
                         maxHeight: isMobileView ? 'none' : 'calc(100vh - 200px)',
                         overflowY: 'auto',
                         width: '100%',
@@ -2372,13 +2462,13 @@ export function ProjectPage() {
                           position: 'sticky',
                           top: 0,
                           zIndex: 10,
-                          backgroundColor: 'var(--bg-surface)',
+                          backgroundColor: 'var(--bg-document)',
                           borderBottom: '1px solid var(--border-subtle)',
                           padding: 'var(--space-3) var(--space-4)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          backdropFilter: 'blur(8px)',
+                          backdropFilter: 'blur(12px)',
                         }}
                       >
                         <div
@@ -2386,9 +2476,28 @@ export function ProjectPage() {
                         >
                           <span
                             style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              backgroundColor:
+                                colStatus === 'done'
+                                  ? '#10B981'
+                                  : colStatus === 'blocked'
+                                    ? '#EF4444'
+                                    : colStatus === 'doing'
+                                      ? '#F59E0B'
+                                      : colStatus === 'todo'
+                                        ? '#3B82F6'
+                                        : '#64748B',
+                              display: 'inline-block',
+                            }}
+                          />
+                          <span
+                            style={{
                               fontSize: 'var(--font-size-sm)',
                               fontWeight: 600,
                               color: 'var(--text-primary)',
+                              fontFamily: 'var(--font-sans)',
                             }}
                           >
                             {STATUS_LABELS[colStatus]}
@@ -2398,7 +2507,7 @@ export function ProjectPage() {
                             style={{
                               fontSize: '11px',
                               fontWeight: 600,
-                              padding: '2px 8px',
+                              padding: '1px 7px',
                               borderRadius: '9999px',
                               backgroundColor: 'var(--bg-surface-elevated)',
                               border: '1px solid var(--border-subtle)',
@@ -2431,7 +2540,7 @@ export function ProjectPage() {
                           padding: 'var(--space-3)',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 'var(--space-3)',
+                          gap: 'var(--space-2)',
                         }}
                       >
                         {colTasks.length === 0 ? (
@@ -2439,11 +2548,14 @@ export function ProjectPage() {
                             style={{
                               padding: 'var(--space-8) var(--space-2)',
                               textAlign: 'center',
-                              fontSize: '12px',
+                              fontSize: '11px',
                               color: 'var(--text-muted)',
+                              border: '1px dashed var(--border-subtle)',
+                              borderRadius: 'var(--radius-md)',
+                              margin: 'var(--space-2) 0',
                             }}
                           >
-                            No tasks in this lane.
+                            Empty lane
                           </div>
                         ) : (
                           colTasks.map((t) => {
@@ -2472,22 +2584,25 @@ export function ProjectPage() {
                                 tabIndex={0}
                                 role="button"
                                 style={{
-                                  background: 'var(--bg-surface-elevated)',
+                                  background: 'var(--bg-surface)',
                                   border: '1px solid var(--border-subtle)',
-                                  borderRadius: 'var(--radius-sm)',
-                                  padding: 'var(--space-3)',
+                                  borderRadius: 'var(--radius-md)',
+                                  padding: '12px 14px',
                                   cursor: 'pointer',
-                                  transition: 'all var(--t-fast) var(--ease-out)',
+                                  transition: 'all 180ms cubic-bezier(0.16, 1, 0.3, 1)',
                                   position: 'relative',
+                                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(-1px)';
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
                                   e.currentTarget.style.boxShadow =
-                                    '0 4px 12px rgba(0, 0, 0, 0.15)';
+                                    '0 6px 18px -2px rgba(0, 0, 0, 0.12)';
+                                  e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
                                 }}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.transform = 'translateY(0)';
-                                  e.currentTarget.style.boxShadow = 'none';
+                                  e.currentTarget.style.boxShadow = '0 1px 4px rgba(0, 0, 0, 0.04)';
+                                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
                                 }}
                               >
                                 <div
@@ -3065,42 +3180,61 @@ export function ProjectPage() {
                       padding: 'var(--space-12) var(--space-6)',
                       textAlign: 'center',
                       background: 'var(--bg-surface)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
+                      border: '1px dashed var(--border-subtle)',
+                      borderRadius: 'var(--radius-lg)',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
                     }}
                   >
-                    <IconResource
-                      size={40}
-                      style={{ opacity: 0.4, margin: '0 auto var(--space-3)' }}
-                    />
+                    <div
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '22px',
+                        margin: '0 auto var(--space-3)',
+                        boxShadow: '0 0 16px rgba(59, 130, 246, 0.12)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <IconResource size={24} style={{ opacity: 0.8 }} />
+                    </div>
                     <h3
                       style={{
-                        fontSize: 'var(--font-size-base)',
-                        fontWeight: 600,
+                        fontFamily: 'var(--font-sans)',
+                        fontWeight: 700,
+                        fontSize: 'var(--font-size-lg)',
                         color: 'var(--text-primary)',
                         margin: '0 0 6px',
                       }}
                     >
-                      No study resources found
+                      No Study Resources Found
                     </h3>
                     <p
                       style={{
+                        maxWidth: '440px',
+                        margin: '0 auto var(--space-4)',
                         fontSize: 'var(--font-size-sm)',
                         color: 'var(--text-muted)',
-                        margin: '0 0 var(--space-4)',
+                        lineHeight: '1.6',
                       }}
                     >
                       {resourceSearchQuery
                         ? 'Try clearing your search query or choosing another category.'
-                        : 'Curate your first technical doc, spec, or study note for this project.'}
+                        : 'Curate your first technical doc, API spec, or lecture note to support delivery proof.'}
                     </p>
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
                       onClick={() => openCreateResourceModal()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
                       <IconAdd size={14} />
-                      <span>Add Resource</span>
+                      <span>+ Add First Resource</span>
                     </button>
                   </div>
                 );
@@ -4411,9 +4545,9 @@ export function ProjectPage() {
               margin: 'var(--space-6) auto 0',
               backgroundColor: 'var(--bg-document)',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
+              borderRadius: 'var(--radius-lg)',
               color: 'var(--text-primary)',
-              boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05))',
+              boxShadow: '0 4px 24px -2px rgba(0,0,0,0.06)',
             }}
           >
             {/* Delivery Agent Header */}
@@ -4423,44 +4557,61 @@ export function ProjectPage() {
                 alignItems: isMobileView ? 'flex-start' : 'center',
                 justifyContent: 'space-between',
                 flexDirection: isMobileView ? 'column' : 'row',
-                borderBottom: '2px solid var(--border-subtle)',
+                borderBottom: '1px solid var(--border-subtle)',
                 paddingBottom: 'var(--space-4)',
                 marginBottom: 'var(--space-6)',
                 gap: 'var(--space-3)',
               }}
             >
               <div>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  VOUCHLOCK DELIVERY AGENT // NVIDIA NEMOTRON ON NEBIUS TOKEN FACTORY
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    VOUCHLOCK DELIVERY AGENT // NVIDIA NEMOTRON ON NEBIUS TOKEN FACTORY
+                  </span>
+                </div>
                 <h1
-                  className="serif-display title-fluid-display"
                   style={{
+                    fontFamily: 'var(--font-sans)',
                     fontSize: 'clamp(1.4rem, 4vw, var(--font-size-3xl))',
+                    fontWeight: 700,
+                    letterSpacing: '-0.025em',
                     color: 'var(--text-primary)',
-                    margin: '4px 0',
+                    margin: '2px 0 6px',
                   }}
                 >
                   Project Delivery Agent
                 </h1>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Truthful delivery orchestration. Connects source briefs to reviewed requirements,
-                  linked execution tasks, verification evidence, and named human sign-offs.
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+                    Truthful delivery orchestration.
+                  </span>
+                  <span
+                    className="telemetry-pill"
+                    style={{ fontSize: '11px', color: '#10B981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
+                  >
+                    ✓ Brief-to-Requirement Traceability
+                  </span>
+                  <span
+                    className="telemetry-pill"
+                    style={{ fontSize: '11px', color: '#3B82F6', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                  >
+                    ✓ Automated Gap Audit
+                  </span>
+                  <span
+                    className="telemetry-pill"
+                    style={{ fontSize: '11px', color: '#F59E0B', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+                  >
+                    ✓ Human Sign-Off Gate
+                  </span>
+                </div>
               </div>
 
               {/* Engine Selection, Runtime Indicator & Run Button */}
@@ -4703,14 +4854,15 @@ export function ProjectPage() {
               </div>
             )}
 
-            {/* 5-Stage Brief-to-Proof Delivery Pipeline Tracker */}
+            {/* 5-Stage Brief-to-Proof Connected Horizontal Pipeline Stepper */}
             <div
               style={{
                 marginBottom: 'var(--space-6)',
                 padding: 'var(--space-4)',
                 backgroundColor: 'var(--bg-surface)',
                 border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               }}
             >
               <div
@@ -4721,133 +4873,199 @@ export function ProjectPage() {
                   marginBottom: 'var(--space-3)',
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: 'var(--text-muted)',
-                    letterSpacing: '0.06em',
-                  }}
-                >
-                  Brief-to-Proof Delivery Pipeline Status
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: 'var(--text-muted)',
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    Ready-to-Proof Delivery Pipeline Status
+                  </span>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: percentVerified === 100 ? '#10B981' : '#F59E0B',
+                      boxShadow: percentVerified === 100 ? '0 0 8px #10B981' : '0 0 8px #F59E0B',
+                    }}
+                  />
+                </div>
                 <span
                   className="badge badge-proof"
-                  style={{ fontSize: '10px', padding: '2px 6px' }}
+                  style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '9999px' }}
                 >
                   LEDGER AUDITABLE
                 </span>
               </div>
 
+              {/* Connected Pipeline Stepper */}
               <div
+                className="pipeline-stepper-container"
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                  gap: 'var(--space-3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  padding: '4px 2px',
                 }}
               >
                 {/* Stage 1: Brief Ingestion */}
                 <div
+                  className="pipeline-step-node"
                   style={{
-                    padding: 'var(--space-3)',
-                    backgroundColor:
-                      briefRevisions.length > 0 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
-                    border: `1px solid ${briefRevisions.length > 0 ? '#10B981' : 'var(--border-subtle)'}`,
-                    borderRadius: 'var(--radius-sm)',
+                    flex: '1 1 0',
+                    minWidth: 140,
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: briefRevisions.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${briefRevisions.length > 0 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    1. SOURCE BRIEF
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                      1. BRIEF
+                    </span>
+                    <span style={{ fontSize: '12px' }}>{briefRevisions.length > 0 ? '✓' : '⚠️'}</span>
                   </div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
-                    {briefRevisions.length > 0
-                      ? `Rev #${selectedBrief?.revisionNumber ?? 1} Ingested`
-                      : 'Missing Brief'}
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: briefRevisions.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {briefRevisions.length > 0 ? `Rev #${selectedBrief?.revisionNumber ?? 1} Ingested` : 'Missing Brief'}
                   </div>
                 </div>
 
-                {/* Stage 2: Requirements Coverage */}
+                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+
+                {/* Stage 2: Requirements */}
                 <div
+                  className="pipeline-step-node"
                   style={{
-                    padding: 'var(--space-3)',
-                    backgroundColor:
-                      requirements.length > 0 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
-                    border: `1px solid ${requirements.length > 0 ? '#10B981' : 'var(--border-subtle)'}`,
-                    borderRadius: 'var(--radius-sm)',
+                    flex: '1 1 0',
+                    minWidth: 140,
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: requirements.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${requirements.length > 0 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    2. REQUIREMENTS
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                      2. REQUIREMENTS
+                    </span>
+                    <span style={{ fontSize: '12px' }}>{requirements.length > 0 ? '✓' : '⚠️'}</span>
                   </div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
-                    {requirements.length > 0
-                      ? `${requirements.length} Defined`
-                      : 'Needs Extraction'}
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: requirements.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {requirements.length > 0 ? `${requirements.length} Defined` : 'Needs Extraction'}
                   </div>
                 </div>
 
-                {/* Stage 3: Task Linkage */}
+                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+
+                {/* Stage 3: Tasks */}
                 <div
+                  className="pipeline-step-node"
                   style={{
-                    padding: 'var(--space-3)',
-                    backgroundColor:
-                      tasks.length > 0 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
-                    border: `1px solid ${tasks.length > 0 ? '#10B981' : 'var(--border-subtle)'}`,
-                    borderRadius: 'var(--radius-sm)',
+                    flex: '1 1 0',
+                    minWidth: 140,
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: tasks.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${tasks.length > 0 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    3. LINKED TASKS
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                      3. TASKS
+                    </span>
+                    <span style={{ fontSize: '12px' }}>{tasks.length > 0 ? '⚡' : '○'}</span>
                   </div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: tasks.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                     {tasks.length > 0 ? `${tasks.length} Executing` : '0 Tasks'}
                   </div>
                 </div>
 
-                {/* Stage 4: Proof & Evidence */}
+                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+
+                {/* Stage 4: Proof Evidence */}
                 <div
+                  className="pipeline-step-node"
                   style={{
-                    padding: 'var(--space-3)',
-                    backgroundColor:
-                      copilotReport && copilotReport.evidenceGaps?.length === 0
-                        ? 'rgba(16, 185, 129, 0.06)'
-                        : 'rgba(245, 158, 11, 0.06)',
+                    flex: '1 1 0',
+                    minWidth: 140,
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: copilotReport && copilotReport.evidenceGaps?.length === 0
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : 'rgba(245, 158, 11, 0.08)',
                     border: `1px solid ${
                       copilotReport && copilotReport.evidenceGaps?.length === 0
-                        ? '#10B981'
-                        : '#F59E0B'
+                        ? 'rgba(16, 185, 129, 0.35)'
+                        : 'rgba(245, 158, 11, 0.35)'
                     }`,
-                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    4. PROOF / EVIDENCE
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                      4. PROOF / EVIDENCE
+                    </span>
+                    <span style={{ fontSize: '12px' }}>
+                      {copilotReport && copilotReport.evidenceGaps?.length === 0 ? '🛡️' : '🔍'}
+                    </span>
                   </div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {copilotReport
                       ? copilotReport.evidenceGaps?.length === 0
-                        ? 'Full Evidence Coverage'
-                        : `${copilotReport.evidenceGaps?.length} Evidence Gaps`
-                      : 'Audit in progress'}
+                        ? 'Full Evidence'
+                        : `${copilotReport.evidenceGaps?.length} Evidence Gap(s)`
+                      : 'Audit Pending'}
                   </div>
                 </div>
 
+                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+
                 {/* Stage 5: Human Verification */}
                 <div
+                  className="pipeline-step-node"
                   style={{
-                    padding: 'var(--space-3)',
-                    backgroundColor:
-                      percentVerified === 100 ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0,0,0,0.02)',
-                    border: `1px solid ${percentVerified === 100 ? '#10B981' : 'var(--border-subtle)'}`,
-                    borderRadius: 'var(--radius-sm)',
+                    flex: '1 1 0',
+                    minWidth: 140,
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: percentVerified === 100 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${percentVerified === 100 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    5. HUMAN VERIFICATION
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                      5. HUMAN CERTIFIED
+                    </span>
+                    <span style={{ fontSize: '12px' }}>{percentVerified === 100 ? '✍️' : '○'}</span>
                   </div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginTop: '2px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: percentVerified === 100 ? '#10B981' : 'var(--text-primary)' }}>
                     {percentVerified}% Certified
                   </div>
                 </div>
@@ -4861,18 +5079,37 @@ export function ProjectPage() {
                   padding: 'var(--space-12) var(--space-6)',
                   textAlign: 'center',
                   backgroundColor: 'var(--bg-surface)',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 'var(--radius-lg)',
                   border: '1px dashed var(--border-subtle)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                 }}
               >
-                <span
-                  style={{ fontSize: '36px', display: 'block', marginBottom: 'var(--space-2)' }}
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    margin: '0 auto var(--space-3)',
+                    boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
+                  }}
                 >
-                  🤖
-                </span>
+                  ⚡
+                </div>
                 <h3
-                  className="serif-display"
-                  style={{ fontSize: 'var(--font-size-xl)', margin: '0 0 var(--space-2)' }}
+                  style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    fontSize: 'var(--font-size-xl)',
+                    margin: '0 0 var(--space-2)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
                   Inspect the Ledger with NVIDIA Nemotron
                 </h3>
@@ -4887,13 +5124,13 @@ export function ProjectPage() {
                 >
                   The Vouchlock Delivery Agent inspects your project brief, requirement coverage,
                   unlinked tasks, and evidence records to recommend the single most impactful next
-                  delivery action. Inferences remain separate from verified records.
+                  delivery action. Inferences remain strictly separate from verified ledger records.
                 </p>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={handleGenerateCopilotReport}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 22px' }}
                 >
                   <span>Start Agent Analysis Now</span>
                   <span>→</span>
@@ -4901,7 +5138,7 @@ export function ProjectPage() {
               </div>
             )}
 
-              {/* Loading State */}
+            {/* Loading State */}
             {loadingCopilot && (
               <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
                 <div className="loading-spinner" style={{ margin: '0 auto var(--space-3)' }} />
@@ -4920,57 +5157,44 @@ export function ProjectPage() {
 
             {/* Full Report & Proposals Surface */}
             {copilotReport && !loadingCopilot && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                {/* Runtime & Grounding Provenance Strip */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+                {/* Visual Telemetry Strip */}
                 <div
+                  className="telemetry-strip"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 'var(--space-2) var(--space-3)',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                    padding: '8px 14px',
                     backgroundColor: 'var(--bg-surface)',
                     border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    flexWrap: 'wrap',
-                    gap: 'var(--space-2)',
+                    borderRadius: 'var(--radius-md)',
                   }}
                 >
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                  <span className="telemetry-pill">📄 {briefRevisions.length} Briefs</span>
+                  <span className="telemetry-pill">🎯 {requirements.length} Requirements</span>
+                  <span className="telemetry-pill">🔧 {tasks.length} Tasks</span>
+                  <span className="telemetry-pill">🛡️ {copilotReport.sourceRecords?.length ?? 0} Proofs</span>
+                  <span
+                    className="telemetry-pill"
+                    style={{
+                      color: '#10B981',
+                      borderColor: 'rgba(16,185,129,0.3)',
+                      fontFamily: 'var(--font-mono)',
+                    }}
                   >
-                    <span
-                      className={`badge ${
-                        copilotReport.provider === 'nebius' || !copilotReport.provider
-                          ? 'badge-proof'
-                          : 'badge-blocked'
-                      }`}
-                      style={{ fontSize: '9px', padding: '2px 6px', fontWeight: 700 }}
-                    >
-                      {copilotReport.provider === 'openai'
-                        ? 'OPENAI BYOK'
-                        : copilotReport.provider === 'gemini'
-                        ? 'GOOGLE GEMINI BYOK'
-                        : 'NEBIUS TOKEN FACTORY (DEFAULT)'}
-                    </span>
-                    <span>
-                      Model: <strong>{copilotReport.model || 'Discovered Nemotron'}</strong>
-                      {copilotReport.modelRole && (
-                        <span className="badge badge-subtle ml-1.5" style={{ fontSize: '9px', textTransform: 'uppercase' }}>
-                          Profile: {copilotReport.modelRole}
-                        </span>
-                      )} ·
-                      Grounded in <strong>{copilotReport.sourceRecords?.length ?? 0}</strong> authorized project records
-                    </span>
-                  </div>
-                  {copilotReport.routingReason && (
-                    <div style={{ width: '100%', fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                      Routing: {copilotReport.routingReason}
-                    </div>
-                  )}
-                  <span className="mono-num">
-                    Generated: {new Date(copilotReport.generatedAt).toLocaleTimeString()}
+                    ⚡ {copilotReport.model || 'Nemotron-3-120B'}
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    Audited: {new Date(copilotReport.generatedAt).toLocaleTimeString()}
                   </span>
                 </div>
 
@@ -4979,9 +5203,11 @@ export function ProjectPage() {
                   <div
                     style={{
                       padding: 'var(--space-4) var(--space-5)',
-                      backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                      border: '2px solid rgba(59, 130, 246, 0.4)',
-                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderLeft: '4px solid #10B981',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.05)',
                     }}
                   >
                     <div
@@ -4996,16 +5222,23 @@ export function ProjectPage() {
                         <span
                           className="badge"
                           style={{
-                            backgroundColor: '#3B82F6',
+                            backgroundColor: '#10B981',
                             color: '#FFFFFF',
                             fontSize: '10px',
-                            padding: '2px 8px',
+                            padding: '3px 8px',
                             fontWeight: 700,
+                            borderRadius: '9999px',
                           }}
                         >
-                          RECOMMENDED NEXT ACTION
+                          ⚡ RECOMMENDED NEXT DELIVERY ACTION
                         </span>
-                        <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600 }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--text-muted)',
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                        >
                           {copilotReport.provider === 'openai'
                             ? 'OPENAI GPT-4O REASONING'
                             : copilotReport.provider === 'gemini'
@@ -5014,10 +5247,10 @@ export function ProjectPage() {
                         </span>
                       </div>
                       <span
-                        className="badge badge-pending"
+                        className="badge badge-proof"
                         style={{ fontSize: '9px', padding: '1px 6px' }}
                       >
-                        AI suggestion
+                        Actionable
                       </span>
                     </div>
                     <p
@@ -5034,7 +5267,7 @@ export function ProjectPage() {
                   </div>
                 )}
 
-                {/* Visible Distinctions: Project Records vs AI Suggestions */}
+                {/* Visible Distinctions: Verified Records vs Model Inferences */}
                 <div
                   style={{
                     display: 'grid',
@@ -5046,27 +5279,38 @@ export function ProjectPage() {
                   <div
                     style={{
                       padding: 'var(--space-4)',
-                      backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      borderLeft: '3px solid #10B981',
+                      borderRadius: 'var(--radius-md)',
                     }}
                   >
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        justifyContent: 'space-between',
                         marginBottom: 'var(--space-2)',
                       }}
                     >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🛡️</span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: '#10B981',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          VERIFIED LEDGER FACTS
+                        </span>
+                      </div>
                       <span
                         className="badge badge-proof"
-                        style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
+                        style={{ fontSize: '9px', padding: '1px 6px' }}
                       >
-                        Project record
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
-                        VERIFIED FACTS
+                        Audit Grade
                       </span>
                     </div>
                     <p
@@ -5085,27 +5329,38 @@ export function ProjectPage() {
                   <div
                     style={{
                       padding: 'var(--space-4)',
-                      backgroundColor: 'rgba(245, 158, 11, 0.05)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      borderLeft: '3px solid #F59E0B',
+                      borderRadius: 'var(--radius-md)',
                     }}
                   >
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        justifyContent: 'space-between',
                         marginBottom: 'var(--space-2)',
                       }}
                     >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🧠</span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: '#F59E0B',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          NEMOTRON GAP AUDIT
+                        </span>
+                      </div>
                       <span
                         className="badge badge-pending"
-                        style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
+                        style={{ fontSize: '9px', padding: '1px 6px' }}
                       >
-                        AI suggestion
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#D97706', fontWeight: 600 }}>
-                        MODEL INFERENCE
+                        AI Synthesis
                       </span>
                     </div>
                     <p
@@ -5123,60 +5378,53 @@ export function ProjectPage() {
 
                 {/* Blockers & Needs Review Section */}
                 {copilotReport.blockers?.length > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        marginBottom: 'var(--space-2)',
-                      }}
-                    >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span
                         className="badge badge-blocked"
                         style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
                       >
                         Needs review
                       </span>
-                      <h3
+                      <span
                         style={{
-                          fontSize: 'var(--font-size-xs)',
+                          fontSize: '11px',
                           fontWeight: 700,
                           textTransform: 'uppercase',
-                          letterSpacing: '0.06em',
+                          letterSpacing: '0.04em',
                           color: '#EF4444',
-                          margin: 0,
                         }}
                       >
                         Active Ledger Blockers ({copilotReport.blockers.length})
-                      </h3>
+                      </span>
                     </div>
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
-                    >
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                       {copilotReport.blockers.map((b: any) => (
                         <div
                           key={b.id}
                           style={{
-                            padding: 'var(--space-3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '6px 12px',
                             backgroundColor: 'rgba(239, 68, 68, 0.06)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
                             borderRadius: 'var(--radius-sm)',
-                            fontSize: 'var(--font-size-xs)',
+                            fontSize: '12px',
                             color: 'var(--text-primary)',
                           }}
                         >
+                          <span style={{ color: '#EF4444', fontWeight: 700 }}>⚠️</span>
                           <strong>{b.blocker}</strong>
                           {b.relatedEntity && (
                             <span
                               style={{
-                                display: 'block',
                                 color: 'var(--text-muted)',
+                                fontFamily: 'var(--font-mono)',
                                 fontSize: '11px',
-                                marginTop: '2px',
                               }}
                             >
-                              Target: {b.relatedEntity}
+                              [{b.relatedEntity}]
                             </span>
                           )}
                         </div>
@@ -5185,123 +5433,111 @@ export function ProjectPage() {
                   </div>
                 )}
 
-                {/* Evidence Gaps */}
+                {/* Evidence Gaps: Sleek Alert Rows */}
                 {copilotReport.evidenceGaps?.length > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        marginBottom: 'var(--space-2)',
-                      }}
-                    >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span
                         className="badge badge-blocked"
                         style={{ fontSize: '9px', padding: '1px 6px', fontWeight: 700 }}
                       >
-                        Needs review
+                        Audit Gap
                       </span>
-                      <h3
+                      <span
                         style={{
-                          fontSize: 'var(--font-size-xs)',
+                          fontSize: '11px',
                           fontWeight: 700,
                           textTransform: 'uppercase',
-                          letterSpacing: '0.06em',
+                          letterSpacing: '0.04em',
                           color: 'var(--text-primary)',
-                          margin: 0,
                         }}
                       >
                         Requirements Missing Proof ({copilotReport.evidenceGaps.length})
-                      </h3>
+                      </span>
                     </div>
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
-                    >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {copilotReport.evidenceGaps.map((g: any) => (
                         <div
                           key={g.requirementId}
                           style={{
-                            padding: 'var(--space-3)',
+                            padding: '8px 12px',
                             backgroundColor: 'var(--bg-surface)',
                             border: '1px solid var(--border-subtle)',
                             borderRadius: 'var(--radius-sm)',
-                            fontSize: 'var(--font-size-xs)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
                           }}
                         >
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                            [{g.requirementTitle}]
-                          </span>
-                          <p
-                            style={{
-                              margin: '2px 0 0',
-                              color: 'var(--text-secondary)',
-                              fontSize: '11px',
-                            }}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              className="telemetry-pill"
+                              style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '11px',
+                                color: '#EF4444',
+                                borderColor: 'rgba(239,68,68,0.3)',
+                              }}
+                            >
+                              {g.requirementTitle}
+                            </span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              {g.reason}
+                            </span>
+                          </div>
+                          <span
+                            className="badge badge-pending"
+                            style={{ fontSize: '9px', padding: '1px 6px', flexShrink: 0 }}
                           >
-                            {g.reason}
-                          </p>
+                            Needs Evidence
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Delivery Risks */}
+                {/* Delivery Risks: Sleek Issue Chips */}
                 {copilotReport.risks?.length > 0 && (
-                  <div>
-                    <h3
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <span
                       style={{
-                        fontSize: 'var(--font-size-xs)',
+                        fontSize: '11px',
                         fontWeight: 700,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
+                        letterSpacing: '0.04em',
                         color: 'var(--text-muted)',
-                        margin: '0 0 var(--space-2)',
                       }}
                     >
                       Delivery Risks ({copilotReport.risks.length})
-                    </h3>
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
-                    >
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                       {copilotReport.risks.map((r: any) => (
                         <div
                           key={r.id}
                           style={{
-                            padding: 'var(--space-3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '6px 12px',
                             backgroundColor: 'var(--bg-surface)',
                             border: '1px solid var(--border-subtle)',
                             borderRadius: 'var(--radius-sm)',
-                            fontSize: 'var(--font-size-xs)',
+                            fontSize: '12px',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 'var(--space-2)',
-                              marginBottom: '4px',
-                            }}
+                          <span
+                            className={`badge ${r.severity === 'high' ? 'badge-blocked' : 'badge-pending'}`}
+                            style={{ fontSize: '9px', padding: '1px 5px', fontWeight: 700 }}
                           >
-                            <span
-                              className={`badge ${r.severity === 'high' ? 'badge-blocked' : 'badge-pending'}`}
-                              style={{ fontSize: '9px', padding: '1px 5px' }}
-                            >
-                              {r.severity ? r.severity.toUpperCase() : 'MEDIUM'} RISK
-                            </span>
-                            <span style={{ fontWeight: 600 }}>{r.risk}</span>
-                          </div>
+                            {r.severity ? r.severity.toUpperCase() : 'MED'}
+                          </span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.risk}</span>
                           {r.mitigation && (
-                            <p
-                              style={{
-                                margin: '2px 0 0',
-                                color: 'var(--text-secondary)',
-                                fontSize: '11px',
-                              }}
-                            >
-                              Mitigation: {r.mitigation}
-                            </p>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                              ({r.mitigation})
+                            </span>
                           )}
                         </div>
                       ))}
@@ -5309,10 +5545,10 @@ export function ProjectPage() {
                   </div>
                 )}
 
-                {/* Proposed Action Envelopes (Human-in-the-Loop) */}
+                {/* Proposed Action Envelopes (Linear / GitHub PR Triage Style) */}
                 <div
                   style={{
-                    borderTop: '2px solid var(--border-subtle)',
+                    borderTop: '1px solid var(--border-subtle)',
                     paddingTop: 'var(--space-5)',
                   }}
                 >
@@ -5325,16 +5561,25 @@ export function ProjectPage() {
                     }}
                   >
                     <div>
-                      <h3
-                        style={{
-                          fontSize: 'var(--font-size-base)',
-                          fontWeight: 700,
-                          margin: 0,
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        Proposed Action Envelopes ({copilotReport.proposedActions?.length ?? 0})
-                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3
+                          style={{
+                            fontSize: 'var(--font-size-base)',
+                            fontWeight: 700,
+                            margin: 0,
+                            color: 'var(--text-primary)',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          Proposed Action Envelopes
+                        </h3>
+                        <span
+                          className="badge badge-proof"
+                          style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '9999px' }}
+                        >
+                          {copilotReport.proposedActions?.length ?? 0} Pending
+                        </span>
+                      </div>
                       <p
                         style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}
                       >
@@ -5353,7 +5598,7 @@ export function ProjectPage() {
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 'var(--space-4)',
+                        gap: 'var(--space-3)',
                         marginTop: 'var(--space-3)',
                       }}
                     >
@@ -5367,21 +5612,23 @@ export function ProjectPage() {
                           <div
                             key={p.proposalId}
                             style={{
-                              padding: 'var(--space-4)',
+                              padding: 'var(--space-4) var(--space-5)',
                               border: `1px solid ${
                                 isApproved
                                   ? '#10B981'
                                   : isRejected
                                     ? 'var(--border-subtle)'
-                                    : 'var(--accent-primary)'
+                                    : 'rgba(16, 185, 129, 0.35)'
                               }`,
-                              borderRadius: 'var(--radius-sm)',
+                              borderRadius: 'var(--radius-md)',
                               backgroundColor: isApproved
                                 ? 'rgba(16, 185, 129, 0.05)'
                                 : isRejected
                                   ? 'rgba(0,0,0,0.02)'
-                                  : 'var(--bg-surface)',
+                                  : 'var(--bg-surface-elevated)',
+                              boxShadow: isApproved ? 'none' : '0 4px 16px rgba(0,0,0,0.06)',
                               opacity: isRejected ? 0.6 : 1,
+                              transition: 'all 180ms ease',
                             }}
                           >
                             <div
@@ -5403,7 +5650,12 @@ export function ProjectPage() {
                               >
                                 <span
                                   className="badge badge-proof"
-                                  style={{ fontSize: '9px', padding: '2px 8px', fontWeight: 700 }}
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 8px',
+                                    fontWeight: 700,
+                                    borderRadius: '9999px',
+                                  }}
                                 >
                                   {p.actionType.toUpperCase().replace(/_/g, ' ')}
                                 </span>
@@ -5417,7 +5669,7 @@ export function ProjectPage() {
                                   className="badge badge-blocked"
                                   style={{ fontSize: '9px', padding: '2px 6px' }}
                                 >
-                                  Needs review
+                                  Needs human gate
                                 </span>
                               </div>
 
@@ -5433,9 +5685,11 @@ export function ProjectPage() {
                                 p.groundingReference?.startsWith('Project') ? (
                                   <>
                                     <strong style={{ color: 'var(--text-secondary)' }}>
-                                      Project record:
+                                      Target:
                                     </strong>{' '}
-                                    {p.groundingReference}
+                                    <span style={{ color: 'var(--text-primary)' }}>
+                                      {p.groundingReference}
+                                    </span>
                                   </>
                                 ) : (
                                   <>
@@ -5454,6 +5708,7 @@ export function ProjectPage() {
                                 fontSize: 'var(--font-size-base)',
                                 fontWeight: 600,
                                 color: 'var(--text-primary)',
+                                lineHeight: '1.4',
                               }}
                             >
                               {p.description}
@@ -5479,7 +5734,12 @@ export function ProjectPage() {
                                 >
                                   <span
                                     className="badge badge-proof"
-                                    style={{ fontSize: '11px', padding: '4px 10px', fontWeight: 700 }}
+                                    style={{
+                                      fontSize: '11px',
+                                      padding: '4px 10px',
+                                      fontWeight: 700,
+                                      borderRadius: '9999px',
+                                    }}
                                   >
                                     ✓ APPROVED & COMMITTED TO AUDIT TRAIL
                                   </span>

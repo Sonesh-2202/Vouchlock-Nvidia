@@ -471,9 +471,8 @@ export function LandingPage() {
                   marginBottom: 'var(--space-8)',
                 }}
               >
-                Every software claim begins with an agreed brief clause, maps to verified tasks,
-                demands empirical evidence slips, and requires named human sign-off. When projects
-                close, the proof is already signed.
+                Every software claim maps to verified tasks, empirical evidence, and named human
+                sign-offs. When projects close, the delivery ledger is already complete.
               </p>
 
               <div
@@ -518,7 +517,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Right: Live Ledger Excerpt (Paper on the Desk) */}
+            {/* Right: Live Ledger Excerpt (Paper on the Desk with Glassmorphism) */}
             <div
               ref={excerptRef}
               className="w-full overflow-hidden lg:col-span-5"
@@ -527,20 +526,23 @@ export function LandingPage() {
               }}
             >
               <div
-                className="bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-subtle)]"
+                className="glass-card"
                 style={{
                   minHeight: 400,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   padding: 'var(--space-6)',
-                  backgroundColor: 'var(--bg-surface)',
+                  backgroundColor:
+                    theme === 'dark' ? 'rgba(13, 20, 16, 0.88)' : 'rgba(255, 255, 255, 0.94)',
+                  backdropFilter: 'blur(16px)',
                   color: 'var(--text-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  boxShadow: 'var(--shadow-lg)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow:
+                    '0 24px 60px -12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(16, 185, 129, 0.1)',
                   transform: 'rotate(-0.4deg)',
-                  transition: 'transform var(--t-fast) var(--ease-out)',
+                  transition: 'all 240ms cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 {/* Ledger Header */}
@@ -569,8 +571,10 @@ export function LandingPage() {
                       Audit Slip #PP-8492
                     </div>
                     <div
-                      className="serif-display"
                       style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontWeight: 700,
+                        letterSpacing: '-0.02em',
                         fontSize: 'var(--font-size-xl)',
                         color: 'var(--text-primary)',
                       }}
@@ -579,7 +583,25 @@ export function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="stamp-seal">
+                  <div
+                    className="stamp-seal"
+                    style={{
+                      borderRadius: '9999px',
+                      boxShadow: '0 0 12px rgba(16, 185, 129, 0.25)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: '#10B981',
+                        display: 'inline-block',
+                      }}
+                    />
                     <IconVerified size={14} />
                     <span>Verified</span>
                   </div>
@@ -829,23 +851,23 @@ export function LandingPage() {
               {[
                 {
                   step: '01',
-                  title: 'Requirement parsed from the Source Brief',
-                  desc: 'No vague promises. Clauses from client briefs are distilled into scoped, atomic requirement items with measurable acceptance criteria.',
+                  title: 'Requirement parsed from Source Brief',
+                  desc: 'Brief clauses are distilled into scoped, atomic requirement items with measurable acceptance criteria.',
                 },
                 {
                   step: '02',
-                  title: 'Tasks linked explicitly to the requirement ID',
-                  desc: 'Every PR, branch, and engineering work item maps back directly to a requirement ledger line. Unlinked rogue tasks are flagged immediately.',
+                  title: 'Tasks linked explicitly to requirement ID',
+                  desc: 'Every PR, branch, and engineering commit maps back directly to a ledger line. Rogue tasks are flagged immediately.',
                 },
                 {
                   step: '03',
                   title: 'Evidence slips attached with verifiable artifacts',
-                  desc: 'Pull request diffs, automated test run outputs, deployment hashes, and screen recordings are recorded as immutable evidence slips.',
+                  desc: 'PR diffs, automated test run outputs, deployment hashes, and screen recordings are deposited as immutable evidence.',
                 },
                 {
                   step: '04',
                   title: 'Human verification seals the delivery ledger',
-                  desc: 'No automated bot rubber-stamping. A named human reviewer with explicit role credentials places their sign-off stamp. Gaps cannot hide.',
+                  desc: 'A named human reviewer with explicit credentials places their sign-off stamp. Gaps cannot hide.',
                 },
               ].map((item, index) => {
                 const isSelected = activeStep === index;
@@ -1143,8 +1165,8 @@ export function LandingPage() {
               The Truthful Delivery Report
             </h2>
             <p style={{ color: 'var(--ink-muted)', fontSize: 'var(--font-size-base)' }}>
-              No marketing summaries. When a sprint or project completes, Vouchlock generates an
-              authoritative ledger that stands in court or contract dispute.
+              No vague summaries. When a sprint completes, Vouchlock generates an authoritative
+              delivery ledger that stands in contract dispute.
             </p>
           </div>
 
@@ -1459,9 +1481,9 @@ export function LandingPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  If a client asks whether a feature works, a ticket closed on Jira is not an
-                  answer. An answer is the raw test run, the commit hash, and the human verification
-                  stamp. If evidence is absent, the delivery ledger marks it as an unambiguous gap.
+                  A closed Jira ticket is not proof. Real answers require raw test runs,
+                  commit hashes, and human sign-off stamps. If evidence is absent, the ledger
+                  marks an unambiguous gap.
                 </p>
               </div>
             </div>
@@ -1494,9 +1516,8 @@ export function LandingPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Evidence is not a vague comment. It is an immutable artifact: terminal output
-                  logs, database schema snapshots, and verifiable video runs. You cannot bluff a
-                  cryptographic trace.
+                  Evidence is an immutable artifact: terminal outputs, schema snapshots,
+                  and verifiable screen traces. Cryptographic evidence cannot be bluff-claimed.
                 </p>
               </div>
               <div
@@ -1547,9 +1568,8 @@ export function LandingPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  When both client and engineering team look at the exact same signed ledger, scope
-                  creep evaporates. Completed items are signed, deferred items are noted, and
-                  invoices are paid without argument.
+                  When client and engineering teams inspect the exact same signed ledger, scope
+                  creep evaporates. Completed work is certified, and invoices are approved without argument.
                 </p>
               </div>
             </div>
@@ -1630,9 +1650,8 @@ export function LandingPage() {
                   lineHeight: 1.55,
                 }}
               >
-                Hand over bespoke systems with an unarguable audit slip. Handing over client
-                software with a signed delivery ledger turns disputed final milestone payments into
-                instant wire transfers.
+                Hand over client software with a signed delivery ledger. Turns disputed final
+                milestone payments into immediate wire transfers.
               </p>
             </div>
 
@@ -1669,9 +1688,8 @@ export function LandingPage() {
                   lineHeight: 1.55,
                 }}
               >
-                Present final capstones to faculty boards with verifiable code traces rather than
-                slides. Reviewers inspect requirement lineage directly down to automated CI run
-                logs.
+                Present final capstones with verifiable code traces rather than slides.
+                Reviewers inspect requirement lineage directly down to automated CI logs.
               </p>
             </div>
 
@@ -1709,7 +1727,7 @@ export function LandingPage() {
                 }}
               >
                 Eliminate subjective acceptance debates. Deliver each milestone with an
-                authoritative Truthful Delivery Report signed by named engineering reviewers.
+                authoritative Truthful Delivery Report signed by named reviewers.
               </p>
             </div>
           </div>

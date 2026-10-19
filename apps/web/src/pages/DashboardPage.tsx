@@ -404,81 +404,221 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Giant Serif Truth Headline */}
-          <h1
-            className="serif-display"
-            style={{
-              fontSize: 'clamp(2.25rem, 3.8vw, 3.5rem)',
-              lineHeight: 1.12,
-              letterSpacing: '-0.03em',
-              color: 'var(--ink)',
-              margin: 'var(--space-2) 0 var(--space-6)',
-              fontWeight: 600,
-            }}
-          >
-            <span style={{ color: 'var(--proof)' }}>{totalVerifiedAll}</span> of{' '}
-            <span>{totalReqsAll || 9}</span> requirements proven.{' '}
-            <span style={{ color: totalBlockedTasks > 0 ? 'var(--stamp)' : 'var(--ink-muted)' }}>
-              {totalBlockedTasks > 0 ? `${totalBlockedTasks} blocked.` : '0 blocked.'}
-            </span>
-          </h1>
-
-          {/* ── 4-Column Ledger Strip (Responsive) ── */}
+          {/* Unified Executive Bento Header */}
           <div
-            className="responsive-metrics-strip"
             style={{
-              padding: 'var(--space-4) var(--space-5)',
-              background: 'var(--desk-raised)',
-              border: '1px solid var(--rule)',
-              borderRadius: 'var(--radius-sm)',
+              margin: 'var(--space-3) 0 var(--space-6)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-5)',
+              flexWrap: 'wrap',
             }}
           >
-            {/* Strip 1: Proven */}
-            <div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--font-size-meta)',
-                  color: 'var(--ink-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                REQUIREMENTS PROVEN
-              </div>
-              <div
-                style={{
-                  fontSize: 'var(--font-size-2xl)',
-                  fontWeight: 600,
-                  color: 'var(--proof)',
-                  margin: '4px 0',
-                }}
-              >
-                <span ref={provenNumRef} className="mono-num">
-                  {totalVerifiedAll}
-                </span>
-                <span
+            {/* Circular Progress Ring */}
+            {(() => {
+              const pct = totalReqsAll > 0 ? Math.round((totalVerifiedAll / totalReqsAll) * 100) : 0;
+              const r = 26;
+              const circ = 2 * Math.PI * r;
+              const strokeOffset = circ - (pct / 100) * circ;
+
+              return (
+                <div
                   style={{
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--ink-muted)',
-                    marginLeft: 6,
+                    position: 'relative',
+                    width: 68,
+                    height: 68,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  / {totalReqsAll} verified
+                  <svg width="68" height="68" viewBox="0 0 68 68" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle
+                      cx="34"
+                      cy="34"
+                      r={r}
+                      fill="none"
+                      stroke="var(--border-subtle)"
+                      strokeWidth="5"
+                    />
+                    <circle
+                      cx="34"
+                      cy="34"
+                      r={r}
+                      fill="none"
+                      stroke="#10B981"
+                      strokeWidth="5"
+                      strokeDasharray={circ}
+                      strokeDashoffset={strokeOffset}
+                      strokeLinecap="round"
+                      style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                    />
+                  </svg>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {pct}%
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Modern Sans-Serif Truth Headline */}
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '4px',
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: totalBlockedTasks > 0 ? '#EF4444' : '#10B981',
+                    boxShadow: totalBlockedTasks > 0 ? '0 0 8px #EF4444' : '0 0 8px #10B981',
+                    display: 'inline-block',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  PORTFOLIO TRUTHFUL DELIVERY STATUS
                 </span>
+              </div>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 'clamp(1.75rem, 3.2vw, 2.75rem)',
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.025em',
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  fontWeight: 700,
+                }}
+              >
+                <span style={{ color: '#10B981' }}>{totalVerifiedAll}</span> of{' '}
+                <span>{totalReqsAll || 9}</span> requirements proven.{' '}
+                <span style={{ color: totalBlockedTasks > 0 ? '#EF4444' : 'var(--text-muted)', fontWeight: 600 }}>
+                  {totalBlockedTasks > 0 ? `${totalBlockedTasks} blocked.` : '0 blocked.'}
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          {/* ── 4-Column Executive Bento Grid ── */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: 'var(--space-3)',
+              marginBottom: 'var(--space-8)',
+            }}
+          >
+            {/* Card 1: Proven */}
+            <div
+              className="bento-card"
+              style={{
+                padding: 'var(--space-4) var(--space-5)',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 'var(--space-2)',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    REQUIREMENTS PROVEN
+                  </span>
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                    }}
+                  >
+                    🛡️
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 'var(--font-size-2xl)',
+                    fontWeight: 700,
+                    color: '#10B981',
+                    letterSpacing: '-0.02em',
+                    margin: '2px 0 6px',
+                  }}
+                >
+                  <span ref={provenNumRef} className="mono-num">
+                    {totalVerifiedAll}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--text-muted)',
+                      fontWeight: 500,
+                      marginLeft: 6,
+                    }}
+                  >
+                    / {totalReqsAll} certified
+                  </span>
+                </div>
               </div>
               <div
                 style={{
                   height: 3,
-                  background: 'var(--rule)',
-                  borderRadius: 1,
+                  background: 'var(--border-subtle)',
+                  borderRadius: 9999,
                   overflow: 'hidden',
+                  marginTop: 'var(--space-2)',
                 }}
               >
                 <div
                   style={{
                     height: '100%',
-                    background: 'var(--proof)',
+                    background: '#10B981',
                     width: totalReqsAll > 0 ? `${(totalVerifiedAll / totalReqsAll) * 100}%` : '0%',
                     transition: 'width 0.8s ease-out',
                   }}
@@ -486,52 +626,93 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Strip 2: Pending */}
-            <div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--font-size-meta)',
-                  color: 'var(--ink-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                AWAITING SIGN-OFF
-              </div>
-              <div
-                style={{
-                  fontSize: 'var(--font-size-2xl)',
-                  fontWeight: 600,
-                  color: 'var(--ink)',
-                  margin: '4px 0',
-                }}
-              >
-                <span ref={pendingNumRef} className="mono-num">
-                  {Math.max(0, totalReqsAll - totalVerifiedAll)}
-                </span>
-                <span
+            {/* Card 2: Pending */}
+            <div
+              className="bento-card"
+              style={{
+                padding: 'var(--space-4) var(--space-5)',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div
                   style={{
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--ink-muted)',
-                    marginLeft: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
-                  active claims
-                </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    AWAITING SIGN-OFF
+                  </span>
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                    }}
+                  >
+                    ⏳
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 'var(--font-size-2xl)',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    letterSpacing: '-0.02em',
+                    margin: '2px 0 6px',
+                  }}
+                >
+                  <span ref={pendingNumRef} className="mono-num">
+                    {Math.max(0, totalReqsAll - totalVerifiedAll)}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--text-muted)',
+                      fontWeight: 500,
+                      marginLeft: 6,
+                    }}
+                  >
+                    active claims
+                  </span>
+                </div>
               </div>
               <div
                 style={{
                   height: 3,
-                  background: 'var(--rule)',
-                  borderRadius: 1,
+                  background: 'var(--border-subtle)',
+                  borderRadius: 9999,
                   overflow: 'hidden',
+                  marginTop: 'var(--space-2)',
                 }}
               >
                 <div
                   style={{
                     height: '100%',
-                    background: 'var(--ink-muted)',
+                    background: '#F59E0B',
                     width:
                       totalReqsAll > 0
                         ? `${((totalReqsAll - totalVerifiedAll) / totalReqsAll) * 100}%`
@@ -542,52 +723,93 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Strip 3: Blocked */}
-            <div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--font-size-meta)',
-                  color: 'var(--ink-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                BLOCKED WORKSTREAMS
-              </div>
-              <div
-                style={{
-                  fontSize: 'var(--font-size-2xl)',
-                  fontWeight: 600,
-                  color: totalBlockedTasks > 0 ? 'var(--stamp)' : 'var(--ink-muted)',
-                  margin: '4px 0',
-                }}
-              >
-                <span ref={blockedNumRef} className="mono-num">
-                  {totalBlockedTasks}
-                </span>
-                <span
+            {/* Card 3: Blocked */}
+            <div
+              className="bento-card"
+              style={{
+                padding: 'var(--space-4) var(--space-5)',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div
                   style={{
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--ink-muted)',
-                    marginLeft: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
-                  projects stalled
-                </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    BLOCKED WORKSTREAMS
+                  </span>
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      backgroundColor: totalBlockedTasks > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.04)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                    }}
+                  >
+                    ⚠️
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 'var(--font-size-2xl)',
+                    fontWeight: 700,
+                    color: totalBlockedTasks > 0 ? '#EF4444' : 'var(--text-muted)',
+                    letterSpacing: '-0.02em',
+                    margin: '2px 0 6px',
+                  }}
+                >
+                  <span ref={blockedNumRef} className="mono-num">
+                    {totalBlockedTasks}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--text-muted)',
+                      fontWeight: 500,
+                      marginLeft: 6,
+                    }}
+                  >
+                    stalled
+                  </span>
+                </div>
               </div>
               <div
                 style={{
                   height: 3,
-                  background: 'var(--rule)',
-                  borderRadius: 1,
+                  background: 'var(--border-subtle)',
+                  borderRadius: 9999,
                   overflow: 'hidden',
+                  marginTop: 'var(--space-2)',
                 }}
               >
                 <div
                   style={{
                     height: '100%',
-                    background: totalBlockedTasks > 0 ? 'var(--stamp)' : 'var(--rule)',
+                    background: totalBlockedTasks > 0 ? '#EF4444' : 'var(--border-subtle)',
                     width: totalBlockedTasks > 0 ? '100%' : '0%',
                     transition: 'width 0.8s ease-out',
                   }}
@@ -595,52 +817,93 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Strip 4: Shipped */}
-            <div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--font-size-meta)',
-                  color: 'var(--ink-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                TASKS SHIPPED
-              </div>
-              <div
-                style={{
-                  fontSize: 'var(--font-size-2xl)',
-                  fontWeight: 600,
-                  color: 'var(--ink)',
-                  margin: '4px 0',
-                }}
-              >
-                <span ref={shippedNumRef} className="mono-num">
-                  {totalTasksDone}
-                </span>
-                <span
+            {/* Card 4: Shipped */}
+            <div
+              className="bento-card"
+              style={{
+                padding: 'var(--space-4) var(--space-5)',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div
                   style={{
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--ink-muted)',
-                    marginLeft: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 'var(--space-2)',
                   }}
                 >
-                  / {totalTasksAll} done
-                </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    TASKS SHIPPED
+                  </span>
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                    }}
+                  >
+                    ⚡
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 'var(--font-size-2xl)',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    letterSpacing: '-0.02em',
+                    margin: '2px 0 6px',
+                  }}
+                >
+                  <span ref={shippedNumRef} className="mono-num">
+                    {totalTasksDone}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--text-muted)',
+                      fontWeight: 500,
+                      marginLeft: 6,
+                    }}
+                  >
+                    / {totalTasksAll} done
+                  </span>
+                </div>
               </div>
               <div
                 style={{
                   height: 3,
-                  background: 'var(--rule)',
-                  borderRadius: 1,
+                  background: 'var(--border-subtle)',
+                  borderRadius: 9999,
                   overflow: 'hidden',
+                  marginTop: 'var(--space-2)',
                 }}
               >
                 <div
                   style={{
                     height: '100%',
-                    background: 'var(--ochre)',
+                    background: '#3B82F6',
                     width: totalTasksAll > 0 ? `${(totalTasksDone / totalTasksAll) * 100}%` : '0%',
                     transition: 'width 0.8s ease-out',
                   }}

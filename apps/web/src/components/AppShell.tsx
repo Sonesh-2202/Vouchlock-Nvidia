@@ -173,11 +173,12 @@ export function AppShell({
                     style={{
                       fontSize: 'var(--font-size-lg)',
                       fontWeight: 700,
-                      color: 'var(--ink)',
+                      letterSpacing: '-0.02em',
+                      color: 'var(--text-primary)',
                       display: 'block',
                     }}
                   >
-                    ProjectPilot
+                    Vouchlock
                   </span>
                   <span
                     style={{
