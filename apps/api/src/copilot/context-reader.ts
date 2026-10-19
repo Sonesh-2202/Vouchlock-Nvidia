@@ -40,6 +40,7 @@ export async function readCopilotContext(
   db: Database,
   userId: string,
   projectId: string,
+  briefRevisionId?: string,
 ): Promise<CopilotContext> {
   // 1. Fetch project
   const [project] = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
@@ -156,8 +157,34 @@ export async function readCopilotContext(
       .from(auditEvents)
       .where(eq(auditEvents.workspaceId, project.workspaceId))
       .orderBy(desc(auditEvents.createdAt))
-      .limit(10),
-  ]);
+  let orderedBriefRevisions = briefRevisionsList;
+  if (briefRevisionId) {
+    const foundIndex = orderedBriefRevisions.findIndex((b) => b.id === briefRevisionId);
+    if (foundIndex > 0) {
+      const selected = orderedBriefRevisions[foundIndex]!;
+      orderedBriefRevisions = [selected, ...orderedBriefRevisions.filter((b) => b.id !== briefRevisionId)];
+    } else if (foundIndex === -1) {
+      // If the selected brief revision is older than top 5, fetch it specifically
+      const [specificBrief] = await db
+        .select({
+          id: projectBriefRevisions.id,
+          revisionNumber: projectBriefRevisions.revisionNumber,
+          title: projectBriefRevisions.title,
+          content: projectBriefRevisions.content,
+        })
+        .from(projectBriefRevisions)
+        .where(
+          and(
+            eq(projectBriefRevisions.id, briefRevisionId),
+            eq(projectBriefRevisions.projectId, projectId),
+          ),
+        )
+        .limit(1);
+      if (specificBrief) {
+        orderedBriefRevisions = [specificBrief, ...orderedBriefRevisions];
+      }
+    }
+  }
 
   const reqIds = requirementsList.map((r) => r.id);
 
@@ -280,7 +307,7 @@ export async function readCopilotContext(
       notes: v.notes,
       createdAt: v.createdAt.toISOString(),
     })),
-    briefRevisions: briefRevisionsList.map((b) => ({
+    briefRevisions: orderedBriefRevisions.map((b) => ({
       id: b.id,
       revisionNumber: b.revisionNumber,
       title: b.title,

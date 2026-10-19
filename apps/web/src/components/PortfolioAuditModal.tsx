@@ -19,6 +19,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [executionTarget, setExecutionTarget] = useState<'local_worker' | 'nebius_serverless_job'>('local_worker');
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
         workspaceId,
         roleProfile: 'deep_reasoning', // Complex portfolio analysis uses deep reasoning profile
         idempotencyKey: `portfolio-audit-${Date.now()}`,
+        executionTargetPreference: executionTarget,
       });
       setActiveJob(res.job);
       loadHistory();
@@ -167,34 +169,108 @@ export const PortfolioAuditModal: React.FC<PortfolioAuditModalProps> = ({
 
         {/* Content Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          {/* Action & Trigger Strip */}
+          {/* Target Preference Selector */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
               backgroundColor: 'var(--bg-surface)',
               padding: 'var(--space-3) var(--space-4)',
               borderRadius: 'var(--radius-md, 10px)',
               border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
             }}
           >
-            <div>
-              <span style={{ fontSize: '13px', fontWeight: 600, display: 'block', color: 'var(--text-primary)' }}>
-                Truthful Delivery Assurance Run
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Inspects requirement evidence coverage, orphan completed tasks, and delivery risk indices.
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 600, display: 'block', color: 'var(--text-primary)' }}>
+                  Truthful Delivery Assurance Run
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Inspects requirement evidence coverage, orphan completed tasks, and delivery risk indices.
+                </span>
+              </div>
+              <button
+                onClick={handleLaunchAudit}
+                disabled={submitting || (activeJob?.status === 'running' || activeJob?.status === 'queued')}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>{submitting ? 'Launching...' : '⚡ Launch Portfolio Audit'}</span>
+              </button>
             </div>
-            <button
-              onClick={handleLaunchAudit}
-              disabled={submitting || (activeJob?.status === 'running' || activeJob?.status === 'queued')}
-              className="btn btn-primary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>{submitting ? 'Launching...' : '⚡ Launch Portfolio Audit'}</span>
-            </button>
+
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                Select Execution Target:
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    border: `1px solid ${executionTarget === 'local_worker' ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                    backgroundColor: executionTarget === 'local_worker' ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="executionTarget"
+                    value="local_worker"
+                    checked={executionTarget === 'local_worker'}
+                    onChange={() => setExecutionTarget('local_worker')}
+                    style={{ marginTop: '3px' }}
+                  />
+                  <div>
+                    <strong style={{ fontSize: '12px', display: 'block', color: 'var(--text-primary)' }}>
+                      Local Simulation (Background Worker)
+                    </strong>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Asynchronous server worker. Active &amp; ready out-of-the-box.
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    border: `1px solid ${executionTarget === 'nebius_serverless_job' ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                    backgroundColor: executionTarget === 'nebius_serverless_job' ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="executionTarget"
+                    value="nebius_serverless_job"
+                    checked={executionTarget === 'nebius_serverless_job'}
+                    onChange={() => setExecutionTarget('nebius_serverless_job')}
+                    style={{ marginTop: '3px' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <strong style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
+                        Nebius Serverless Job (Cloud)
+                      </strong>
+                      <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B', fontWeight: 600 }}>
+                        REQUIRES IAM
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Dispatches containerized job to Nebius AI Cloud. Requires control-plane keys (<code>NEBIUS_JOBS_API_KEY</code>).
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
           </div>
 
           {error && (

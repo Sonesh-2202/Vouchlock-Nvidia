@@ -12,6 +12,7 @@ import type { AppConfig } from '../config.js';
 import { getAiProvider, resolveAiProvider } from '../ai/planner.js';
 import { NebiusTokenFactoryProvider, extractJsonFromResponse } from '../ai/nebius-provider.js';
 import { OpenAiProvider } from '../ai/openai-provider.js';
+import { AiProviderValidationError } from '../ai/types.js';
 import type {
   CopilotContext,
   CopilotReport,
@@ -428,19 +429,17 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
   try {
     parsed = JSON.parse(jsonString);
   } catch {
-    // If output formatting had an issue, provide safe structured fallback without fabricating data
-    parsed = {
-      inferredSummary: `Delivery Agent analyzed project "${context.project.name}". Identified ${blockers.length} blocker(s), ${unlinkedTasks.length} unlinked task(s), and ${evidenceGaps.length} unverified requirement(s).`,
-      nextActionExplanation:
-        unlinkedTasks.length > 0
-          ? `Link unlinked execution tasks to requirements to establish proof traceability.`
-          : evidenceGaps.length > 0
-            ? `Collect verification proof for requirements lacking evidence.`
-            : `Review project records and complete delivery sign-off.`,
-      openQuestions: [],
-      risks: [],
-      proposedActions: [],
-    };
+    throw new AiProviderValidationError(
+      'Delivery Agent model output could not be parsed as valid JSON. Inference returned malformed response.',
+      { rawOutput: responseContent.slice(0, 500) },
+    );
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new AiProviderValidationError(
+      'Delivery Agent model returned an invalid payload structure (expected a JSON object).',
+      { rawOutput: responseContent.slice(0, 500) },
+    );
   }
 
   // Map and validate proposed actions
@@ -464,39 +463,6 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
       isInference: true,
       payload,
     });
-  }
-
-  // If the model produced 0 actions but there is an obvious unlinked task or evidence gap, supply a bounded grounded action
-  if (validatedProposedActions.length === 0) {
-    if (unlinkedTasks.length > 0 && context.requirements.length > 0) {
-      const task = unlinkedTasks[0]!;
-      const req = context.requirements[0]!;
-      const desc = `Link unlinked task "${task.title}" to requirement "${req.title}"`;
-      const payload = { taskId: task.id, requirementId: req.id };
-      validatedProposedActions.push({
-        proposalId: computeProposalId('link_task_requirement', desc, payload),
-        actionType: 'link_task_requirement',
-        description: desc,
-        groundingReference: `Task: ${task.id} -> Requirement: ${req.id}`,
-        isInference: true,
-        payload,
-      });
-    } else if (evidenceGaps.length > 0) {
-      const gap = evidenceGaps[0]!;
-      const desc = `Request verification proof for requirement "${gap.requirementTitle}"`;
-      const payload = {
-        requirementId: gap.requirementId,
-        evidenceTitle: 'Verification Proof Attachment',
-      };
-      validatedProposedActions.push({
-        proposalId: computeProposalId('request_evidence', desc, payload),
-        actionType: 'request_evidence',
-        description: desc,
-        groundingReference: `Requirement: ${gap.requirementId}`,
-        isInference: true,
-        payload,
-      });
-    }
   }
 
   const openQuestions: CopilotQuestion[] = Array.isArray(parsed.openQuestions)

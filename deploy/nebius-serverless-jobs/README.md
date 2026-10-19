@@ -1,6 +1,6 @@
 # Nebius Serverless Jobs Workflow Guide: Portfolio Delivery Audit
 
-This directory details the asynchronous delivery audit workflow powered by **Nebius Serverless Jobs** and **NVIDIA Nemotron**.
+This directory details the asynchronous delivery audit workflow designed for **Nebius Serverless Jobs** and **NVIDIA Nemotron**.
 
 ---
 
@@ -18,33 +18,37 @@ The **Portfolio Delivery Audit** is an asynchronous, background analytical workf
 
 ## Dual Execution Path: Cloud vs. Local Simulation
 
-Vouchlock supports two execution targets:
+Vouchlock provides an explicit choice between two execution targets:
 
 1. **Nebius Serverless Jobs Cloud Runner (`nebius_serverless_job`):**
-   - Dispatched when `NEBIUS_JOBS_ENDPOINT` and `NEBIUS_JOBS_API_KEY` are provided in the environment.
-   - The cloud runner spins up an isolated container job on Nebius AI Cloud, queries live Token Factory Nemotron models, and records outputs to the audit database.
+   - Dispatched when `NEBIUS_JOBS_ENDPOINT`, `NEBIUS_JOBS_API_KEY`, and `NEBIUS_PROJECT_ID` are configured.
+   - **Zero Inference Key Fallback:** Token Factory inference keys (`NEBIUS_API_KEY`) are NEVER used as a substitute for Nebius AI Cloud control-plane credentials.
+   - **No Silent Fallback:** If cloud dispatch is requested when credentials or endpoints are unconfigured, the system returns a clear error (`nebius_jobs_not_configured`) rather than silently mislabeling a local run as cloud execution.
 
 2. **Local Background Simulation Worker (`local_worker`):**
-   - Used automatically when Nebius AI Cloud serverless job endpoints are unconfigured.
-   - Executes asynchronously on an in-process background worker thread with progress tracking (`15% -> 35% -> 55% -> 70% -> 100%`).
-   - Clearly labeled in the UI and audit logs with the badge:
+   - Active out-of-the-box for local development and review.
+   - Executes asynchronously on a background worker thread with progress tracking (`15% -> 35% -> 55% -> 70% -> 100%`).
+   - Truthfully labeled in the UI and audit logs with the badge:
      `"Local Simulation (Background Worker)"`
    - Never fabricated or misrepresented as a cloud job run.
 
 ---
 
-## Remaining Prerequisites for Cloud Execution
+## Required Prerequisites for Live Cloud Execution
 
-To transition from the local simulation worker to live Nebius Serverless Job execution, the account owner must supply:
+To transition from the local simulation worker to live Nebius Serverless Job execution, the following infrastructure must be configured:
 
-1. **Nebius AI Cloud Account & Project ID**
-2. **Serverless Jobs API Endpoint:** Configured via `NEBIUS_JOBS_ENDPOINT`.
-3. **Jobs Service Account Key:** Configured via `NEBIUS_JOBS_API_KEY` (with Serverless Jobs invocation permissions).
-4. **Worker Container Image in Registry:** Built and pushed to `cr.nemax.nebius.cloud/<PROJECT_ID>/vouchlock-audit-worker:latest`.
+1. **Nebius AI Cloud IAM Credentials:** `NEBIUS_JOBS_API_KEY` with permissions to create and manage Serverless Jobs in the target project.
+2. **Project & Region Identifiers:** `NEBIUS_PROJECT_ID` and `NEBIUS_REGION` (e.g., `eu-west1`).
+3. **Control-Plane Jobs Endpoint:** `NEBIUS_JOBS_ENDPOINT` pointing to the official Nebius AI Cloud job orchestrator.
+4. **Worker Container Image in Registry:** Container built using `Dockerfile.worker` and pushed to the Nebius Container Registry (`cr.nemax.nebius.cloud/<PROJECT_ID>/vouchlock-audit-worker:latest`).
+5. **Job Manifest:** Executed via `nebius ai job create -f deploy/nebius-serverless-jobs/job-spec.yaml` or control-plane API integration.
 
 ---
 
-## Verification & Status Notice
+## Status & Boundaries Notice
 
-> **Important Notice:**
-> Local simulation worker fallback is fully operational in the codebase. Cloud Serverless Job execution requires the remaining cloud account and endpoint prerequisites listed above. Do not claim cloud jobs have succeeded until verified in an authorized execution task.
+> **Important Truthfulness Boundary:**
+> - Local simulation worker execution is fully implemented and tested with asynchronous job tracking, progress polling, and truthful reporting.
+> - Nebius AI Cloud Serverless Job execution requires the container registry and IAM control-plane prerequisites above. Cloud execution remains marked as unconfigured until those credentials and endpoints are supplied.
+> - Neither automated tests nor billable live job dispatches were run during this integration phase.

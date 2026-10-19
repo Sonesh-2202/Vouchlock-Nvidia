@@ -64,9 +64,32 @@ export class PortfolioAuditJobService {
 
     // 2. Determine execution target
     const hasNebiusJobsCloud = Boolean(
-      config.nebiusJobsEndpoint && config.nebiusJobsEndpoint.trim().length > 0 && config.nebiusJobsApiKey,
+      config.nebiusJobsEndpoint &&
+        config.nebiusJobsEndpoint.trim().length > 0 &&
+        config.nebiusJobsApiKey &&
+        config.nebiusJobsApiKey.trim().length > 0 &&
+        config.nebiusJobsProjectId &&
+        config.nebiusJobsProjectId.trim().length > 0,
     );
-    const executionTarget = hasNebiusJobsCloud ? 'nebius_serverless_job' : 'local_worker';
+
+    if (input.executionTargetPreference === 'nebius_serverless_job') {
+      if (!hasNebiusJobsCloud) {
+        throw new Error(
+          'Nebius Serverless Jobs cloud execution is currently unavailable. ' +
+            'Cloud execution requires dedicated Nebius AI Cloud control-plane IAM credentials ' +
+            '(NEBIUS_JOBS_API_KEY, NEBIUS_PROJECT_ID, NEBIUS_JOBS_ENDPOINT) separate from Token Factory inference keys, ' +
+            'and worker container deployment (see deploy/nebius-serverless-jobs/job-spec.yaml). ' +
+            'Please select the Local Worker option to run this audit asynchronously.',
+        );
+      }
+    }
+
+    const executionTarget =
+      input.executionTargetPreference === 'local_worker'
+        ? 'local_worker'
+        : hasNebiusJobsCloud && input.executionTargetPreference === 'nebius_serverless_job'
+          ? 'nebius_serverless_job'
+          : 'local_worker';
 
     // 3. Create job record in queued state
     const [createdJob] = await db
@@ -85,6 +108,7 @@ export class PortfolioAuditJobService {
           projectId: projectId ?? null,
           modelOverride: modelOverride ?? null,
           roleProfile: roleProfile ?? 'deep_reasoning',
+          executionTargetPreference: input.executionTargetPreference ?? null,
         },
         progressPercent: 0,
       })
@@ -99,7 +123,7 @@ export class PortfolioAuditJobService {
       'portfolio delivery audit job queued',
     );
 
-    // 4. Dispatch job
+    // 4. Dispatch job — NEVER silently fall back between cloud and local
     if (executionTarget === 'nebius_serverless_job') {
       this.dispatchCloudJob(createdJob.id, input, config, db, logger).catch((err) => {
         logger.error({ err, jobId: createdJob.id }, 'failed to dispatch Nebius Serverless Job');
@@ -467,10 +491,13 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
   ): Promise<void> {
     const endpoint = (config.nebiusJobsEndpoint || '').replace(/\/+$/, '');
     const iamKey = config.nebiusJobsApiKey;
+    const projectId = config.nebiusJobsProjectId;
 
-    if (!endpoint || !iamKey) {
+    if (!endpoint || !iamKey || !projectId) {
       const errMessage =
-        'Nebius Serverless Jobs cloud execution is not configured. Missing NEBIUS_JOBS_ENDPOINT or NEBIUS_JOBS_API_KEY. Cloud execution requires Nebius AI Cloud credentials separate from Token Factory.';
+        'Nebius Serverless Jobs cloud execution is not configured. Missing NEBIUS_JOBS_ENDPOINT, NEBIUS_JOBS_API_KEY, or NEBIUS_PROJECT_ID. ' +
+        'Cloud execution requires dedicated Nebius AI Cloud control-plane IAM credentials (separate from Token Factory inference credentials) ' +
+        'and container worker deployment (deploy/nebius-serverless-jobs/job-spec.yaml).';
       await db
         .update(serverlessJobs)
         .set({
@@ -484,43 +511,62 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
     }
 
     try {
-      logger.info({ jobId, endpoint }, 'dispatching job to Nebius Serverless Jobs endpoint');
+      logger.info({ jobId, endpoint, projectId }, 'initiating Nebius Serverless Job cloud dispatch');
 
+      // Nebius AI Cloud Serverless Jobs require container image specification and IAM control-plane tokens.
+      // Submit job specification matching deploy/nebius-serverless-jobs/job-spec.yaml
       const response = await fetch(`${endpoint}/v1/jobs`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${iamKey}`,
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
-          job_id: jobId,
-          job_type: 'portfolio_delivery_audit',
-          workspace_id: input.workspaceId,
-          project_id: input.projectId ?? null,
-          user_id: input.userId,
-          model_override: input.modelOverride ?? null,
-          role_profile: input.roleProfile ?? 'deep_reasoning',
+          metadata: {
+            name: `vouchlock-audit-${jobId}`,
+            project_id: projectId,
+            region: config.nebiusJobsRegion || undefined,
+          },
+          spec: {
+            containerCommand: ['node', 'dist/jobs/worker-runner.js', '--job-id', jobId],
+            env: [
+              { name: 'JOB_ID', value: jobId },
+              { name: 'WORKSPACE_ID', value: input.workspaceId },
+            ],
+          },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Nebius Serverless Jobs API returned HTTP ${response.status}: ${errorText.slice(0, 300)}`);
+        throw new Error(
+          `Nebius Serverless Jobs API returned HTTP ${response.status}: ${errorText.slice(0, 300)}. ` +
+            'Ensure your container worker is built and uploaded according to deploy/nebius-serverless-jobs/README.md.',
+        );
       }
 
-      const resData = (await response.json()) as { id?: string };
+      const resData = (await response.json()) as { id?: string; metadata?: { id?: string }; status?: { state?: string } };
+      const cloudId = resData.id || resData.metadata?.id || null;
+
+      if (!cloudId) {
+        throw new Error('Nebius Serverless Jobs API did not return a valid cloud job identifier in the response.');
+      }
+
+      // Do not mark as running until verified by cloud provider response state
+      const isCloudRunning = resData.status?.state === 'RUNNING';
       await db
         .update(serverlessJobs)
         .set({
-          cloudJobId: resData.id || null,
-          status: 'running',
-          startedAt: new Date(),
-          progressPercent: 20,
+          cloudJobId: cloudId,
+          status: isCloudRunning ? 'running' : 'queued',
+          startedAt: isCloudRunning ? new Date() : null,
+          progressPercent: isCloudRunning ? 20 : 5,
           updatedAt: new Date(),
         })
         .where(eq(serverlessJobs.id, jobId));
 
-      logger.info({ jobId, cloudJobId: resData.id }, 'Nebius Serverless Job dispatched to cloud');
+      logger.info({ jobId, cloudJobId: cloudId }, 'Nebius Serverless Job dispatched to cloud');
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       logger.error(

@@ -365,25 +365,26 @@ export function SettingsModal({
                 <strong
                   style={{ display: 'block', marginBottom: '6px', color: 'var(--text-primary)' }}
                 >
-                  ⚡ Two-Path AI Engine Architecture
+                  ⚡ AI Credential & Architecture Architecture
                 </strong>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div>
-                    <strong>1. Product Default (Nebius x NVIDIA Hackathon Path):</strong> Runs NVIDIA
-                    open-source Nemotron models served via Nebius Token Factory using server-configured credentials.
-                    Models and role profiles (Nano/Super for fast everyday requests, Nemotron 3 Ultra for deep reasoning)
-                    are dynamically discovered from live catalog data.
-                    Reviewers do <em>not</em> need to enter a personal key to evaluate the agent.
+                    <strong>1. Nebius Token Factory (Server Default · Hackathon Runtime):</strong> Uses the server-configured
+                    <code>NEBIUS_API_KEY</code> to query the live model catalog (<code>GET /v1/models</code>) and run NVIDIA
+                    open-source Nemotron models. Model roles (Nano/Super for Fast, Super for Balanced, Ultra for Deep Reasoning)
+                    are mapped directly from confirmed API metadata. Reviewers do <em>not</em> need to input credentials.
                   </div>
                   <div>
-                    <strong>2. Optional Personal BYOK (OpenAI / Google Gemini):</strong> You can optionally
-                    configure personal API keys for alternative model providers. BYOK requests run exclusively
-                    with your personal credentials and do not consume application Nebius credits.
+                    <strong>2. Optional Personal BYOK (Nebius, OpenAI, Gemini):</strong> You can optionally supply your own
+                    API key to route requests through personal quotas. BYOK requests execute with your key without cross-provider fallback.
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>
-                    🔒 Ephemeral session security: All personal keys are stored exclusively in temporary
-                    server process memory (24h TTL, wiped automatically on logout). Keys are never written to disk,
-                    database, browser storage, or server logs.
+                  <div>
+                    <strong>3. Separate Nebius AI Cloud Job Credentials:</strong> Asynchronous batch portfolio audits use Nebius
+                    Serverless Jobs container infrastructure when configured with dedicated control-plane credentials (<code>NEBIUS_JOBS_API_KEY</code>, <code>NEBIUS_PROJECT_ID</code>).
+                    Token Factory inference keys are <em>never</em> used as a fallback for cloud control-plane jobs.
+                  </div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px', borderTop: '1px solid rgba(59, 130, 246, 0.2)', paddingTop: '6px' }}>
+                    🔒 <strong>Ephemeral In-Memory Persistence:</strong> All personal BYOK keys and role preferences are held strictly in server process memory (24h TTL, wiped automatically upon logout). They are <strong>never</strong> written to disk, database, browser local storage, or server logs, and do <strong>not</strong> persist across server process restarts.
                   </div>
                 </div>
               </div>
@@ -515,11 +516,11 @@ export function SettingsModal({
                   />
                   <p style={{ margin: 'var(--space-2) 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
                     {selectedProvider === 'nebius'
-                      ? '💡 Nebius Token Factory runs on server-configured credentials by default with live discovered NVIDIA Nemotron models. You only need to enter a key here if you want to use your personal Nebius account credits.'
+                      ? '💡 Nebius Token Factory runs on server-configured credentials by default with live discovered NVIDIA Nemotron models. You only need to enter a key here if you want to use your personal Nebius account credits. Stored strictly in ephemeral server memory (cleared on restart/logout).'
                       : selectedProvider === 'openai'
-                      ? '🔑 Optional BYOK: Personal key used for GPT-4o / standard chat completions. Runs in ephemeral memory and does not consume Nebius credits.'
+                      ? '🔑 Optional BYOK: Personal key used for GPT-4o / standard chat completions. Runs in ephemeral memory and does not consume Nebius credits. Cleared on restart/logout.'
                       : selectedProvider === 'gemini'
-                      ? '🔑 Optional BYOK: Personal key used for Gemini 1.5 Flash. Runs in ephemeral memory and does not consume Nebius credits.'
+                      ? '🔑 Optional BYOK: Personal key used for Gemini 1.5 Flash. Runs in ephemeral memory and does not consume Nebius credits. Cleared on restart/logout.'
                       : 'Ephemeral key will be stored in server memory only for this session.'}
                   </p>
                   <div

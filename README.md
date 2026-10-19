@@ -63,17 +63,18 @@ Vouchlock implements a clean **Two-Path AI Architecture**:
    - **Strict Provider Isolation:** Credentials, models, and endpoints are strictly scoped together. The app's Nebius key is never sent to OpenAI or Gemini; user BYOK keys are never sent to Nebius.
    - **No Silent Fallbacks:** Requests only use the provider explicitly selected by the user. If a selected provider lacks credentials or is unavailable, Vouchlock returns a clear, actionable error instead of silently falling back.
    - **Independent Quota:** BYOK requests run exclusively against the user's personal provider credentials and do not consume application Nebius credits.
-   - **Ephemeral In-Memory Security:** User keys live strictly in temporary server process memory (24-hour TTL, automatically wiped on logout). Keys are never written to disk, database, or client storage.
+   - **Ephemeral In-Memory Security & Persistence:** User BYOK keys and role routing preferences live strictly in temporary server process memory (24-hour TTL, automatically wiped on logout). Keys and preferences are never written to disk, database, browser storage, or application logs, and do not persist across server process restarts.
 
 3. **End-to-End Brief-to-Proof Delivery Agent:**
-   - *Stage 1: Brief Intake* (source brief coverage and review)
+   - *Stage 1: Brief Intake* (source brief coverage and grounded revision selection — users can target specific brief versions or the latest approved brief)
    - *Stage 2: Requirement Analysis* (candidate requirement extraction with grounded source citations)
    - *Stage 3: Task Planning* (linking execution tasks to canonical requirements)
    - *Stage 4: Evidence Collection* (surfacing unproven tasks and proof artifact gaps)
    - *Stage 5: Verification* (human attestation stamp)
-4. **Bounded Proposal & Approval Flow:** The agent formulates the **Most Useful Next Action** and prepares concrete proposal cards (`create_requirement`, `link_task_requirement`, `request_evidence`, `create_task`, `update_task`). Authorized team members approve or reject with one click.
+4. **Bounded Proposal & Approval Flow:** The agent formulates the **Most Useful Next Action** and prepares concrete proposal cards (`create_requirement`, `link_task_requirement`, `request_evidence`, `create_task`, `update_task`). Authorized team members approve or reject with one click. Server boundaries enforce strict schema validation, returning clean 422 errors rather than fabricating synthetic summaries on parse failures.
 5. **Truthful UI Distinction:** Project facts, source passages, model suggestions, and items needing review are visibly and semantically segregated with distinct badges (`Project record`, `Source passage`, `AI suggestion`, `Needs review`).
 6. **Immutable Audit Trail:** All agent analyses, proposal approvals, and rejections are immutably recorded in the workspace audit trail.
+7. **Nebius Serverless Jobs Credential Separation:** Dedicated control-plane credentials (`NEBIUS_JOBS_API_KEY`, `NEBIUS_PROJECT_ID`) are required for cloud jobs. Token Factory inference keys are never used as a fallback for cloud control-plane tasks. When unconfigured, cloud execution is reported as unavailable, and local runs are explicitly labeled `"Local Simulation (Background Worker)"`.
 
 ---
 

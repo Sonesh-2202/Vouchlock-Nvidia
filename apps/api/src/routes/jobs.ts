@@ -39,7 +39,7 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
       });
     }
 
-    const { workspaceId, projectId, modelOverride, roleProfile, idempotencyKey } = parsed.data;
+    const { workspaceId, projectId, modelOverride, roleProfile, executionTargetPreference, idempotencyKey } = parsed.data;
 
     // Check workspace membership
     const [member] = await db
@@ -65,6 +65,7 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
           userId,
           modelOverride,
           roleProfile,
+          executionTargetPreference,
           idempotencyKey,
         },
         config,

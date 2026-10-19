@@ -569,13 +569,18 @@ export const api = {
     generateReport: (
       projectId: string,
       providerOverride?: string,
-      options?: { modelOverride?: string; roleProfile?: 'fast' | 'balanced' | 'deep_reasoning' },
+      options?: {
+        modelOverride?: string;
+        roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+        briefRevisionId?: string;
+      },
     ) =>
       request<{ report: any }>('POST', '/copilot/reports', {
         projectId,
         providerOverride,
         modelOverride: options?.modelOverride,
         roleProfile: options?.roleProfile,
+        briefRevisionId: options?.briefRevisionId,
       }),
     approveAction: (projectId: string, proposalId: string, action: unknown) =>
       request<{
@@ -708,6 +713,7 @@ export const api = {
       projectId?: string;
       modelOverride?: string;
       roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+      executionTargetPreference?: 'nebius_serverless_job' | 'local_worker';
       idempotencyKey?: string;
     }) => request<{ job: ServerlessJobRecord }>('POST', '/jobs/portfolio-audit', data),
     getJob: (jobId: string) => request<{ job: ServerlessJobRecord }>('GET', `/jobs/${jobId}`),

@@ -2281,6 +2281,12 @@ a.link-editorial:hover::after {
   border-color: rgba(245, 158, 11, 0.3);
 }
 
+.badge-role-unclassified {
+  background: rgba(161, 161, 170, 0.1);
+  color: #a1a1aa;
+  border-color: rgba(161, 161, 170, 0.3);
+}
+
 .badge-verified {
   font-size: 10px;
   font-family: var(--font-mono, monospace);

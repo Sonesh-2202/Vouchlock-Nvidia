@@ -57,11 +57,11 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       });
     }
 
-    const { projectId, providerOverride } = parsed.data;
+    const { projectId, providerOverride, briefRevisionId } = parsed.data;
 
     let context;
     try {
-      context = await readCopilotContext(db, userId, projectId);
+      context = await readCopilotContext(db, userId, projectId, briefRevisionId);
     } catch (err) {
       if (err instanceof CopilotAccessError) {
         return reply.code(err.status).send({
@@ -122,7 +122,7 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
             ? 429
             : errorObj.code === 'ai_timeout'
               ? 504
-              : errorObj.code === 'ai_model_not_found'
+              : errorObj.code === 'ai_validation_error' || errorObj.code === 'ai_model_not_found'
                 ? 422
                 : errorObj.code === 'ai_server_error'
                   ? 503

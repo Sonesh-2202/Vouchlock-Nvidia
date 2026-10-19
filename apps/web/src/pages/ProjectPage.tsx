@@ -87,6 +87,7 @@ export function ProjectPage() {
   const [selectedCopilotProvider, setSelectedCopilotProvider] = useState<string>('nebius');
   const [selectedModelOverride, setSelectedModelOverride] = useState<string>('');
   const [selectedRoleProfile, setSelectedRoleProfile] = useState<'fast' | 'balanced' | 'deep_reasoning'>('balanced');
+  const [selectedAgentBriefId, setSelectedAgentBriefId] = useState<string>('');
   const [showCopilotSettings, setShowCopilotSettings] = useState(false);
   const [lastActionNotice, setLastActionNotice] = useState<{
     description: string;
@@ -350,6 +351,7 @@ export function ProjectPage() {
         {
           modelOverride: selectedModelOverride || undefined,
           roleProfile: selectedRoleProfile,
+          briefRevisionId: selectedAgentBriefId || undefined,
         },
       );
       setCopilotReport(res.report);
@@ -660,6 +662,8 @@ export function ProjectPage() {
       const res = await api.projects.proposals.extract(id, {
         briefRevisionId: selectedBrief.id,
         providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        modelOverride: selectedModelOverride || undefined,
+        roleProfile: selectedRoleProfile,
       });
       setProposalData(res);
       const decisions: Record<string, 'accept' | 'defer' | 'reject'> = {};
@@ -4637,7 +4641,7 @@ export function ProjectPage() {
                 </div>
               </div>
 
-              {/* Streamlined Action Cluster (Only Primary CTA + BYOK Settings) */}
+              {/* Streamlined Action Cluster (Source Brief Selector + BYOK Settings + Primary CTA) */}
               <div
                 style={{
                   display: 'flex',
@@ -4646,6 +4650,34 @@ export function ProjectPage() {
                   flexWrap: 'wrap',
                 }}
               >
+                {briefRevisions.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Source Context:</span>
+                    <select
+                      value={selectedAgentBriefId}
+                      onChange={(e) => setSelectedAgentBriefId(e.target.value)}
+                      className="input input-sm"
+                      style={{
+                        fontSize: '11px',
+                        padding: '6px 10px',
+                        backgroundColor: 'var(--bg-surface)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        maxWidth: '220px',
+                      }}
+                      title="Select which project brief version grounds the agent's delivery analysis"
+                    >
+                      <option value="">Latest Approved Brief ({briefRevisions[0]?.version ? `v${briefRevisions[0].version}` : 'Default'})</option>
+                      {briefRevisions.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          Brief v{b.version} ({new Date(b.createdAt).toLocaleDateString()})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -5183,7 +5215,7 @@ export function ProjectPage() {
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
-                    ⚡ {copilotReport.model || 'Nemotron-3-120B'}
+                    ⚡ {copilotReport.provider ? `${copilotReport.provider.toUpperCase()} · ` : ''}{copilotReport.model || 'Confirmed Model'}
                   </span>
                   <span
                     style={{

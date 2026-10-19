@@ -432,6 +432,7 @@ export const copilotReportSchema = z.object({
 
 export const generateCopilotReportSchema = z.object({
   projectId: uuidSchema,
+  briefRevisionId: uuidSchema.optional(),
   providerOverride: z.string().optional(),
   modelOverride: z.string().optional(),
   roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
@@ -567,6 +568,7 @@ export const createPortfolioAuditJobSchema = z.object({
   projectId: uuidSchema.optional(),
   modelOverride: z.string().optional(),
   roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
+  executionTargetPreference: z.enum(['nebius_serverless_job', 'local_worker']).optional(),
   idempotencyKey: z.string().max(128).optional(),
 });
 export type CreatePortfolioAuditJobInput = z.infer<typeof createPortfolioAuditJobSchema>;

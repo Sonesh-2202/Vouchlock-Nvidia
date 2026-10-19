@@ -153,10 +153,9 @@ export function loadConfig(): AppConfig {
   ).replace(/\/+$/, '');
 
   // 11. Nebius Serverless Jobs & Catalog Cache TTL
-  const nebiusJobsApiKey =
-    process.env['NEBIUS_JOBS_API_KEY'] ||
-    process.env['NEBIUS_API_KEY'] ||
-    '';
+  // Cloud jobs require dedicated Nebius AI Cloud control-plane IAM credentials.
+  // Strictly avoid using the Token Factory inference key as a fallback.
+  const nebiusJobsApiKey = process.env['NEBIUS_JOBS_API_KEY'] || '';
   const nebiusJobsEndpoint = process.env['NEBIUS_JOBS_ENDPOINT'] || '';
   const nebiusJobsRegion = process.env['NEBIUS_REGION'] || '';
   const nebiusJobsProjectId = process.env['NEBIUS_PROJECT_ID'] || '';
