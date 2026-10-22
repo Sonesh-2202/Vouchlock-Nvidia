@@ -21,6 +21,12 @@ import {
   type ResourceCategory,
   type ResourceSourceType,
 } from '../api.js';
+import type {
+  DeliveryPlanDraft,
+  EvidenceReviewAdvisory,
+  ProjectFreshnessEvaluation,
+  RequirementCoverageItem,
+} from '@projectpilot/domain';
 import { AppShell } from '../components/AppShell.js';
 import { TaskDrawer } from '../components/TaskDrawer.js';
 import { SettingsModal } from '../components/SettingsModal.js';
@@ -99,6 +105,43 @@ export function ProjectPage() {
     Record<string, { approved: boolean; entityId?: string; actionType?: string }>
   >({});
   const [rejectedProposals, setRejectedProposals] = useState<Record<string, boolean>>({});
+
+  // Freshness & Stale Watchdog
+  const [copilotFreshness, setCopilotFreshness] = useState<ProjectFreshnessEvaluation | null>(null);
+  const [checkingFreshness, setCheckingFreshness] = useState(false);
+
+  // Delivery Plan Draft State
+  const [deliveryPlan, setDeliveryPlan] = useState<DeliveryPlanDraft | null>(null);
+  const [deliveryPlanGenId, setDeliveryPlanGenId] = useState<string | null>(null);
+  const [loadingDeliveryPlan, setLoadingDeliveryPlan] = useState(false);
+  const [showDeliveryPlanModal, setShowDeliveryPlanModal] = useState(false);
+  const [acceptingDeliveryPlan, setAcceptingDeliveryPlan] = useState(false);
+  const [deliveryPlanSuccessNotice, setDeliveryPlanSuccessNotice] = useState<string | null>(null);
+
+  // Action Proposal Edit Draft State
+  const [editingProposal, setEditingProposal] = useState<any | null>(null);
+
+  // Advisory Evidence Review State
+  const [evidenceReviewModal, setEvidenceReviewModal] = useState<{
+    evidenceId: string;
+    title: string;
+    requirementId?: string;
+  } | null>(null);
+  const [evidenceReview, setEvidenceReview] = useState<EvidenceReviewAdvisory | null>(null);
+  const [loadingEvidenceReview, setLoadingEvidenceReview] = useState(false);
+  const [evidenceReviewError, setEvidenceReviewError] = useState<string | null>(null);
+
+  // Grounded Project Ledger Assistant (Q&A) State
+  const [copilotQueryText, setCopilotQueryText] = useState('');
+  const [copilotQueryLoading, setCopilotQueryLoading] = useState(false);
+  const [copilotQueryResult, setCopilotQueryResult] = useState<{
+    answer: string;
+    citations: string[];
+    sourceRecords: Array<{ recordType: string; id: string; title: string }>;
+    model: string;
+    provider: string;
+  } | null>(null);
+  const [copilotQueryError, setCopilotQueryError] = useState<string | null>(null);
 
   // Deep-linked Task Drawer ID (?task=ID)
   const activeTaskId = searchParams.get('task');
@@ -216,6 +259,8 @@ export function ProjectPage() {
 
   // Evidence preview modal
   const [previewEvidence, setPreviewEvidence] = useState<{
+    id?: string;
+    requirementId?: string;
     title: string;
     subtitle: string;
     sha?: string;
@@ -397,6 +442,115 @@ export function ProjectPage() {
       alert(err?.error?.message || err?.message || 'Failed to reject proposal.');
     }
   }
+
+  // Delivery Plan Generation & Commitment Handlers
+  async function handleGenerateDeliveryPlan() {
+    if (!id) return;
+    setLoadingDeliveryPlan(true);
+    setCopilotError(null);
+    try {
+      const res = await api.copilot.generateDeliveryPlan(id, {
+        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        modelOverride: selectedModelOverride || undefined,
+        roleProfile: selectedRoleProfile,
+        briefRevisionId: selectedAgentBriefId || undefined,
+      });
+      setDeliveryPlan(res.plan);
+      setDeliveryPlanGenId(res.generationId);
+      setShowDeliveryPlanModal(true);
+    } catch (err: any) {
+      setCopilotError(err?.error?.message || err?.message || 'Failed to generate delivery plan draft.');
+    } finally {
+      setLoadingDeliveryPlan(false);
+    }
+  }
+
+  async function handleAcceptDeliveryPlan() {
+    if (!id || !deliveryPlanGenId || !deliveryPlan) return;
+    setAcceptingDeliveryPlan(true);
+    try {
+      const res = await api.copilot.acceptDeliveryPlan(id, deliveryPlanGenId, {
+        planDraft: deliveryPlan,
+      });
+      setShowDeliveryPlanModal(false);
+      setDeliveryPlanSuccessNotice(
+        `Delivery plan successfully committed to canonical ledger: created ${res.createdMilestonesCount} milestone(s), ${res.createdTasksCount} task(s), and verified ${res.createdRequirementsCount} requirement link(s).`,
+      );
+      await refreshData();
+      await handleGenerateCopilotReport();
+    } catch (err: any) {
+      alert(err?.error?.message || err?.message || 'Failed to accept delivery plan.');
+    } finally {
+      setAcceptingDeliveryPlan(false);
+    }
+  }
+
+  // Advisory Evidence Review Handler
+  async function handleOpenEvidenceReview(evidenceId: string, title: string, requirementId?: string) {
+    setEvidenceReviewModal({ evidenceId, title, requirementId });
+    setEvidenceReview(null);
+    setEvidenceReviewError(null);
+    setLoadingEvidenceReview(true);
+    try {
+      const res = await api.copilot.reviewEvidence({
+        evidenceId,
+        requirementId,
+        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        modelOverride: selectedModelOverride || undefined,
+        roleProfile: selectedRoleProfile,
+      });
+      setEvidenceReview(res.review);
+    } catch (err: any) {
+      setEvidenceReviewError(err?.error?.message || err?.message || 'Failed to evaluate evidence advisory review.');
+    } finally {
+      setLoadingEvidenceReview(false);
+    }
+  }
+
+  // Grounded Project Ledger Assistant Query Handler
+  async function handleRunCopilotQuery(promptText?: string) {
+    const textToRun = promptText || copilotQueryText;
+    if (!id || !textToRun.trim()) return;
+    setCopilotQueryLoading(true);
+    setCopilotQueryError(null);
+    try {
+      const res = await api.copilot.askQuery({
+        projectId: id,
+        query: textToRun.trim(),
+        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        modelOverride: selectedModelOverride || undefined,
+        roleProfile: selectedRoleProfile,
+      });
+      setCopilotQueryResult(res);
+      setCopilotQueryText(textToRun.trim());
+    } catch (err: any) {
+      setCopilotQueryError(err?.error?.message || err?.message || 'Failed to query project records.');
+    } finally {
+      setCopilotQueryLoading(false);
+    }
+  }
+
+  // Approve proposal with edited draft payload
+  async function handleApproveEditedProposal(proposal: any, updatedPayload: any) {
+    const updatedProposal = {
+      ...proposal,
+      payload: updatedPayload,
+    };
+    await handleApproveCopilotAction(updatedProposal);
+    setEditingProposal(null);
+  }
+
+  // Stale Analysis Watchdog Effect
+  useEffect(() => {
+    if (activeTab === 'copilot' && id && copilotReport?.generatedAt) {
+      setCheckingFreshness(true);
+      api.copilot
+        .getFreshness(id, copilotReport.generatedAt)
+        .then((res) => setCopilotFreshness(res.freshness))
+        .catch(() => setCopilotFreshness(null))
+        .finally(() => setCheckingFreshness(false));
+    }
+  }, [activeTab, id, copilotReport?.generatedAt]);
 
   // Drag & drop on Kanban
   function handleDragStart(e: React.DragEvent, taskId: string) {
@@ -1058,6 +1212,8 @@ export function ProjectPage() {
                   }}
                   onClick={() =>
                     setPreviewEvidence({
+                      id: 'ev-test-suite',
+                      requirementId: req.id,
                       title: 'Automated CI Test Suite Execution (Jest/Vitest)',
                       subtitle:
                         'Suite pass: 42 integration assertions verified • commit SHA-256 validated',
@@ -4698,6 +4854,25 @@ export function ProjectPage() {
 
                 <button
                   type="button"
+                  className="btn btn-secondary"
+                  onClick={handleGenerateDeliveryPlan}
+                  disabled={loadingDeliveryPlan}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    minHeight: 42,
+                    padding: '10px 16px',
+                    fontWeight: 600,
+                  }}
+                  title="Synthesize an auditable brief-to-proof delivery plan linking requirements, tasks, and proof artifacts"
+                >
+                  <span>{loadingDeliveryPlan ? 'Planning Delivery...' : '📋 Plan Delivery from Brief'}</span>
+                </button>
+
+                <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={handleGenerateCopilotReport}
                   disabled={loadingCopilot}
@@ -4730,6 +4905,96 @@ export function ProjectPage() {
                 onOpenSettings={() => setShowCopilotSettings(true)}
               />
             </div>
+
+            {/* Stale Analysis Watchdog Banner */}
+            {copilotFreshness?.isStale && (
+              <div
+                style={{
+                  padding: 'var(--space-3) var(--space-4)',
+                  marginBottom: 'var(--space-4)',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid #F59E0B',
+                  color: '#D97706',
+                  fontSize: 'var(--font-size-xs)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-3)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>⚠️</span>
+                  <span>
+                    <strong>Project ledger updated since this analysis:</strong>{' '}
+                    {copilotFreshness.changesSinceReport.length} change(s) recorded after{' '}
+                    {new Date(copilotFreshness.reportTimestamp).toLocaleTimeString()}.
+                  </span>
+                  <div style={{ display: 'inline-flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {copilotFreshness.changesSinceReport.slice(0, 3).map((c, i) => (
+                      <span
+                        key={i}
+                        className="telemetry-pill"
+                        style={{ fontSize: '10px', color: '#D97706', borderColor: 'rgba(245,158,11,0.4)' }}
+                      >
+                        {c.recordType}: {c.title.slice(0, 24)} ({c.action})
+                      </span>
+                    ))}
+                    {copilotFreshness.changesSinceReport.length > 3 && (
+                      <span style={{ fontSize: '10px' }}>+{copilotFreshness.changesSinceReport.length - 3} more</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleGenerateCopilotReport}
+                  disabled={loadingCopilot}
+                  style={{
+                    borderColor: '#F59E0B',
+                    color: '#B45309',
+                    fontWeight: 600,
+                    padding: '4px 10px',
+                  }}
+                >
+                  {loadingCopilot ? 'Refreshing...' : 'Refresh Analysis 🔄'}
+                </button>
+              </div>
+            )}
+
+            {/* Delivery Plan Success Audit Banner */}
+            {deliveryPlanSuccessNotice && (
+              <div
+                style={{
+                  padding: 'var(--space-3) var(--space-4)',
+                  marginBottom: 'var(--space-4)',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid #10B981',
+                  color: '#059669',
+                  fontSize: 'var(--font-size-xs)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-3)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>✓</span>
+                  <span>{deliveryPlanSuccessNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setDeliveryPlanSuccessNotice(null)}
+                  style={{ padding: '2px 6px', color: 'var(--text-muted)' }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
 
             {/* Success Audit Banner for Last Approved Action */}
             {lastActionNotice && (
@@ -5407,6 +5672,208 @@ export function ProjectPage() {
                   </div>
                 </div>
 
+                {/* ── Requirement-to-Proof Coverage Ledger Matrix ── */}
+                {copilotReport.requirementCoverage?.length > 0 && (
+                  <div
+                    style={{
+                      padding: 'var(--space-4)',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 'var(--space-3)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: isMobileView ? 'flex-start' : 'center',
+                        justifyContent: 'space-between',
+                        flexDirection: isMobileView ? 'column' : 'row',
+                        gap: '6px',
+                        borderBottom: '1px solid var(--border-subtle)',
+                        paddingBottom: 'var(--space-2)',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px' }}>🎯</span>
+                          <h3
+                            style={{
+                              margin: 0,
+                              fontSize: 'var(--font-size-base)',
+                              fontWeight: 700,
+                              fontFamily: 'var(--font-sans)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            Requirement-to-Proof Coverage Matrix
+                          </h3>
+                          <span
+                            className="badge badge-proof"
+                            style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '9999px' }}
+                          >
+                            {copilotReport.requirementCoverage.length} Requirements Tracked
+                          </span>
+                        </div>
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Auditable ledger mapping connecting brief requirements to planned tasks, attached evidence, and missing proof.
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        <span className="telemetry-pill" style={{ fontSize: '10px', color: '#10B981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                          {copilotReport.requirementCoverage.filter((c: any) => c.coverageStatus === 'covered').length} Covered
+                        </span>
+                        <span className="telemetry-pill" style={{ fontSize: '10px', color: '#3B82F6', borderColor: 'rgba(59,130,246,0.3)' }}>
+                          {copilotReport.requirementCoverage.filter((c: any) => c.coverageStatus === 'partially_covered').length} Partial
+                        </span>
+                        <span className="telemetry-pill" style={{ fontSize: '10px', color: '#EF4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                          {copilotReport.requirementCoverage.filter((c: any) => c.coverageStatus === 'uncovered').length} Uncovered
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      {copilotReport.requirementCoverage.map((item: RequirementCoverageItem) => {
+                        const isCovered = item.coverageStatus === 'covered';
+                        const isPartial = item.coverageStatus === 'partially_covered';
+                        const isUncovered = item.coverageStatus === 'uncovered';
+                        const isClarify = item.coverageStatus === 'needs_clarification';
+
+                        const statusColor = isCovered
+                          ? '#10B981'
+                          : isPartial
+                            ? '#3B82F6'
+                            : isClarify
+                              ? '#F59E0B'
+                              : '#EF4444';
+                        const statusLabel = isCovered
+                          ? 'COVERED & PROVEN'
+                          : isPartial
+                            ? 'PARTIALLY COVERED'
+                            : isClarify
+                              ? 'NEEDS CLARIFICATION'
+                              : 'UNCOVERED GAP';
+
+                        return (
+                          <div
+                            key={item.requirementId}
+                            style={{
+                              padding: 'var(--space-3) var(--space-4)',
+                              backgroundColor: 'var(--bg-surface-elevated)',
+                              border: `1px solid ${isCovered ? 'rgba(16,185,129,0.25)' : isUncovered ? 'rgba(239,68,68,0.25)' : 'var(--border-subtle)'}`,
+                              borderLeft: `3px solid ${statusColor}`,
+                              borderRadius: 'var(--radius-sm)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '8px',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span
+                                  className="telemetry-pill"
+                                  style={{
+                                    fontSize: '10px',
+                                    textTransform: 'uppercase',
+                                    fontFamily: 'var(--font-mono)',
+                                  }}
+                                >
+                                  {item.category}
+                                </span>
+                                <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                                  {item.requirementTitle}
+                                </strong>
+                              </div>
+                              <span
+                                className="badge"
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 8px',
+                                  fontWeight: 700,
+                                  color: statusColor,
+                                  backgroundColor: `${statusColor}18`,
+                                  border: `1px solid ${statusColor}40`,
+                                  borderRadius: '9999px',
+                                }}
+                              >
+                                {statusLabel}
+                              </span>
+                            </div>
+
+                            {/* 3-Part Mapping: Work / Proof / Needed */}
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr 1.2fr',
+                                gap: '8px',
+                                marginTop: '4px',
+                                fontSize: '11px',
+                              }}
+                            >
+                              <div style={{ padding: '6px 8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px' }}>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>WORK (TASKS):</span>
+                                <div style={{ marginTop: '2px', color: 'var(--text-primary)' }}>
+                                  {item.linkedTasks.length > 0 ? (
+                                    item.linkedTasks.map((t) => (
+                                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span>•</span>
+                                        <span title={t.title}>{t.title}</span>
+                                        <span className="telemetry-pill" style={{ fontSize: '9px', padding: '0 4px' }}>{t.status}</span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span style={{ color: '#EF4444' }}>No task assigned yet</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div style={{ padding: '6px 8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px' }}>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>PROOF (EVIDENCE):</span>
+                                <div style={{ marginTop: '2px', color: 'var(--text-primary)' }}>
+                                  {item.evidenceRecords.length > 0 ? (
+                                    item.evidenceRecords.map((e) => (
+                                      <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span>🛡️</span>
+                                        <span>{e.title}</span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)' }}>No evidence submitted</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div style={{ padding: '6px 8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px' }}>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>EVIDENCE STILL NEEDED:</span>
+                                <div style={{ marginTop: '2px', color: isCovered ? '#10B981' : '#F59E0B' }}>
+                                  {item.evidenceNeeded}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Rationale Footnote */}
+                            {item.rationale && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', fontStyle: 'italic' }}>
+                                💡 Rationale: {item.rationale}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Blockers & Needs Review Section */}
                 {copilotReport.blockers?.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -5750,6 +6217,72 @@ export function ProjectPage() {
                               {p.description}
                             </p>
 
+                            {/* Trigger Condition & Referenced Records */}
+                            {p.triggerCondition && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  marginBottom: '6px',
+                                  fontSize: '11px',
+                                  color: '#D97706',
+                                }}
+                              >
+                                <span>⚡</span>
+                                <span>
+                                  <strong>Trigger condition:</strong> {p.triggerCondition}
+                                </span>
+                              </div>
+                            )}
+
+                            {p.referencedRecords && p.referencedRecords.length > 0 && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  marginBottom: '8px',
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                  Referenced:
+                                </span>
+                                {p.referencedRecords.map((ref: any, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="telemetry-pill"
+                                    style={{ fontSize: '10px', color: 'var(--text-secondary)' }}
+                                  >
+                                    {ref.recordType}: {ref.title}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Diff Preview: Before vs After */}
+                            {p.diffPreview && (
+                              <div
+                                style={{
+                                  marginBottom: 'var(--space-3)',
+                                  padding: '8px 12px',
+                                  backgroundColor: 'var(--bg-app)',
+                                  border: '1px solid var(--border-subtle)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontSize: '11px',
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                <div style={{ color: '#EF4444', marginBottom: '2px' }}>
+                                  - BEFORE: {p.diffPreview.before}
+                                </div>
+                                <div style={{ color: '#10B981' }}>
+                                  + AFTER:  {p.diffPreview.after}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Action Buttons */}
                             <div
                               style={{
@@ -5842,6 +6375,20 @@ export function ProjectPage() {
                                 <>
                                   <button
                                     type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => setEditingProposal(p)}
+                                    style={{
+                                      fontSize: '11px',
+                                      padding: '4px 10px',
+                                      width: isMobileView ? '100%' : 'auto',
+                                      minHeight: isMobileView ? 40 : 32,
+                                    }}
+                                    title="Edit proposed draft before approving"
+                                  >
+                                    Edit Draft ✏️
+                                  </button>
+                                  <button
+                                    type="button"
                                     className="btn btn-ghost btn-sm"
                                     onClick={() => handleRejectCopilotAction(p.proposalId)}
                                     style={{
@@ -5871,6 +6418,230 @@ export function ProjectPage() {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Grounded Project Ledger Assistant (Q&A) ── */}
+                <div
+                  style={{
+                    borderTop: '1px solid var(--border-subtle)',
+                    paddingTop: 'var(--space-5)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-3)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: isMobileView ? 'flex-start' : 'center',
+                      justifyContent: 'space-between',
+                      flexDirection: isMobileView ? 'column' : 'row',
+                      gap: 'var(--space-2)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px' }}>💬</span>
+                        <h3
+                          style={{
+                            fontSize: 'var(--font-size-base)',
+                            fontWeight: 700,
+                            margin: 0,
+                            color: 'var(--text-primary)',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          Grounded Project Ledger Assistant
+                        </h3>
+                        <span
+                          className="badge badge-proof"
+                          style={{ fontSize: '9px', padding: '2px 6px' }}
+                        >
+                          ZERO HALLUCINATION GATE
+                        </span>
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Inquire about brief requirements, milestone coverage, evidence gaps, or audit trails. Every answer cites canonical project records.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Pre-canned Prompts */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      'Which requirements have zero evidence attached?',
+                      'What active delivery risks require mitigation?',
+                      'What work remains before 100% human certification?',
+                    ].map((samplePrompt) => (
+                      <button
+                        key={samplePrompt}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setCopilotQueryText(samplePrompt);
+                          handleRunCopilotQuery(samplePrompt);
+                        }}
+                        style={{
+                          fontSize: '11px',
+                          padding: '3px 8px',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: 'var(--bg-surface)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        💡 {samplePrompt}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Query Input Box */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleRunCopilotQuery();
+                    }}
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      flexDirection: isMobileView ? 'column' : 'row',
+                    }}
+                  >
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Ask the delivery agent about any brief section, task link, or proof artifact..."
+                      value={copilotQueryText}
+                      onChange={(e) => setCopilotQueryText(e.target.value)}
+                      style={{
+                        flex: 1,
+                        fontSize: '12px',
+                        padding: '10px 14px',
+                        backgroundColor: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={copilotQueryLoading || !copilotQueryText.trim()}
+                      style={{
+                        padding: '10px 18px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        minHeight: 40,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>{copilotQueryLoading ? 'Inquiring...' : 'Ask Agent'}</span>
+                      <span>{copilotQueryLoading ? '🔄' : '→'}</span>
+                    </button>
+                  </form>
+
+                  {/* Query Error */}
+                  {copilotQueryError && (
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#DC2626',
+                        fontSize: '12px',
+                      }}
+                    >
+                      ⚠️ {copilotQueryError}
+                    </div>
+                  )}
+
+                  {/* Query Result Card */}
+                  {copilotQueryResult && (
+                    <div
+                      style={{
+                        padding: 'var(--space-4)',
+                        backgroundColor: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-subtle)',
+                        borderLeft: '3px solid #10B981',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '13px' }}>🛡️</span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: '#10B981',
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            GROUNDED LEDGER RESPONSE
+                          </span>
+                        </div>
+                        <span
+                          className="telemetry-pill"
+                          style={{ fontSize: '10px', color: '#10B981', borderColor: 'rgba(16,185,129,0.3)' }}
+                        >
+                          ⚡ {copilotQueryResult.provider.toUpperCase()} · {copilotQueryResult.model}
+                        </span>
+                      </div>
+
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 'var(--font-size-sm)',
+                          lineHeight: '1.6',
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {copilotQueryResult.answer}
+                      </p>
+
+                      {/* Source Records Badges */}
+                      {copilotQueryResult.sourceRecords?.length > 0 && (
+                        <div
+                          style={{
+                            borderTop: '1px solid var(--border-subtle)',
+                            paddingTop: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            CITED RECORDS:
+                          </span>
+                          {copilotQueryResult.sourceRecords.map((rec) => (
+                            <span
+                              key={rec.id}
+                              className="telemetry-pill"
+                              style={{ fontSize: '10px' }}
+                            >
+                              {rec.recordType}: {rec.title}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -6789,16 +7560,605 @@ export function ProjectPage() {
               <div
                 style={{
                   display: 'flex',
-                  justifyContent: 'flex-end',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   marginTop: 'var(--space-2)',
+                  flexWrap: 'wrap',
+                  gap: '8px',
                 }}
               >
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const evId = previewEvidence.id || 'ev-test-suite';
+                    const reqId = previewEvidence.requirementId || selectedReqId || undefined;
+                    const evTitle = previewEvidence.title;
+                    setPreviewEvidence(null);
+                    handleOpenEvidenceReview(evId, evTitle, reqId);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderColor: 'rgba(16, 185, 129, 0.4)',
+                    color: '#10B981',
+                  }}
+                >
+                  <span>🤖</span>
+                  <span>Advisory AI Review (NVIDIA Nemotron)</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
                   onClick={() => setPreviewEvidence(null)}
                 >
                   Close Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delivery Plan Review & Approval Modal ── */}
+      {showDeliveryPlanModal && deliveryPlan && (
+        <div className="modal-backdrop" onClick={() => setShowDeliveryPlanModal(false)}>
+          <div
+            className="card modal-dialog-responsive modal-scale-enter"
+            data-lenis-prevent
+            style={{
+              maxWidth: 780,
+              width: '100%',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              padding: 0,
+              background: 'var(--desk-raised)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mobile-only modal-sheet-handle" />
+            <div className="modal-header-static">
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      color: 'var(--proof)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    BRIEF-TO-PROOF DELIVERY PLAN // PROPOSAL DRAFT
+                  </span>
+                  <span
+                    className="badge badge-pending"
+                    style={{ fontSize: '9px', padding: '1px 6px' }}
+                  >
+                    UNCOMMITTED DRAFT
+                  </span>
+                </div>
+                <h3
+                  className="serif-display"
+                  style={{ fontSize: 'var(--font-size-xl)', margin: '2px 0 0' }}
+                >
+                  Proposed Delivery Plan
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm touch-target"
+                onClick={() => setShowDeliveryPlanModal(false)}
+                aria-label="Close dialog"
+                style={{ padding: '6px', minWidth: 36, minHeight: 36 }}
+              >
+                <IconClose size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body-scrollable" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {/* Summary & Rationale */}
+              <div
+                style={{
+                  padding: 'var(--space-3) var(--space-4)',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderLeft: '3px solid #10B981',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', marginBottom: '4px' }}>
+                  PLANNING RATIONALE & APPROACH
+                </div>
+                <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', lineHeight: '1.5', color: 'var(--text-primary)' }}>
+                  {deliveryPlan.summary}
+                </p>
+                {deliveryPlan.rationale && (
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    💡 {deliveryPlan.rationale}
+                  </p>
+                )}
+              </div>
+
+              {/* Assumptions & Risks */}
+              {((deliveryPlan.assumptions && deliveryPlan.assumptions.length > 0) || (deliveryPlan.risks && deliveryPlan.risks.length > 0)) && (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr', gap: '8px' }}>
+                  {deliveryPlan.assumptions && deliveryPlan.assumptions.length > 0 && (
+                    <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        ASSUMPTIONS ({deliveryPlan.assumptions.length})
+                      </span>
+                      <ul style={{ margin: '4px 0 0', paddingLeft: '16px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {deliveryPlan.assumptions.map((a, i) => (
+                          <li key={i}>{a}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {deliveryPlan.risks && deliveryPlan.risks.length > 0 && (
+                    <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#EF4444' }}>
+                        DELIVERY RISKS ({deliveryPlan.risks.length})
+                      </span>
+                      <ul style={{ margin: '4px 0 0', paddingLeft: '16px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {deliveryPlan.risks.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Proposed Milestones & Tasks */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                    Proposed Milestones ({deliveryPlan.milestones.length})
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Total Tasks: {deliveryPlan.milestones.reduce((acc, m) => acc + m.tasks.length, 0)}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  {deliveryPlan.milestones.map((m, mIdx) => (
+                    <div
+                      key={mIdx}
+                      style={{
+                        padding: 'var(--space-3) var(--space-4)',
+                        backgroundColor: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="telemetry-pill" style={{ fontSize: '10px' }}>M{mIdx + 1}</span>
+                          <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{m.title}</strong>
+                        </div>
+                        {m.dueDate && (
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            Due: {m.dueDate}
+                          </span>
+                        )}
+                      </div>
+                      {m.description && (
+                        <p style={{ margin: '0 0 8px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {m.description}
+                        </p>
+                      )}
+
+                      {/* Tasks under this milestone */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '8px', borderLeft: '2px solid var(--border-subtle)' }}>
+                        {m.tasks.map((t, tIdx) => (
+                          <div
+                            key={tIdx}
+                            style={{
+                              padding: '6px 10px',
+                              backgroundColor: 'var(--bg-app)',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                {t.title}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {t.ownerSuggestion && (
+                                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>
+                                    👤 {t.ownerSuggestion}
+                                  </span>
+                                )}
+                                {t.dueDate && (
+                                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                    {t.dueDate}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {t.description && (
+                              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                {t.description}
+                              </p>
+                            )}
+                            {/* Required Evidence Artifacts */}
+                            {t.requiredEvidence && t.requiredEvidence.length > 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>PROOF REQUIRED:</span>
+                                {t.requiredEvidence.map((ev, evIdx) => (
+                                  <span
+                                    key={evIdx}
+                                    className="telemetry-pill"
+                                    style={{ fontSize: '9px', color: '#10B981', borderColor: 'rgba(16,185,129,0.3)' }}
+                                  >
+                                    🛡️ {ev}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Open Questions & Ambiguities */}
+              {deliveryPlan.openQuestions && deliveryPlan.openQuestions.length > 0 && (
+                <div
+                  style={{
+                    padding: 'var(--space-3) var(--space-4)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                    border: '1px solid #F59E0B',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <span>❓</span>
+                    <strong style={{ fontSize: '11px', color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Open Questions & Ambiguities ({deliveryPlan.openQuestions.length})
+                    </strong>
+                  </div>
+                  <p style={{ margin: '0 0 6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    Unknowns identified in the project brief that should be clarified with stakeholders:
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: 'var(--text-primary)' }}>
+                    {deliveryPlan.openQuestions.map((q, idx) => (
+                      <li key={idx}>{q}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div
+              style={{
+                borderTop: '1px solid var(--border-subtle)',
+                padding: 'var(--space-4) var(--space-6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'var(--bg-surface)',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Commitment creates canonical milestones, tasks, and requirement links in the project ledger.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowDeliveryPlanModal(false)}
+                >
+                  Discard Draft
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleAcceptDeliveryPlan}
+                  disabled={acceptingDeliveryPlan}
+                  style={{ fontWeight: 600, padding: '8px 18px', minHeight: 38 }}
+                >
+                  {acceptingDeliveryPlan ? 'Committing to Ledger...' : 'Accept & Commit Plan to Ledger →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Action Proposal Draft Editor Modal ── */}
+      {editingProposal && (
+        <div className="modal-backdrop" onClick={() => setEditingProposal(null)}>
+          <div
+            className="card modal-dialog-responsive modal-scale-enter"
+            data-lenis-prevent
+            style={{
+              maxWidth: 520,
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+              background: 'var(--desk-raised)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header-static">
+              <div>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--proof)' }}>
+                  HUMAN EDITING GATE
+                </span>
+                <h3 className="serif-display" style={{ fontSize: 'var(--font-size-lg)', margin: '2px 0 0' }}>
+                  Edit Draft Action: {editingProposal.actionType?.replace(/_/g, ' ')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setEditingProposal(null)}
+                style={{ padding: '6px' }}
+              >
+                <IconClose size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  TITLE / SUMMARY
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={editingProposal.payload?.title || ''}
+                  onChange={(e) =>
+                    setEditingProposal({
+                      ...editingProposal,
+                      payload: { ...editingProposal.payload, title: e.target.value },
+                    })
+                  }
+                  style={{ width: '100%', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  DESCRIPTION
+                </label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  value={editingProposal.payload?.description || ''}
+                  onChange={(e) =>
+                    setEditingProposal({
+                      ...editingProposal,
+                      payload: { ...editingProposal.payload, description: e.target.value },
+                    })
+                  }
+                  style={{ width: '100%', fontSize: '12px' }}
+                />
+              </div>
+
+              {editingProposal.payload?.priority !== undefined && (
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    PRIORITY
+                  </label>
+                  <select
+                    className="input"
+                    value={editingProposal.payload.priority}
+                    onChange={(e) =>
+                      setEditingProposal({
+                        ...editingProposal,
+                        payload: { ...editingProposal.payload, priority: e.target.value },
+                      })
+                    }
+                    style={{ fontSize: '12px' }}
+                  >
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: 'var(--space-3)' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEditingProposal(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleApproveEditedProposal(editingProposal, editingProposal.payload)}
+                >
+                  Approve & Commit Edited Draft
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Advisory Evidence Review Modal ── */}
+      {evidenceReviewModal && (
+        <div className="modal-backdrop" onClick={() => setEvidenceReviewModal(null)}>
+          <div
+            className="card modal-dialog-responsive modal-scale-enter"
+            data-lenis-prevent
+            style={{
+              maxWidth: 580,
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+              background: 'var(--desk-raised)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header-static">
+              <div>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--proof)' }}>
+                  ADVISORY EVIDENCE AUDIT // NVIDIA NEMOTRON
+                </span>
+                <h3 className="serif-display" style={{ fontSize: 'var(--font-size-lg)', margin: '2px 0 0' }}>
+                  {evidenceReviewModal.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setEvidenceReviewModal(null)}
+                style={{ padding: '6px' }}
+              >
+                <IconClose size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {/* Strict Non-Autonomous Advisory Notice */}
+              <div
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '11px',
+                  color: '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>ℹ️</span>
+                <span>
+                  <strong>Advisory Assessment:</strong> The AI model evaluates support and flags deficiencies. It cannot certify, approve, reject, or delete canonical evidence records.
+                </span>
+              </div>
+
+              {loadingEvidenceReview && (
+                <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+                  <div className="loading-spinner" style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Analyzing evidence support, cryptographic assertions, and requirement alignment...
+                  </p>
+                </div>
+              )}
+
+              {evidenceReviewError && (
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid #EF4444',
+                    color: '#DC2626',
+                    fontSize: '12px',
+                    borderRadius: '4px',
+                  }}
+                >
+                  ⚠️ {evidenceReviewError}
+                </div>
+              )}
+
+              {evidenceReview && !loadingEvidenceReview && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  {/* Summary */}
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      EVIDENCE SUMMARY
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                      {evidenceReview.summary}
+                    </p>
+                  </div>
+
+                  {/* Alignment with Target */}
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      TARGET ALIGNMENT
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {evidenceReview.alignment}
+                    </p>
+                  </div>
+
+                  {/* Strengths & Deficiencies */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#10B981' }}>SUPPORT STRENGTHS</span>
+                      <ul style={{ margin: '4px 0 0', paddingLeft: '14px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {evidenceReview.strengths?.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#EF4444' }}>DEFICIENCIES / GAPS</span>
+                      <ul style={{ margin: '4px 0 0', paddingLeft: '14px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {evidenceReview.deficiencies?.map((d, i) => (
+                          <li key={i}>{d}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Recommendation Callout */}
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      backgroundColor:
+                        evidenceReview.recommendation === 'accept'
+                          ? 'rgba(16, 185, 129, 0.08)'
+                          : 'rgba(245, 158, 11, 0.08)',
+                      border: `1px solid ${
+                        evidenceReview.recommendation === 'accept' ? '#10B981' : '#F59E0B'
+                      }`,
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{evidenceReview.recommendation === 'accept' ? '✓' : '⚠️'}</span>
+                        <strong
+                          style={{
+                            fontSize: '11px',
+                            color: evidenceReview.recommendation === 'accept' ? '#059669' : '#D97706',
+                          }}
+                        >
+                          ADVISORY RECOMMENDATION: {evidenceReview.recommendation?.toUpperCase().replace(/_/g, ' ')}
+                        </strong>
+                      </div>
+                      <span className="telemetry-pill" style={{ fontSize: '10px' }}>
+                        Confidence: {Math.round(evidenceReview.confidenceScore * 100)}%
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-primary)' }}>
+                      {evidenceReview.explanation}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setEvidenceReviewModal(null)}
+                >
+                  Close Review
                 </button>
               </div>
             </div>

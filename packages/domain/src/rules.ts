@@ -10,6 +10,10 @@ import type {
   Requirement,
   RequirementTaskLink,
   Evidence,
+  RequirementCoverageStatus,
+  DeliveryPlanDraft,
+  ProjectChangeRecord,
+  ProjectFreshnessEvaluation,
 } from './types.js';
 
 // ── Role Permissions ──
@@ -520,3 +524,145 @@ export function validateProposalCandidates(
 
   return { valid: errors.length === 0, errors };
 }
+
+// ── Delivery Plan & Coverage Rules ──
+
+/**
+ * Computes coverage status for a requirement.
+ * Truthful rule: Tasks existing does NOT mean requirement is complete or verified.
+ * Coverage reflects work mapping and proof collection status.
+ */
+export function computeRequirementCoverageStatus(params: {
+  hasLinkedTasks: boolean;
+  hasEvidence: boolean;
+  isVerified?: boolean;
+  isAmbiguous?: boolean;
+}): RequirementCoverageStatus {
+  if (params.isAmbiguous) return 'needs_clarification';
+  if (params.hasLinkedTasks && params.hasEvidence) return 'covered';
+  if (params.hasLinkedTasks || params.hasEvidence) return 'partially_covered';
+  return 'uncovered';
+}
+
+/**
+ * Evaluates whether an agent delivery analysis is stale compared to recent project updates.
+ * Pure function: compares timestamps without side effects or I/O.
+ */
+export function computeProjectFreshness(
+  lastReportGeneratedAt: Date | string | null | undefined,
+  records: readonly ProjectChangeRecord[],
+): ProjectFreshnessEvaluation {
+  if (!lastReportGeneratedAt) {
+    return {
+      isStale: false,
+      lastReportGeneratedAt: null,
+      changedRecords: [],
+    };
+  }
+
+  const threshold = new Date(lastReportGeneratedAt).getTime();
+  if (isNaN(threshold)) {
+    return {
+      isStale: false,
+      lastReportGeneratedAt: null,
+      changedRecords: [],
+    };
+  }
+
+  const changed = records.filter((r) => {
+    const recTime = new Date(r.updatedAt).getTime();
+    return !isNaN(recTime) && recTime > threshold;
+  });
+
+  return {
+    isStale: changed.length > 0,
+    lastReportGeneratedAt:
+      typeof lastReportGeneratedAt === 'string'
+        ? lastReportGeneratedAt
+        : lastReportGeneratedAt.toISOString(),
+    changedRecords: changed,
+  };
+}
+
+/**
+ * Validates a Delivery Plan draft proposed by the agent.
+ * Enforces:
+ * - Non-empty summary and milestones
+ * - Due dates cannot exceed project deadline
+ * - Owner suggestions must match real workspace members (never invent users)
+ * - Tasks must specify title and evidence needed
+ */
+export function validateDeliveryPlanDraft(
+  plan: DeliveryPlanDraft,
+  memberNames: string[],
+  projectDeadline: Date | null,
+): PlanValidationError[] {
+  const errors: PlanValidationError[] = [];
+
+  if (!plan.summary || plan.summary.trim().length === 0) {
+    errors.push({ path: 'summary', message: 'Delivery plan summary is required' });
+  }
+
+  if (!Array.isArray(plan.requirements) || plan.requirements.length === 0) {
+    errors.push({
+      path: 'requirements',
+      message: 'Delivery plan must map at least one requirement to execution work',
+    });
+  }
+
+  if (!Array.isArray(plan.milestones) || plan.milestones.length === 0) {
+    errors.push({ path: 'milestones', message: 'At least one milestone is required in delivery plan' });
+  }
+
+  const allTaskTitles = new Set<string>();
+
+  plan.milestones?.forEach((milestone, mi) => {
+    if (!milestone.title || milestone.title.trim().length === 0) {
+      errors.push({ path: `milestones[${mi}].title`, message: 'Milestone title is required' });
+    }
+
+    if (milestone.dueDate) {
+      const date = new Date(milestone.dueDate);
+      if (isNaN(date.getTime())) {
+        errors.push({ path: `milestones[${mi}].dueDate`, message: 'Invalid milestone due date format' });
+      } else if (projectDeadline && date > projectDeadline) {
+        errors.push({
+          path: `milestones[${mi}].dueDate`,
+          message: 'Milestone due date exceeds project deadline',
+        });
+      }
+    }
+
+    milestone.tasks?.forEach((task, ti) => {
+      const taskPath = `milestones[${mi}].tasks[${ti}]`;
+
+      if (!task.title || task.title.trim().length === 0) {
+        errors.push({ path: `${taskPath}.title`, message: 'Task title is required' });
+      } else {
+        allTaskTitles.add(task.title);
+      }
+
+      if (task.ownerSuggestion && !memberNames.includes(task.ownerSuggestion)) {
+        errors.push({
+          path: `${taskPath}.ownerSuggestion`,
+          message: `Owner suggestion "${task.ownerSuggestion}" does not match any workspace member`,
+        });
+      }
+
+      if (task.dueDate) {
+        const date = new Date(task.dueDate);
+        if (isNaN(date.getTime())) {
+          errors.push({ path: `${taskPath}.dueDate`, message: 'Invalid task due date format' });
+        } else if (projectDeadline && date > projectDeadline) {
+          errors.push({
+            path: `${taskPath}.dueDate`,
+            message: 'Task due date exceeds project deadline',
+          });
+        }
+      }
+    });
+  });
+
+  return errors;
+}
+

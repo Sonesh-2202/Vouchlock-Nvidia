@@ -239,3 +239,108 @@ export interface AuditEvent {
   readonly metadata: Record<string, unknown>;
   readonly createdAt: Date;
 }
+
+// ── Brief-to-Proof Delivery Agent Domain Types ──
+
+export type RequirementCoverageStatus =
+  | 'covered'
+  | 'partially_covered'
+  | 'uncovered'
+  | 'needs_clarification';
+
+export interface RequirementCoverageItem {
+  readonly requirementId: string;
+  readonly requirementTitle: string;
+  readonly category: RequirementCategory;
+  readonly priority: RequirementPriority;
+  readonly coverageStatus: RequirementCoverageStatus;
+  readonly sourceReference?: string | null;
+  readonly rationale: string;
+  readonly linkedTaskIds: readonly string[];
+  readonly linkedTaskTitles: readonly string[];
+  readonly evidenceIds: readonly string[];
+  readonly evidenceNeeded: readonly string[];
+  readonly openQuestions: readonly string[];
+  readonly isVerified: boolean;
+  readonly allTasksDone: boolean;
+}
+
+export interface DeliveryPlanTaskProposal {
+  readonly title: string;
+  readonly description?: string | null;
+  readonly linkedRequirementTitles: readonly string[];
+  readonly evidenceNeeded?: string | null;
+  readonly ownerSuggestion?: string | null;
+  readonly dueDate?: string | null;
+  readonly dependencyTitles?: readonly string[];
+}
+
+export interface DeliveryPlanMilestoneProposal {
+  readonly title: string;
+  readonly description?: string | null;
+  readonly dueDate?: string | null;
+  readonly tasks: readonly DeliveryPlanTaskProposal[];
+}
+
+export interface DeliveryPlanRequirementCoverageProposal {
+  readonly requirementId: string;
+  readonly requirementTitle: string;
+  readonly category: RequirementCategory;
+  readonly priority: RequirementPriority;
+  readonly coverageStatus: RequirementCoverageStatus;
+  readonly sourceReference?: string | null;
+  readonly rationale: string;
+  readonly proposedTaskTitles: readonly string[];
+  readonly evidenceNeeded: readonly string[];
+  readonly openQuestions: readonly string[];
+}
+
+export interface DeliveryPlanDraft {
+  readonly summary: string;
+  readonly coverageSummary: {
+    readonly totalRequirements: number;
+    readonly covered: number;
+    readonly partiallyCovered: number;
+    readonly uncovered: number;
+    readonly needsClarification: number;
+    readonly percentCovered: number;
+  };
+  readonly requirements: readonly DeliveryPlanRequirementCoverageProposal[];
+  readonly milestones: readonly DeliveryPlanMilestoneProposal[];
+  readonly assumptions: readonly string[];
+  readonly risks: readonly string[];
+  readonly openQuestions: readonly string[];
+}
+
+export type EvidenceReviewRecommendation = 'accept' | 'request_more_proof' | 'human_review';
+export type EvidenceConfidenceLevel = 'high' | 'medium' | 'low';
+
+export interface EvidenceReviewAdvisory {
+  readonly evidenceId: string;
+  readonly requirementId: string;
+  readonly summary: string;
+  readonly advisoryRecommendation: EvidenceReviewRecommendation;
+  readonly confidence: EvidenceConfidenceLevel;
+  readonly strengths: readonly string[];
+  readonly deficiencies: readonly string[];
+  readonly stalenessOrScopeWarning?: string | null;
+  readonly suggestedClarification?: string | null;
+  readonly sourceCitation: string;
+  readonly evaluatedAt: string;
+  readonly provider: string;
+  readonly model: string;
+}
+
+export interface ProjectChangeRecord {
+  readonly entityType: 'task' | 'requirement' | 'evidence' | 'brief_revision' | 'verification' | 'project';
+  readonly id: string;
+  readonly title: string;
+  readonly updatedAt: string;
+}
+
+export interface ProjectFreshnessEvaluation {
+  readonly isStale: boolean;
+  readonly lastReportGeneratedAt: string | null;
+  readonly changedRecords: readonly ProjectChangeRecord[];
+}
+

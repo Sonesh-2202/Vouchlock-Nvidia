@@ -85,6 +85,7 @@ export async function readCopilotContext(
         title: milestones.title,
         description: milestones.description,
         dueDate: milestones.dueDate,
+        updatedAt: milestones.updatedAt,
       })
       .from(milestones)
       .where(eq(milestones.projectId, projectId))
@@ -99,6 +100,7 @@ export async function readCopilotContext(
         priority: tasks.priority,
         dueDate: tasks.dueDate,
         milestoneId: tasks.milestoneId,
+        updatedAt: tasks.updatedAt,
       })
       .from(tasks)
       .where(eq(tasks.projectId, projectId))
@@ -113,6 +115,7 @@ export async function readCopilotContext(
         priority: requirements.priority,
         status: requirements.status,
         sourceReference: requirements.sourceReference,
+        updatedAt: requirements.updatedAt,
       })
       .from(requirements)
       .where(eq(requirements.projectId, projectId)),
@@ -125,6 +128,7 @@ export async function readCopilotContext(
         type: evidence.type,
         title: evidence.title,
         content: evidence.content,
+        createdAt: evidence.createdAt,
       })
       .from(evidence)
       .where(eq(evidence.projectId, projectId)),
@@ -135,6 +139,7 @@ export async function readCopilotContext(
         revisionNumber: projectBriefRevisions.revisionNumber,
         title: projectBriefRevisions.title,
         content: projectBriefRevisions.content,
+        createdAt: projectBriefRevisions.createdAt,
       })
       .from(projectBriefRevisions)
       .where(eq(projectBriefRevisions.projectId, projectId))
@@ -270,6 +275,65 @@ export async function readCopilotContext(
       description: m.description,
       dueDate: m.dueDate ? m.dueDate.toISOString() : null,
     })),
+  // Assemble all change records for change awareness & freshness analysis
+  const changeRecords = [
+    {
+      entityType: 'project' as const,
+      id: project.id,
+      title: project.name,
+      updatedAt: project.updatedAt.toISOString(),
+    },
+    ...tasksList.map((t) => ({
+      entityType: 'task' as const,
+      id: t.id,
+      title: t.title,
+      updatedAt: t.updatedAt.toISOString(),
+    })),
+    ...requirementsList.map((r) => ({
+      entityType: 'requirement' as const,
+      id: r.id,
+      title: r.title,
+      updatedAt: r.updatedAt.toISOString(),
+    })),
+    ...evidenceList.map((e) => ({
+      entityType: 'evidence' as const,
+      id: e.id,
+      title: e.title,
+      updatedAt: e.createdAt.toISOString(),
+    })),
+    ...briefRevisionsList.map((b) => ({
+      entityType: 'brief_revision' as const,
+      id: b.id,
+      title: `Rev ${b.revisionNumber}: ${b.title}`,
+      updatedAt: b.createdAt.toISOString(),
+    })),
+    ...verificationsList.map((v) => ({
+      entityType: 'verification' as const,
+      id: v.id,
+      title: `Verification (${v.status}) for requirement ${v.requirementId}`,
+      updatedAt: v.createdAt.toISOString(),
+    })),
+  ];
+
+  return {
+    workspaceId: project.workspaceId,
+    project: {
+      id: project.id,
+      name: project.name,
+      goal: project.goal,
+      audience: project.audience,
+      deliverable: project.deliverable,
+      deadline: project.deadline ? project.deadline.toISOString() : null,
+      status: project.status,
+      updatedAt: project.updatedAt.toISOString(),
+    },
+    milestones: milestonesList.map((m) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      dueDate: m.dueDate ? m.dueDate.toISOString() : null,
+      updatedAt: m.updatedAt.toISOString(),
+    })),
     tasks: tasksList.map((t) => ({
       id: t.id,
       title: t.title,
@@ -279,6 +343,7 @@ export async function readCopilotContext(
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       milestoneId: t.milestoneId,
       linkedRequirementIds: taskToReqsMap.get(t.id) ?? [],
+      updatedAt: t.updatedAt.toISOString(),
     })),
     requirements: requirementsList.map((r) => ({
       id: r.id,
@@ -291,6 +356,7 @@ export async function readCopilotContext(
       linkedTaskIds: reqToTasksMap.get(r.id) ?? [],
       evidenceCount: reqEvidenceCountMap.get(r.id) ?? 0,
       verificationStatus: reqVerificationMap.get(r.id) ?? null,
+      updatedAt: r.updatedAt.toISOString(),
     })),
     evidence: evidenceList.map((e) => ({
       id: e.id,
@@ -299,6 +365,7 @@ export async function readCopilotContext(
       type: e.type,
       title: e.title,
       content: e.content,
+      createdAt: e.createdAt.toISOString(),
     })),
     verifications: verificationsList.map((v) => ({
       id: v.id,
@@ -312,6 +379,7 @@ export async function readCopilotContext(
       revisionNumber: b.revisionNumber,
       title: b.title,
       content: b.content,
+      createdAt: b.createdAt.toISOString(),
     })),
     requirementTasks: reqTaskLinks,
     recentAuditEvents: auditEventsList.map((a) => ({
@@ -321,5 +389,6 @@ export async function readCopilotContext(
       createdAt: a.createdAt.toISOString(),
     })),
     memberNames,
+    changeRecords,
   };
 }

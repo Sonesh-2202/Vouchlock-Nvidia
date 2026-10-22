@@ -8,6 +8,12 @@ import type {
   ModelPreferences,
   ServerlessJobRecord,
 } from '@projectpilot/contracts';
+import type {
+  DeliveryPlanDraft,
+  EvidenceReviewAdvisory,
+  ProjectFreshnessEvaluation,
+  RequirementCoverageItem,
+} from '@projectpilot/domain';
 
 export type ResourceCategory = 'study' | 'architecture' | 'api' | 'design' | 'video';
 export type ResourceSourceType =
@@ -582,6 +588,68 @@ export const api = {
         roleProfile: options?.roleProfile,
         briefRevisionId: options?.briefRevisionId,
       }),
+    getFreshness: (projectId: string, since?: string) => {
+      const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+      return request<{ freshness: ProjectFreshnessEvaluation }>(
+        'GET',
+        `/copilot/projects/${projectId}/freshness${qs}`,
+      );
+    },
+    generateDeliveryPlan: (
+      projectId: string,
+      options?: {
+        providerOverride?: string;
+        modelOverride?: string;
+        roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+        briefRevisionId?: string;
+      },
+    ) =>
+      request<{
+        plan: DeliveryPlanDraft;
+        generationId: string;
+        validationErrors?: Array<{ path: string; message: string }>;
+      }>('POST', `/copilot/projects/${projectId}/delivery-plan`, options || {}),
+    acceptDeliveryPlan: (
+      projectId: string,
+      planId: string,
+      data: {
+        idempotencyKey?: string;
+        planDraft?: DeliveryPlanDraft;
+      },
+    ) =>
+      request<{
+        ok: boolean;
+        createdMilestonesCount: number;
+        createdTasksCount: number;
+        createdRequirementsCount: number;
+        alreadyAccepted?: boolean;
+      }>('POST', `/copilot/projects/${projectId}/delivery-plan/${planId}/accept`, data),
+    reviewEvidence: (data: {
+      evidenceId: string;
+      requirementId?: string;
+      providerOverride?: string;
+      modelOverride?: string;
+      roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+    }) =>
+      request<{ review: EvidenceReviewAdvisory; generationId: string }>(
+        'POST',
+        '/copilot/evidence-review',
+        data,
+      ),
+    askQuery: (data: {
+      projectId: string;
+      query: string;
+      providerOverride?: string;
+      modelOverride?: string;
+      roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
+    }) =>
+      request<{
+        answer: string;
+        citations: string[];
+        sourceRecords: Array<{ recordType: string; id: string; title: string }>;
+        model: string;
+        provider: string;
+      }>('POST', '/copilot/query', data),
     approveAction: (projectId: string, proposalId: string, action: unknown) =>
       request<{
         success: boolean;

@@ -12,6 +12,15 @@ import type {
   ProposedAction,
   ProposedActionType,
   SourceRecord,
+  RequirementCoverageItem,
+  RequirementCoverageStatus,
+  DeliveryPlanDraft,
+  DeliveryPlanMilestoneProposal,
+  DeliveryPlanTaskProposal,
+  DeliveryPlanRequirementCoverageProposal,
+  EvidenceReviewAdvisory,
+  CopilotFreshness,
+  ProjectChangeRecord,
 } from '@projectpilot/contracts';
 
 export type {
@@ -24,7 +33,17 @@ export type {
   ProposedAction,
   ProposedActionType,
   SourceRecord,
+  RequirementCoverageItem,
+  RequirementCoverageStatus,
+  DeliveryPlanDraft,
+  DeliveryPlanMilestoneProposal,
+  DeliveryPlanTaskProposal,
+  DeliveryPlanRequirementCoverageProposal,
+  EvidenceReviewAdvisory,
+  CopilotFreshness,
+  ProjectChangeRecord,
 };
+
 
 export interface CopilotProjectContext {
   id: string;
@@ -34,6 +53,7 @@ export interface CopilotProjectContext {
   deliverable?: string | null;
   deadline?: string | null;
   status: string;
+  updatedAt?: string;
 }
 
 export interface CopilotMilestoneContext {
@@ -41,6 +61,7 @@ export interface CopilotMilestoneContext {
   title: string;
   description?: string | null;
   dueDate?: string | null;
+  updatedAt?: string;
 }
 
 export interface CopilotTaskContext {
@@ -52,6 +73,7 @@ export interface CopilotTaskContext {
   dueDate?: string | null;
   milestoneId?: string | null;
   linkedRequirementIds?: string[];
+  updatedAt?: string;
 }
 
 export interface CopilotRequirementContext {
@@ -65,6 +87,7 @@ export interface CopilotRequirementContext {
   linkedTaskIds?: string[];
   evidenceCount?: number;
   verificationStatus?: string | null;
+  updatedAt?: string;
 }
 
 export interface CopilotEvidenceContext {
@@ -74,6 +97,7 @@ export interface CopilotEvidenceContext {
   type: string;
   title: string;
   content: string;
+  createdAt?: string;
 }
 
 export interface CopilotVerificationContext {
@@ -89,6 +113,7 @@ export interface CopilotBriefContext {
   revisionNumber: number;
   title: string;
   content: string;
+  createdAt?: string;
 }
 
 export interface CopilotAuditItem {
@@ -110,4 +135,6 @@ export interface CopilotContext {
   requirementTasks: Array<{ requirementId: string; taskId: string }>;
   recentAuditEvents: CopilotAuditItem[];
   memberNames: string[];
+  changeRecords: ProjectChangeRecord[];
 }
+

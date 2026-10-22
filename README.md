@@ -215,18 +215,83 @@ Follow this step-by-step path to evaluate the live agent workflow:
 
 Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotron** on **Nebius Token Factory**, built to guide projects from source brief to verified proof with strict human-in-the-loop safety:
 
-### Core Principles
+### Core Principles & Boundaries
 
-1. **Grounded Context Assembly:** Only authorized project records (brief revisions, requirements, tasks, evidence artifacts, and blocker logs) within the authenticated workspace are provided to the model.
-2. **Strict Fact vs. Inference Separation:** Project facts are derived from database records. Model inferences, suggestions, and proposed actions are strictly labeled as unverified until human review.
-3. **Proposal-Before-Write Pattern:** The model **never** autonomously writes to canonical project records. It cannot call arbitrary URLs, execute shell commands, or mutate tables directly. Instead, it generates a structured action proposal with a deterministic SHA-256 `proposalId`.
-4. **Interactive Human Approval:** A project member reviews the proposed action card (`create_requirement`, `link_task_requirement`, `request_evidence`, `create_task`, `update_task`) and clicks **Approve** or **Reject**. Only explicit approval triggers the state mutation.
-5. **Full Audit Traceability:** Every agent analysis, approved action, and rejected proposal is immutably logged in `auditEvents` with actor ID, timestamp, and entity references.
+1. **What the Delivery Agent DOES:**
+   - **Understands the Project:** Reads source briefs, revisions, canonical requirements, milestones, tasks, and attached evidence.
+   - **Formulates Transparent Delivery Plans:** Prepares draft delivery plans connecting brief requirements to planned milestones, concrete tasks, and required proof artifacts.
+   - **Audits Requirement-to-Proof Coverage:** Maps every requirement to its exact coverage state (`covered`, `partially_covered`, `uncovered`, `needs_clarification`) and specifies the exact proof artifact still needed.
+   - **Watches for Stale Analysis:** Automatically detects when project records change after an analysis was generated, showing which records changed and offering a 1-click refresh.
+   - **Proposes Bounded Next-Best Actions:** Synthesizes actionable next steps with explicit trigger conditions, referenced records, and before/after diff previews.
+   - **Supports Human Draft Editing:** Allows reviewers to edit proposed draft titles, descriptions, and priorities before committing.
+   - **Provides Advisory Evidence Reviews:** Compares evidence items against requirements to flag deficiencies, scope mismatches, and recommend advisory outcomes (`accept`, `request_more_proof`, `human_review`).
+   - **Answers Grounded Project Questions:** Provides answers strictly grounded in authorized project records with verifiable bracketed citations (`[Requirement: ...]`, `[Task: ...]`, `[Evidence: ...]`).
+
+2. **What the Delivery Agent DOES NOT Do (Strict Non-Goals):**
+   - **Never Silently Mutates Canonical Data:** Proposals remain drafts until an authorized team member explicitly approves them.
+   - **Never Confuses Task Completion with Verified Delivery:** A task marked "done" does NOT prove a requirement was satisfied without attached evidence and explicit human attestation.
+   - **Never Self-Approves Suggestions:** The agent cannot certify its own recommendations or close gates.
+   - **Never Auto-Certifies Evidence:** Evidence review is strictly advisory; only authenticated human workspace members can stamp verification.
+   - **Never Fabricates Citations or Provenance:** Claims without grounding in authorized project records are labeled ungrounded or omitted.
+   - **Never Polls Continuously:** No unbounded background loops; updates are triggered through user actions and bounded event triggers.
+
+### Brief-to-Proof Delivery Plan Lifecycle
+
+The agent provides a dedicated **Delivery Plan Workspace**:
+1. **Draft Generation (`POST /api/v1/copilot/projects/:projectId/delivery-plan`):**
+   - Ingests the project brief revision and existing requirements.
+   - Synthesizes proposed milestones with target completion dates.
+   - Proposes actionable tasks with owner suggestions and **Required Evidence Artifacts** (e.g. "Automated SAML assertion test log + IdP configuration manifest").
+   - Identifies open questions and ambiguities in the brief so stakeholders can resolve unknowns before work starts.
+2. **Review & Human Gate:**
+   - Displayed in an interactive review modal with the explicit badge `UNCOMMITTED DRAFT`.
+   - Reviewers inspect the proposed milestones, tasks, and proof artifacts.
+3. **Atomic Commitment (`POST /api/v1/copilot/projects/:projectId/delivery-plan/:planId/accept`):**
+   - Validates workspace permissions (`ai:accept`, `tasks:create`, `requirements:update`).
+   - Applies the plan atomically to canonical tables (`milestones`, `tasks`, `requirementTasks`).
+   - Immutably records the action in `auditEvents`.
+
+### Requirement-to-Proof Coverage Ledger
+
+The Delivery Agent maintains an auditable requirement coverage matrix:
+- **`COVERED & PROVEN`:** Requirement has active linked tasks AND verified cryptographic or external proof artifacts.
+- **`PARTIALLY COVERED`:** Requirement has linked tasks or preliminary evidence, but verification attestation is incomplete.
+- **`UNCOVERED GAP`:** Requirement is present in the brief but has zero linked tasks and zero submitted evidence.
+- **`NEEDS CLARIFICATION`:** Requirement contains ambiguities, conflicting constraints, or unverified assumptions identified in the brief.
+
+For every requirement, the ledger displays:
+- **Work (Tasks):** Canonical linked execution tasks with status pills.
+- **Proof (Evidence):** Attached proof artifacts with SHA-256 checksums and test assertions.
+- **Evidence Still Needed:** Concrete specification of the missing proof artifact.
+- **Rationale:** The agent's explainable justification connecting brief claims to work.
+
+### Action Envelopes with Diff Previews & Human-in-the-Loop Editing
+
+Proposed actions feature complete transparency before commitment:
+- **Trigger Condition:** Explicit project state that triggered the recommendation (e.g., "Requirement 'SAML 2.0 SSO' has no active execution tasks").
+- **Referenced Records:** Direct badges linking to the exact project records involved.
+- **Diff Preview:** Clear Before vs. After view (`- BEFORE: No task linked` → `+ AFTER: New task 'Implement SAML 2.0 Auth Handler'`).
+- **Draft Editor:** Reviewers can click **"Edit Draft ✏️"** to modify title, description, or priority before committing.
+- **Content Hash Verification:** Approvals verify a server-side content hash (`computeProposalId`) to prevent spoofing or stale mutation payloads.
+
+### Advisory Evidence Review Assistant
+
+When inspecting attached evidence, reviewers can run **Advisory AI Review**:
+- Compares artifact content against requirement claims.
+- Assesses support strength, missing context, and potential scope mismatch.
+- Outputs an advisory recommendation pill (`ACCEPT`, `REQUEST_MORE_PROOF`, `HUMAN_REVIEW`) with confidence level and explanation.
+- Displays an authoritative banner reminding reviewers that AI evaluation is advisory and human certification is legally required for compliance.
+
+### Data Privacy & Provider Isolation
+
+- **Server-Side Execution Only:** Model inference calls originate strictly from the Fastify server. Client keys, database passwords, session cookies, and secrets are never sent to providers.
+- **Least-Privilege Context Assembly:** Only authorized records within the authenticated workspace are included in prompt context. Unrelated projects or cross-tenant records are strictly excluded.
+- **Provider Isolation:** Server Nebius Token Factory keys are isolated from third-party services. User BYOK keys (OpenAI / Gemini) live exclusively in ephemeral process memory (24-hour TTL) and are never written to disk or sent to Nebius.
 
 ### Nebius Token Factory Integration Details
 
 - **Official Endpoint:** `https://api.tokenfactory.nebius.com/v1`
-- **Dynamic Discovery (`GET /v1/models?verbose=true`):** Models are queried with the documented `verbose=true` query parameter (falling back to `/v1/models` if rejected) to obtain rich metadata (modality, pricing, context length).
+- **Dynamic Discovery (`GET /v1/models?verbose=true`):** Models are queried with the documented `verbose=true` query parameter to obtain rich metadata (modality, pricing, context length).
 - **Exact Model ID Preservation:** The exact model IDs returned by Nebius are preserved for all routing and inference. IDs are never constructed, normalized, or guessed.
 - **Strict Role Profiles (Metadata-Derived):**
   - **Fast / Everyday:** Discovered Nemotron Nano models.
@@ -235,7 +300,6 @@ Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotro
   - Models without clear Nano/Super/Ultra classification remain labeled as **Unclassified** and are never assigned default roles automatically.
 - **Zero Silent Fallback:** Parameter counts (e.g., `70b`) are never used to infer Ultra, and no model is assigned a role simply because it is the sole Nemotron model available. If an assigned model is unavailable or credentials are missing, inference fails with a clear, actionable error.
 - **Credential-Scoped Caching:** Successful discovery responses are cached per credential hash for 5 minutes (`NEBIUS_CATALOG_TTL_MS`), with an on-demand manual refresh button.
-- **Server-Side Security:** Credentials are never passed to the browser, stored in `localStorage`, or written to application logs. All requests originate strictly from the Fastify server.
 - **Validated JSON Envelopes:** Nemotron responses are validated against Zod schemas; invalid responses return safe, non-destructive error feedback without phantom mutations.
 
 ### Nebius Cloud Deployment Artifacts & Job Execution
@@ -255,6 +319,47 @@ Vouchlock exposes a standard Model Context Protocol (MCP) server over Streamable
 - **Read-Only Defaults:** Tools (`get_project_summary`, `list_requirements`, `list_tasks`, `get_delivery_report`) provide bounded inspection of project status.
 - **Cryptographic Tokens:** MCP tokens are generated with an `mcp_` prefix and stored as SHA-256 hashes.
 - **Safety Bounds:** Per-session rate limits and concurrency bounds (max 3 concurrent calls) prevent abuse.
+
+### Manual Verification & Testing Phase Checklist
+
+> [!IMPORTANT]
+> **Implementation-First Testing Boundary Notice:**
+> In accordance with the repository owner's explicit instructions, **no automated tests, typechecks, build commands, or live billable inference calls were executed during this implementation phase**. All code modifications were authored with strict schema alignment, dual `src/` and `dist/` contract exports, and validated domain rules.
+> 
+> Reviewers can manually verify the end-to-end Delivery Agent workflow using the following checklist:
+
+1. **Verify Live Model Discovery & Model Picker:**
+   - Navigate to the **Delivery Agent** tab on any project.
+   - Verify that the model selector displays confirmed discovered models from Nebius Token Factory or BYOK session without invented model names.
+   - Test switching role profiles between `Fast (Everyday)`, `Balanced`, and `Deep Reasoning`.
+2. **Verify Delivery Plan Synthesis & Acceptance:**
+   - In the Delivery Agent tab, click **"📋 Plan Delivery from Brief"**.
+   - Confirm the review modal opens with `UNCOMMITTED DRAFT` status, displaying proposed milestones, tasks, and required proof artifacts.
+   - Click **"Accept & Commit Plan to Ledger"**.
+   - Switch to the **Tasks** tab and **Requirements** tab to confirm milestones, tasks, and requirement links were created in the canonical database.
+   - Check the **Activity** tab to verify the `delivery_plan_accepted` audit event.
+3. **Verify Requirement-to-Proof Coverage Matrix:**
+   - In the Delivery Agent tab, click **"Run Agent Analysis"**.
+   - Inspect the **Requirement-to-Proof Coverage Matrix**; verify that requirements display appropriate status badges (`COVERED & PROVEN`, `PARTIALLY COVERED`, `UNCOVERED GAP`), linked tasks, and explicit "Evidence Still Needed" callouts.
+4. **Verify Action Envelopes, Diff Previews & Human Editing Gate:**
+   - Under **Proposed Action Envelopes**, verify that each proposal card shows:
+     - `Trigger condition`
+     - `Referenced records`
+     - `- BEFORE` vs `+ AFTER` diff preview
+   - Click **"Edit Draft ✏️"** on a proposed task action, edit the title or priority, and click **"Approve & Commit Edited Draft"**.
+   - Confirm the edited task appears in the canonical task board.
+5. **Verify Stale Analysis Watchdog:**
+   - Create a new task or update a requirement in the project.
+   - Return to the **Delivery Agent** tab.
+   - Verify the amber **Stale Analysis Watchdog Banner** appears, showing the count of modified records since the report was generated.
+   - Click **"Refresh Analysis 🔄"** and confirm the banner clears.
+6. **Verify Advisory Evidence Review:**
+   - Go to the **Requirements** tab and click an attached verifiable evidence artifact.
+   - In the preview modal, click **"🤖 Advisory AI Review (NVIDIA Nemotron)"**.
+   - Confirm the advisory modal renders summary, alignment, strengths, deficiencies, and an advisory recommendation pill with the advisory-only disclaimer.
+7. **Verify Grounded Project Ledger Assistant (Q&A):**
+   - At the bottom of the Delivery Agent tab, click a suggested query pill or enter a question (e.g., "Which requirements have zero evidence attached?").
+   - Click **"Ask Agent"** and verify that the returned answer includes bracketed citations and cited record pills.
 
 ---
 
@@ -351,8 +456,13 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/v1/copilot/reports` | Generate bounded project analysis, 5-stage progress, most useful next action, and proposed action envelopes |
-| `POST` | `/api/v1/copilot/approve` | Execute action with human approval gate, permission check & content-hash verification |
+| `POST` | `/api/v1/copilot/reports` | Generate bounded project analysis, requirement coverage, progress, next actions, and proposed action envelopes |
+| `GET` | `/api/v1/copilot/projects/:projectId/freshness` | Watchdog endpoint checking whether prior analysis is stale based on subsequent project mutations |
+| `POST` | `/api/v1/copilot/projects/:projectId/delivery-plan` | Synthesize auditable draft delivery plan linking brief requirements -> tasks -> required proof artifacts |
+| `POST` | `/api/v1/copilot/projects/:projectId/delivery-plan/:planId/accept` | Atomically commit reviewed delivery plan to canonical database with permission verification |
+| `POST` | `/api/v1/copilot/evidence-review` | Advisory evidence evaluation comparing submitted artifact against target requirement |
+| `POST` | `/api/v1/copilot/query` | Grounded project ledger Q&A with verifiable bracketed citations |
+| `POST` | `/api/v1/copilot/approve` | Execute proposal action with human approval gate, permission check & content-hash verification |
 | `POST` | `/api/v1/copilot/reject` | Record explicit rejection with reason in immutable audit trail |
 
 </details>

@@ -385,6 +385,15 @@ export const proposedActionTypeSchema = z.enum([
   'request_evidence',
 ]);
 
+export const proposedActionCategorySchema = z.enum(['requires_approval', 'draft', 'informational']);
+
+export const actionDiffPreviewSchema = z.object({
+  entityType: z.string(),
+  changeDescription: z.string(),
+  currentValue: z.record(z.unknown()).optional(),
+  proposedValue: z.record(z.unknown()).optional(),
+});
+
 export const proposedActionSchema = z.object({
   proposalId: z.string().min(1).max(128),
   actionType: proposedActionTypeSchema,
@@ -392,6 +401,10 @@ export const proposedActionSchema = z.object({
   groundingReference: z.string().min(1).max(500),
   isInference: z.literal(true),
   payload: z.record(z.unknown()),
+  triggerCondition: z.string().max(500).optional(),
+  actionCategory: proposedActionCategorySchema.default('requires_approval'),
+  diffPreview: actionDiffPreviewSchema.optional(),
+  referencedRecords: z.array(z.lazy(() => sourceRecordSchema)).optional(),
 });
 
 export const sourceRecordSchema = z.object({
@@ -408,6 +421,164 @@ export const copilotWorkflowStageSchema = z.enum([
   'verification',
 ]);
 
+// ── Requirement Coverage & Delivery Plan Schemas ──
+
+export const requirementCoverageStatusSchema = z.enum([
+  'covered',
+  'partially_covered',
+  'uncovered',
+  'needs_clarification',
+]);
+
+export const requirementCoverageItemSchema = z.object({
+  requirementId: uuidSchema,
+  requirementTitle: z.string().min(1).max(300),
+  category: requirementCategorySchema,
+  priority: requirementPrioritySchema,
+  coverageStatus: requirementCoverageStatusSchema,
+  sourceReference: z.string().max(500).nullable().optional(),
+  rationale: z.string().max(2000),
+  linkedTaskIds: z.array(uuidSchema).default([]),
+  linkedTaskTitles: z.array(z.string()).default([]),
+  evidenceIds: z.array(uuidSchema).default([]),
+  evidenceNeeded: z.array(z.string()).default([]),
+  openQuestions: z.array(z.string()).default([]),
+  isVerified: z.boolean().default(false),
+  allTasksDone: z.boolean().default(false),
+});
+
+export const deliveryPlanTaskProposalSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().max(5000).nullable().optional(),
+  linkedRequirementTitles: z.array(z.string()).default([]),
+  evidenceNeeded: z.string().max(1000).nullable().optional(),
+  ownerSuggestion: z.string().nullable().optional(),
+  dueDate: isoDateSchema.nullable().optional(),
+  dependencyTitles: z.array(z.string()).default([]),
+});
+
+export const deliveryPlanMilestoneProposalSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).nullable().optional(),
+  dueDate: isoDateSchema.nullable().optional(),
+  tasks: z.array(deliveryPlanTaskProposalSchema).default([]),
+});
+
+export const deliveryPlanRequirementCoverageProposalSchema = z.object({
+  requirementId: z.string(),
+  requirementTitle: z.string().min(1).max(300),
+  category: requirementCategorySchema,
+  priority: requirementPrioritySchema,
+  coverageStatus: requirementCoverageStatusSchema,
+  sourceReference: z.string().max(500).nullable().optional(),
+  rationale: z.string().max(2000),
+  proposedTaskTitles: z.array(z.string()).default([]),
+  evidenceNeeded: z.array(z.string()).default([]),
+  openQuestions: z.array(z.string()).default([]),
+});
+
+export const deliveryPlanDraftSchema = z.object({
+  summary: z.string().max(5000),
+  coverageSummary: z.object({
+    totalRequirements: z.number().int().min(0),
+    covered: z.number().int().min(0),
+    partiallyCovered: z.number().int().min(0),
+    uncovered: z.number().int().min(0),
+    needsClarification: z.number().int().min(0),
+    percentCovered: z.number().int().min(0).max(100),
+  }),
+  requirements: z.array(deliveryPlanRequirementCoverageProposalSchema),
+  milestones: z.array(deliveryPlanMilestoneProposalSchema),
+  assumptions: z.array(z.string()).default([]),
+  risks: z.array(z.string()).default([]),
+  openQuestions: z.array(z.string()).default([]),
+});
+
+export const generateDeliveryPlanSchema = z.object({
+  projectId: uuidSchema,
+  briefRevisionId: uuidSchema.optional(),
+  providerOverride: z.string().optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
+});
+
+export const acceptDeliveryPlanSchema = z.object({
+  projectId: uuidSchema,
+  generationId: uuidSchema,
+  idempotencyKey: z.string().min(1).max(256),
+  planDraft: deliveryPlanDraftSchema.optional(),
+});
+
+// ── Evidence Advisory Review Schemas ──
+
+export const evidenceReviewRecommendationSchema = z.enum([
+  'accept',
+  'request_more_proof',
+  'human_review',
+]);
+
+export const evidenceConfidenceLevelSchema = z.enum(['high', 'medium', 'low']);
+
+export const evidenceReviewRequestSchema = z.object({
+  projectId: uuidSchema,
+  evidenceId: uuidSchema,
+  requirementId: uuidSchema.optional(),
+  providerOverride: z.string().optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
+});
+
+export const evidenceReviewResponseSchema = z.object({
+  evidenceId: uuidSchema,
+  requirementId: uuidSchema,
+  summary: z.string().max(3000),
+  advisoryRecommendation: evidenceReviewRecommendationSchema,
+  confidence: evidenceConfidenceLevelSchema,
+  strengths: z.array(z.string()),
+  deficiencies: z.array(z.string()),
+  stalenessOrScopeWarning: z.string().nullable().optional(),
+  suggestedClarification: z.string().nullable().optional(),
+  sourceCitation: z.string().max(500),
+  evaluatedAt: isoDateSchema,
+  provider: z.string(),
+  model: z.string(),
+});
+
+// ── Grounded Follow-up Project Q&A ──
+
+export const copilotQuerySchema = z.object({
+  projectId: uuidSchema,
+  question: z.string().trim().min(2).max(1000),
+  providerOverride: z.string().optional(),
+  modelOverride: z.string().optional(),
+  roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
+});
+
+export const copilotQueryResponseSchema = z.object({
+  answer: z.string().max(10000),
+  sourceRecords: z.array(sourceRecordSchema),
+  confidence: evidenceConfidenceLevelSchema,
+  groundedInLedger: z.boolean(),
+  generatedAt: isoDateSchema,
+  provider: z.string(),
+  model: z.string(),
+});
+
+// ── Change Awareness & Freshness Schemas ──
+
+export const projectChangeRecordSchema = z.object({
+  entityType: z.enum(['task', 'requirement', 'evidence', 'brief_revision', 'verification', 'project']),
+  id: z.string(),
+  title: z.string(),
+  updatedAt: isoDateSchema,
+});
+
+export const copilotFreshnessSchema = z.object({
+  isStale: z.boolean(),
+  lastReportGeneratedAt: isoDateSchema.nullable(),
+  changedRecords: z.array(projectChangeRecordSchema),
+});
+
 export const copilotReportSchema = z.object({
   groundedSummary: z.string().max(5000),
   inferredSummary: z.string().max(5000),
@@ -421,6 +592,8 @@ export const copilotReportSchema = z.object({
   evidenceGaps: z.array(evidenceGapSchema),
   proposedActions: z.array(proposedActionSchema),
   sourceRecords: z.array(sourceRecordSchema),
+  requirementCoverage: z.array(requirementCoverageItemSchema).optional(),
+  freshness: copilotFreshnessSchema.optional(),
   generatedAt: isoDateSchema,
   provider: z.string(),
   model: z.string(),
@@ -455,6 +628,8 @@ export type CopilotRisk = z.infer<typeof copilotRiskSchema>;
 export type CopilotBlocker = z.infer<typeof copilotBlockerSchema>;
 export type EvidenceGap = z.infer<typeof evidenceGapSchema>;
 export type ProposedActionType = z.infer<typeof proposedActionTypeSchema>;
+export type ProposedActionCategory = z.infer<typeof proposedActionCategorySchema>;
+export type ActionDiffPreview = z.infer<typeof actionDiffPreviewSchema>;
 export type ProposedAction = z.infer<typeof proposedActionSchema>;
 export type SourceRecord = z.infer<typeof sourceRecordSchema>;
 export type CopilotReport = z.infer<typeof copilotReportSchema>;
@@ -462,6 +637,23 @@ export type CopilotWorkflowStage = z.infer<typeof copilotWorkflowStageSchema>;
 export type GenerateCopilotReportInput = z.infer<typeof generateCopilotReportSchema>;
 export type ApproveCopilotActionInput = z.infer<typeof approveCopilotActionSchema>;
 export type RejectCopilotActionInput = z.infer<typeof rejectCopilotActionSchema>;
+export type RequirementCoverageStatus = z.infer<typeof requirementCoverageStatusSchema>;
+export type RequirementCoverageItem = z.infer<typeof requirementCoverageItemSchema>;
+export type DeliveryPlanTaskProposal = z.infer<typeof deliveryPlanTaskProposalSchema>;
+export type DeliveryPlanMilestoneProposal = z.infer<typeof deliveryPlanMilestoneProposalSchema>;
+export type DeliveryPlanRequirementCoverageProposal = z.infer<typeof deliveryPlanRequirementCoverageProposalSchema>;
+export type DeliveryPlanDraft = z.infer<typeof deliveryPlanDraftSchema>;
+export type GenerateDeliveryPlanInput = z.infer<typeof generateDeliveryPlanSchema>;
+export type AcceptDeliveryPlanInput = z.infer<typeof acceptDeliveryPlanSchema>;
+export type EvidenceReviewRecommendation = z.infer<typeof evidenceReviewRecommendationSchema>;
+export type EvidenceConfidenceLevel = z.infer<typeof evidenceConfidenceLevelSchema>;
+export type EvidenceReviewRequest = z.infer<typeof evidenceReviewRequestSchema>;
+export type EvidenceReviewResponse = z.infer<typeof evidenceReviewResponseSchema>;
+export type CopilotQueryInput = z.infer<typeof copilotQuerySchema>;
+export type CopilotQueryResponse = z.infer<typeof copilotQueryResponseSchema>;
+export type ProjectChangeRecord = z.infer<typeof projectChangeRecordSchema>;
+export type CopilotFreshness = z.infer<typeof copilotFreshnessSchema>;
+
 
 // ── MCP (Model Context Protocol) ──
 

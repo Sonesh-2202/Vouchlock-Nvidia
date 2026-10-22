@@ -12,11 +12,22 @@ import {
   generateCopilotReportSchema,
   approveCopilotActionSchema,
   rejectCopilotActionSchema,
+  generateDeliveryPlanSchema,
+  acceptDeliveryPlanSchema,
+  evidenceReviewRequestSchema,
+  copilotQuerySchema,
 } from '@projectpilot/contracts';
 import { hasPermission } from '@projectpilot/domain';
 import { authenticate } from '../auth.js';
 import { readCopilotContext, CopilotAccessError } from '../copilot/context-reader.js';
-import { generateCopilotReport, computeProposalId } from '../copilot/report-generator.js';
+import {
+  generateCopilotReport,
+  generateDeliveryPlan,
+  generateEvidenceReview,
+  answerProjectQuery,
+  computeProposalId,
+  computeFreshness,
+} from '../copilot/report-generator.js';
 import { ephemeralSessionStore } from '../ai/planner.js';
 import {
   projects,
@@ -28,6 +39,7 @@ import {
   requirements,
   requirementTasks,
   evidence,
+  users,
 } from '../db/schema.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
@@ -508,5 +520,542 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       success: true,
       proposalId,
     });
+  });
+
+  // GET /api/v1/copilot/projects/:projectId/freshness — assess whether previous agent analysis is stale
+  app.get<{ Params: { projectId: string }; Querystring: { since?: string } }>(
+    '/projects/:projectId/freshness',
+    async (request, reply) => {
+      const userId = await authenticate(request, reply, config.jwtSecret, config.sessionCookieName);
+      const { projectId } = request.params;
+      const { since } = request.query;
+
+      let context;
+      try {
+        context = await readCopilotContext(db, userId, projectId);
+      } catch (err) {
+        if (err instanceof CopilotAccessError) {
+          return reply.code(err.status).send({
+            error: { code: err.code, message: err.message },
+          });
+        }
+        throw err;
+      }
+
+      const freshness = computeFreshness(context, since || null);
+      return reply.code(200).send(freshness);
+    },
+  );
+
+  // POST /api/v1/copilot/projects/:projectId/delivery-plan — generate comprehensive brief-to-proof delivery plan
+  app.post<{ Params: { projectId: string } }>(
+    '/projects/:projectId/delivery-plan',
+    async (request, reply) => {
+      const userId = await authenticate(request, reply, config.jwtSecret, config.sessionCookieName);
+      const { projectId } = request.params;
+
+      const parsed = generateDeliveryPlanSchema.safeParse({
+        ...((typeof request.body === 'object' && request.body !== null ? request.body : {}) as object),
+        projectId,
+      });
+      if (!parsed.success) {
+        return reply.code(400).send({
+          error: {
+            code: 'validation_error',
+            message: 'Invalid delivery plan generation payload',
+            details: parsed.error.flatten(),
+          },
+        });
+      }
+
+      let context;
+      try {
+        context = await readCopilotContext(db, userId, projectId, parsed.data.briefRevisionId);
+      } catch (err) {
+        if (err instanceof CopilotAccessError) {
+          return reply.code(err.status).send({
+            error: { code: err.code, message: err.message },
+          });
+        }
+        throw err;
+      }
+
+      const [member] = await db
+        .select({ role: workspaceMembers.role })
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, context.workspaceId),
+            eq(workspaceMembers.userId, userId),
+          ),
+        )
+        .limit(1);
+
+      if (!member || !hasPermission(member.role, 'ai:generate')) {
+        return reply.code(403).send({
+          error: { code: 'forbidden', message: 'Insufficient permission to generate delivery plans' },
+        });
+      }
+
+      const effectiveProvider = parsed.data.providerOverride || config.aiProvider || 'nebius';
+      const sessionApiKey = ephemeralSessionStore.getSessionKey(
+        userId,
+        effectiveProvider,
+        context.workspaceId,
+      );
+
+      try {
+        const result = await generateDeliveryPlan(
+          context,
+          userId,
+          config,
+          sessionApiKey,
+          parsed.data.providerOverride,
+          {
+            modelOverride: parsed.data.modelOverride,
+            roleProfile: parsed.data.roleProfile,
+          },
+        );
+
+        const [generation] = await db
+          .insert(aiGenerations)
+          .values({
+            projectId,
+            requesterId: userId,
+            kind: 'plan_draft',
+            provider: result.provider,
+            model: result.model,
+            inputHash: result.inputHash,
+            outputJson: result.draft as unknown as Record<string, unknown>,
+          })
+          .returning();
+
+        await db.insert(auditEvents).values({
+          workspaceId: context.workspaceId,
+          actorId: userId,
+          action: 'delivery_plan_generated',
+          subjectType: 'ai_generation',
+          subjectId: generation!.id,
+          metadata: {
+            provider: result.provider,
+            model: result.model,
+            milestonesCount: result.draft.milestones?.length ?? 0,
+            requirementsCount: result.draft.requirements?.length ?? 0,
+          },
+        });
+
+        logger.info(
+          { userId, projectId, generationId: generation!.id, provider: result.provider },
+          'delivery plan draft generated',
+        );
+
+        return reply.code(200).send({
+          generationId: generation!.id,
+          draft: result.draft,
+          provider: result.provider,
+          model: result.model,
+          inputHash: result.inputHash,
+        });
+      } catch (err: unknown) {
+        logger.error({ err, projectId }, 'failed to generate delivery plan draft');
+        const errorObj = err as { code?: string; message?: string };
+        const statusCode =
+          errorObj.code === 'ai_auth_error' ? 401 : errorObj.code === 'ai_rate_limit' ? 429 : 502;
+        return reply.code(statusCode).send({
+          error: {
+            code: errorObj.code || 'plan_generation_failed',
+            message: errorObj.message || 'Failed to generate delivery plan from project brief and requirements.',
+          },
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/copilot/projects/:projectId/delivery-plan/:planId/accept — execute plan proposals into canonical records
+  app.post<{ Params: { projectId: string; planId: string } }>(
+    '/projects/:projectId/delivery-plan/:planId/accept',
+    async (request, reply) => {
+      const userId = await authenticate(request, reply, config.jwtSecret, config.sessionCookieName);
+      const { projectId, planId } = request.params;
+
+      const parsed = acceptDeliveryPlanSchema.safeParse({
+        ...((typeof request.body === 'object' && request.body !== null ? request.body : {}) as object),
+        projectId,
+        generationId: planId,
+      });
+      if (!parsed.success) {
+        return reply.code(400).send({
+          error: {
+            code: 'validation_error',
+            message: 'Invalid plan acceptance payload',
+            details: parsed.error.flatten(),
+          },
+        });
+      }
+
+      const [project] = await db
+        .select({ id: projects.id, workspaceId: projects.workspaceId })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+
+      if (!project) {
+        return reply.code(404).send({
+          error: { code: 'not_found', message: 'Project not found' },
+        });
+      }
+
+      const [member] = await db
+        .select({ role: workspaceMembers.role })
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, project.workspaceId),
+            eq(workspaceMembers.userId, userId),
+          ),
+        )
+        .limit(1);
+
+      if (!member || !hasPermission(member.role, 'ai:accept')) {
+        return reply.code(403).send({
+          error: { code: 'forbidden', message: 'Insufficient permission to approve delivery plans' },
+        });
+      }
+
+      const [generation] = await db
+        .select()
+        .from(aiGenerations)
+        .where(and(eq(aiGenerations.id, planId), eq(aiGenerations.projectId, projectId)))
+        .limit(1);
+
+      if (!generation) {
+        return reply.code(404).send({
+          error: { code: 'not_found', message: 'Delivery plan draft not found' },
+        });
+      }
+
+      if (generation.acceptedAt) {
+        return reply.code(200).send({
+          ok: true,
+          alreadyAccepted: true,
+          acceptedAt: generation.acceptedAt,
+        });
+      }
+
+      const draftToApply = (parsed.data.planDraft ?? generation.outputJson) as any;
+
+      // Map member names to IDs
+      const workspaceUsers = await db
+        .select({ id: users.id, displayName: users.displayName })
+        .from(workspaceMembers)
+        .innerJoin(users, eq(workspaceMembers.userId, users.id))
+        .where(eq(workspaceMembers.workspaceId, project.workspaceId));
+
+      const memberMap = new Map<string, string>();
+      for (const u of workspaceUsers) {
+        memberMap.set(u.displayName.toLowerCase(), u.id);
+      }
+
+      // Existing project requirements for title matching
+      const existingReqs = await db
+        .select({ id: requirements.id, title: requirements.title })
+        .from(requirements)
+        .where(eq(requirements.projectId, projectId));
+
+      const reqMap = new Map<string, string>();
+      for (const r of existingReqs) {
+        reqMap.set(r.title.toLowerCase().trim(), r.id);
+      }
+
+      let createdMilestonesCount = 0;
+      let createdTasksCount = 0;
+      let linkedRequirementsCount = 0;
+
+      await db.transaction(async (tx) => {
+        let sortOrder = 0;
+        const milestonesList = Array.isArray(draftToApply.milestones) ? draftToApply.milestones : [];
+
+        for (const m of milestonesList) {
+          const [newMilestone] = await tx
+            .insert(milestones)
+            .values({
+              projectId,
+              title: m.title,
+              description: m.description || null,
+              dueDate: m.dueDate ? new Date(m.dueDate) : null,
+              sortOrder: sortOrder++,
+            })
+            .returning();
+
+          createdMilestonesCount++;
+          const milestoneId = newMilestone!.id;
+
+          let taskSort = 0;
+          const tasksList = Array.isArray(m.tasks) ? m.tasks : [];
+          for (const t of tasksList) {
+            const assigneeId = t.ownerSuggestion
+              ? memberMap.get(String(t.ownerSuggestion).toLowerCase()) || null
+              : null;
+
+            const [newTask] = await tx
+              .insert(tasks)
+              .values({
+                projectId,
+                milestoneId,
+                title: t.title,
+                description: t.description
+                  ? `${t.description}${t.evidenceNeeded ? `\n\n**Evidence Needed for Verification:**\n${t.evidenceNeeded}` : ''}`
+                  : (t.evidenceNeeded ? `**Evidence Needed for Verification:**\n${t.evidenceNeeded}` : null),
+                status: 'todo',
+                priority: 'normal',
+                assigneeUserId: assigneeId,
+                dueDate: t.dueDate ? new Date(t.dueDate) : null,
+                sortOrder: taskSort++,
+                createdBy: userId,
+              })
+              .returning();
+
+            createdTasksCount++;
+            const taskId = newTask!.id;
+
+            // Link to requirements if specified
+            if (Array.isArray(t.linkedRequirementTitles)) {
+              for (const reqTitle of t.linkedRequirementTitles) {
+                const reqId = reqMap.get(String(reqTitle).toLowerCase().trim());
+                if (reqId) {
+                  try {
+                    await tx
+                      .insert(requirementTasks)
+                      .values({ requirementId: reqId, taskId })
+                      .onConflictDoNothing();
+                    linkedRequirementsCount++;
+                  } catch {
+                    // Ignore duplicate link
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Mark plan draft accepted
+        await tx
+          .update(aiGenerations)
+          .set({ acceptedAt: new Date() })
+          .where(eq(aiGenerations.id, planId));
+
+        await tx.insert(auditEvents).values({
+          workspaceId: project.workspaceId,
+          actorId: userId,
+          action: 'delivery_plan_accepted',
+          subjectType: 'ai_generation',
+          subjectId: planId,
+          metadata: {
+            createdMilestonesCount,
+            createdTasksCount,
+            linkedRequirementsCount,
+            idempotencyKey: parsed.data.idempotencyKey,
+          },
+        });
+      });
+
+      return reply.code(200).send({
+        ok: true,
+        createdMilestonesCount,
+        createdTasksCount,
+        linkedRequirementsCount,
+      });
+    },
+  );
+
+  // POST /api/v1/copilot/evidence-review — advisory inspection of proof artifact
+  app.post('/evidence-review', async (request, reply) => {
+    const userId = await authenticate(request, reply, config.jwtSecret, config.sessionCookieName);
+
+    const parsed = evidenceReviewRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: {
+          code: 'validation_error',
+          message: 'Invalid evidence review payload',
+          details: parsed.error.flatten(),
+        },
+      });
+    }
+
+    const { projectId, evidenceId, requirementId } = parsed.data;
+
+    let context;
+    try {
+      context = await readCopilotContext(db, userId, projectId);
+    } catch (err) {
+      if (err instanceof CopilotAccessError) {
+        return reply.code(err.status).send({
+          error: { code: err.code, message: err.message },
+        });
+      }
+      throw err;
+    }
+
+    const [member] = await db
+      .select({ role: workspaceMembers.role })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, context.workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!member || !hasPermission(member.role, 'evidence:read')) {
+      return reply.code(403).send({
+        error: { code: 'forbidden', message: 'Insufficient permission to review evidence' },
+      });
+    }
+
+    const evidenceItem = context.evidence.find((e) => e.id === evidenceId);
+    if (!evidenceItem) {
+      return reply.code(404).send({
+        error: { code: 'not_found', message: 'Evidence record not found in this project' },
+      });
+    }
+
+    const reqId = requirementId || evidenceItem.requirementId;
+    const reqItem = context.requirements.find((r) => r.id === reqId);
+    if (!reqItem) {
+      return reply.code(404).send({
+        error: { code: 'not_found', message: 'Target requirement not found for this evidence' },
+      });
+    }
+
+    const effectiveProvider = parsed.data.providerOverride || config.aiProvider || 'nebius';
+    const sessionApiKey = ephemeralSessionStore.getSessionKey(
+      userId,
+      effectiveProvider,
+      context.workspaceId,
+    );
+
+    try {
+      const review = await generateEvidenceReview(
+        context,
+        evidenceItem,
+        reqItem,
+        userId,
+        config,
+        sessionApiKey,
+        parsed.data.providerOverride,
+        {
+          modelOverride: parsed.data.modelOverride,
+          roleProfile: parsed.data.roleProfile,
+        },
+      );
+
+      await db.insert(auditEvents).values({
+        workspaceId: context.workspaceId,
+        actorId: userId,
+        action: 'evidence_advisory_review_generated',
+        subjectType: 'evidence',
+        subjectId: evidenceId,
+        metadata: {
+          requirementId: reqItem.id,
+          recommendation: review.advisoryRecommendation,
+          confidence: review.confidence,
+          provider: review.provider,
+          model: review.model,
+        },
+      });
+
+      return reply.code(200).send(review);
+    } catch (err: unknown) {
+      logger.error({ err, projectId, evidenceId }, 'evidence review failed');
+      const errorObj = err as { code?: string; message?: string };
+      return reply.code(502).send({
+        error: {
+          code: errorObj.code || 'review_failed',
+          message: errorObj.message || 'Failed to conduct advisory evidence review.',
+        },
+      });
+    }
+  });
+
+  // POST /api/v1/copilot/query — grounded project Q&A assistant
+  app.post('/query', async (request, reply) => {
+    const userId = await authenticate(request, reply, config.jwtSecret, config.sessionCookieName);
+
+    const parsed = copilotQuerySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: {
+          code: 'validation_error',
+          message: 'Invalid query payload',
+          details: parsed.error.flatten(),
+        },
+      });
+    }
+
+    const { projectId, question } = parsed.data;
+
+    let context;
+    try {
+      context = await readCopilotContext(db, userId, projectId);
+    } catch (err) {
+      if (err instanceof CopilotAccessError) {
+        return reply.code(err.status).send({
+          error: { code: err.code, message: err.message },
+        });
+      }
+      throw err;
+    }
+
+    const [member] = await db
+      .select({ role: workspaceMembers.role })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, context.workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!member || !hasPermission(member.role, 'ai:generate')) {
+      return reply.code(403).send({
+        error: { code: 'forbidden', message: 'Insufficient permission to query project assistant' },
+      });
+    }
+
+    const effectiveProvider = parsed.data.providerOverride || config.aiProvider || 'nebius';
+    const sessionApiKey = ephemeralSessionStore.getSessionKey(
+      userId,
+      effectiveProvider,
+      context.workspaceId,
+    );
+
+    try {
+      const result = await answerProjectQuery(
+        context,
+        question,
+        userId,
+        config,
+        sessionApiKey,
+        parsed.data.providerOverride,
+        {
+          modelOverride: parsed.data.modelOverride,
+          roleProfile: parsed.data.roleProfile,
+        },
+      );
+
+      return reply.code(200).send(result);
+    } catch (err: unknown) {
+      logger.error({ err, projectId, question }, 'copilot query failed');
+      const errorObj = err as { code?: string; message?: string };
+      return reply.code(502).send({
+        error: {
+          code: errorObj.code || 'query_failed',
+          message: errorObj.message || 'Failed to answer project inquiry.',
+        },
+      });
+    }
   });
 }
