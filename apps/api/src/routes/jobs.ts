@@ -39,13 +39,22 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
       });
     }
 
-    const { workspaceId, projectId, modelOverride, roleProfile, executionTargetPreference, idempotencyKey } = parsed.data;
+    const {
+      workspaceId,
+      projectId,
+      modelOverride,
+      roleProfile,
+      executionTargetPreference,
+      idempotencyKey,
+    } = parsed.data;
 
     // Check workspace membership
     const [member] = await db
       .select({ role: workspaceMembers.role })
       .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+      .where(
+        and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)),
+      )
       .limit(1);
 
     if (!member || !hasPermission(member.role, 'ai:generate')) {
@@ -110,7 +119,12 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
     const [member] = await db
       .select({ role: workspaceMembers.role })
       .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, jobRow.workspaceId), eq(workspaceMembers.userId, userId)))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, jobRow.workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
       .limit(1);
 
     if (!member) {
@@ -143,7 +157,12 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
     const [member] = await db
       .select({ role: workspaceMembers.role })
       .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, jobRow.workspaceId), eq(workspaceMembers.userId, userId)))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, jobRow.workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
       .limit(1);
 
     if (!member || !hasPermission(member.role, 'ai:generate')) {
@@ -152,7 +171,12 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
       });
     }
 
-    const cancelledJob = await portfolioAuditJobService.cancelJob(jobRow.id, jobRow.workspaceId, db, logger);
+    const cancelledJob = await portfolioAuditJobService.cancelJob(
+      jobRow.id,
+      jobRow.workspaceId,
+      db,
+      logger,
+    );
     return reply.code(200).send({ job: cancelledJob });
   });
 
@@ -164,7 +188,12 @@ export async function jobsRoutes(app: FastifyInstance, opts: JobsRouteOpts) {
     const [member] = await db
       .select({ role: workspaceMembers.role })
       .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, params.workspaceId), eq(workspaceMembers.userId, userId)))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, params.workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
       .limit(1);
 
     if (!member) {

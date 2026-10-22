@@ -6,34 +6,34 @@ apiVersion: serverless.nebius.ai/v1alpha1
 kind: Endpoint
 metadata:
   name: vouchlock-app-endpoint
-  project_id: "<NEBIUS_PROJECT_ID>"
-  region: "<NEBIUS_REGION>" # e.g. eu-north1-c
+  project_id: '<NEBIUS_PROJECT_ID>'
+  region: '<NEBIUS_REGION>' # e.g. eu-north1-c
 spec:
   container:
-    image: "<NEBIUS_REGISTRY_HOST>/<NEBIUS_PROJECT_ID>/vouchlock:latest"
+    image: '<NEBIUS_REGISTRY_HOST>/<NEBIUS_PROJECT_ID>/vouchlock:latest'
     port: 8080
     resources:
       cores: 2
-      memory: "4Gi"
+      memory: '4Gi'
     env:
       - name: NODE_ENV
-        value: "production"
+        value: 'production'
       - name: NEBIUS_BASE_URL
-        value: "https://api.tokenfactory.nebius.com/v1"
+        value: 'https://api.tokenfactory.nebius.com/v1'
       - name: CORS_ORIGIN
-        value: "*"
+        value: '*'
       - name: LOG_LEVEL
-        value: "info"
+        value: 'info'
     secrets:
       - name: DATABASE_URL
-        secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_DATABASE_URL>"
-        version_id: "<SECRET_VERSION_ID>"
+        secret_id: '<NEBIUS_LOCKBOX_SECRET_ID_DATABASE_URL>'
+        version_id: '<SECRET_VERSION_ID>'
       - name: JWT_SECRET
-        secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_JWT_SECRET>"
-        version_id: "<SECRET_VERSION_ID>"
+        secret_id: '<NEBIUS_LOCKBOX_SECRET_ID_JWT_SECRET>'
+        version_id: '<SECRET_VERSION_ID>'
       - name: NEBIUS_API_KEY
-        secret_id: "<NEBIUS_LOCKBOX_SECRET_ID_TOKEN_FACTORY_KEY>"
-        version_id: "<SECRET_VERSION_ID>"
+        secret_id: '<NEBIUS_LOCKBOX_SECRET_ID_TOKEN_FACTORY_KEY>'
+        version_id: '<SECRET_VERSION_ID>'
   scaling:
     min_instances: 1
     max_instances: 5

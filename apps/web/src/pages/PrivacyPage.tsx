@@ -118,8 +118,9 @@ export function PrivacyPage() {
                   server logs, or external third-party storage.
                 </li>
                 <li>
-                  <strong>Validated Runtime:</strong> Nebius Token Factory running NVIDIA Nemotron is
-                  the sole production AI runtime. Unverified or legacy providers are not supported.
+                  <strong>Validated Runtime:</strong> Nebius Token Factory running NVIDIA Nemotron
+                  is the sole production AI runtime. Unverified or legacy providers are not
+                  supported.
                 </li>
               </ul>
             </section>

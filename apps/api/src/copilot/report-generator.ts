@@ -137,7 +137,7 @@ export function buildRequirementCoverage(context: CopilotContext): RequirementCo
     });
 
     const evidenceNeeded: string[] = [];
-    let rationale = '';
+    let rationale: string;
 
     if (coverageStatus === 'covered') {
       rationale = `Mapped to ${linkedTasks.length} task(s) and supported by ${linkedEvidence.length} proof record(s).`;
@@ -147,7 +147,9 @@ export function buildRequirementCoverage(context: CopilotContext): RequirementCo
     } else if (coverageStatus === 'partially_covered') {
       if (hasLinkedTasks && !hasEvidence) {
         rationale = `Mapped to ${linkedTasks.length} task(s) (${allTasksDone ? 'all completed' : 'in progress'}), but missing verifiable proof artifacts. Task completion alone does not verify delivery.`;
-        evidenceNeeded.push(`Test execution logs, deployment URL, pull request, or sign-off notes for "${r.title}".`);
+        evidenceNeeded.push(
+          `Test execution logs, deployment URL, pull request, or sign-off notes for "${r.title}".`,
+        );
       } else {
         rationale = `Has ${linkedEvidence.length} proof record(s), but missing explicit execution tasks in the delivery ledger.`;
       }
@@ -171,7 +173,10 @@ export function buildRequirementCoverage(context: CopilotContext): RequirementCo
       linkedTaskTitles: linkedTasks.map((t) => t.title),
       evidenceIds: linkedEvidence.map((e) => e.id),
       evidenceNeeded,
-      openQuestions: coverageStatus === 'needs_clarification' ? [`Clarify acceptance criteria for "${r.title}"`] : [],
+      openQuestions:
+        coverageStatus === 'needs_clarification'
+          ? [`Clarify acceptance criteria for "${r.title}"`]
+          : [],
       isVerified,
       allTasksDone,
     };
@@ -207,9 +212,9 @@ function buildActionEnrichment(
   desc: string,
   payload: Record<string, any>,
   context: CopilotContext,
-  groundingRef: string,
+  _groundingRef: string,
 ) {
-  let triggerCondition = '';
+  let triggerCondition: string;
   let changeDescription = desc;
   let currentValue: Record<string, unknown> | undefined;
   const proposedValue: Record<string, unknown> = { ...payload };
@@ -222,15 +227,18 @@ function buildActionEnrichment(
       triggerCondition = `Task "${task?.title || payload.taskId}" is unlinked to requirements.`;
       changeDescription = `Establish execution traceability link between Task "${task?.title || payload.taskId}" and Requirement "${req?.title || payload.requirementId}".`;
       currentValue = { linkedRequirements: task?.linkedRequirementIds || [] };
-      if (task) referencedRecords.push({ entityType: 'task', id: task.id, nameOrTitle: task.title });
-      if (req) referencedRecords.push({ entityType: 'requirement', id: req.id, nameOrTitle: req.title });
+      if (task)
+        referencedRecords.push({ entityType: 'task', id: task.id, nameOrTitle: task.title });
+      if (req)
+        referencedRecords.push({ entityType: 'requirement', id: req.id, nameOrTitle: req.title });
       break;
     }
     case 'request_evidence': {
       const req = context.requirements.find((r) => r.id === payload.requirementId);
       triggerCondition = `Requirement "${req?.title || payload.requirementId}" has active delivery work but lacks proof artifacts.`;
       changeDescription = `Attach an evidence verification note placeholder for Requirement "${req?.title || payload.requirementId}".`;
-      if (req) referencedRecords.push({ entityType: 'requirement', id: req.id, nameOrTitle: req.title });
+      if (req)
+        referencedRecords.push({ entityType: 'requirement', id: req.id, nameOrTitle: req.title });
       break;
     }
     case 'create_task': {
@@ -243,11 +251,13 @@ function buildActionEnrichment(
       triggerCondition = `Task "${task?.title || payload.taskId}" status transition recommended.`;
       changeDescription = `Update status of Task "${task?.title || payload.taskId}" to "${payload.status}".`;
       currentValue = { status: task?.status };
-      if (task) referencedRecords.push({ entityType: 'task', id: task.id, nameOrTitle: task.title });
+      if (task)
+        referencedRecords.push({ entityType: 'task', id: task.id, nameOrTitle: task.title });
       break;
     }
     case 'create_requirement': {
-      triggerCondition = 'Source brief contains deliverable obligation not yet captured in canonical requirements.';
+      triggerCondition =
+        'Source brief contains deliverable obligation not yet captured in canonical requirements.';
       changeDescription = `Add new draft requirement: "${payload.title || desc}".`;
       break;
     }
@@ -264,9 +274,16 @@ function buildActionEnrichment(
       currentValue,
       proposedValue,
     },
-    referencedRecords: referencedRecords.length > 0 ? referencedRecords : [
-      { entityType: 'project' as const, id: context.project.id, nameOrTitle: context.project.name }
-    ],
+    referencedRecords:
+      referencedRecords.length > 0
+        ? referencedRecords
+        : [
+            {
+              entityType: 'project' as const,
+              id: context.project.id,
+              nameOrTitle: context.project.name,
+            },
+          ],
   };
 }
 
@@ -286,8 +303,7 @@ export async function generateCopilotReport(
   },
 ): Promise<CopilotReport> {
   const providerType =
-    providerOverride ||
-    (typeof config === 'string' ? config : config.aiProvider || 'nebius');
+    providerOverride || (typeof config === 'string' ? config : config.aiProvider || 'nebius');
 
   // 1. Identify source records used for grounding
   const sourceRecords: SourceRecord[] = [
@@ -330,7 +346,13 @@ export async function generateCopilotReport(
 
   // 3. Compute grounded evidence gaps
   const evidenceGaps: EvidenceGap[] = context.requirements
-    .filter((r) => (r.evidenceCount ?? 0) === 0)
+    .filter((r) => {
+      const count =
+        r.evidenceCount !== undefined
+          ? r.evidenceCount
+          : context.evidence.filter((e) => e.requirementId === r.id).length;
+      return count === 0;
+    })
     .map((r) => ({
       requirementId: r.id,
       requirementTitle: r.title,
@@ -352,7 +374,7 @@ export async function generateCopilotReport(
   const freshness = computeFreshness(context, options?.lastReportGeneratedAt);
 
   // 8. Determine delivery workflow stage
-  let workflowStage: CopilotWorkflowStage = 'brief_ingestion';
+  let workflowStage: CopilotWorkflowStage;
   if (context.briefRevisions.length === 0) {
     workflowStage = 'brief_ingestion';
   } else if (context.requirements.length === 0) {
@@ -491,19 +513,13 @@ export async function generateCopilotReport(
   }
 
   // 11. Resolve configured AI runtime dynamically (default Nebius Token Factory with dynamic discovery or user BYOK)
-  const resolved = await resolveAiProvider(
-    config,
-    undefined,
-    sessionApiKey,
-    providerOverride,
-    {
-      modelOverride: options?.modelOverride,
-      roleProfile: options?.roleProfile,
-      defaultRole: 'balanced', // Delivery Agent ledger analysis uses balanced profile by default
-      workspaceId: context.workspaceId,
-      userId: requesterId,
-    },
-  );
+  const resolved = await resolveAiProvider(config, undefined, sessionApiKey, providerOverride, {
+    modelOverride: options?.modelOverride,
+    roleProfile: options?.roleProfile,
+    defaultRole: 'balanced', // Delivery Agent ledger analysis uses balanced profile by default
+    workspaceId: context.workspaceId,
+    userId: requesterId,
+  });
   const provider = resolved.provider;
   const isNebius = provider instanceof NebiusTokenFactoryProvider;
   let modelUsed = resolved.modelId;
@@ -543,7 +559,7 @@ CRITICAL SECURITY & BEHAVIORAL RULES:
     {
       "actionType": "create_requirement"|"link_task_requirement"|"request_evidence"|"create_task"|"update_task",
       "description": "Human-readable action description",
-      "groundingReference": "Exact citation from brief or record ID (e.g. 'Brief quote: \"...\"' or 'Requirement: <uuid>')",
+      "groundingReference": "Exact citation from brief or record ID (e.g. Brief quote or Requirement: <uuid>)",
       "triggerCondition": "Explicit reason why this action is recommended now",
       "payload": {}
     }
@@ -591,7 +607,7 @@ ${JSON.stringify(sanitizedContextPayload, null, 2)}
 
 Analyze these delivery ledger records. Formulate the delivery status, identify blockers and gaps, explain the most useful next action, and generate bounded action proposals in valid JSON now.`;
 
-  let responseContent = '';
+  let responseContent: string;
 
   if (provider instanceof NebiusTokenFactoryProvider) {
     const res = await provider.callChatCompletions([
@@ -649,17 +665,9 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
     const actionType = raw.actionType;
     const desc = String(raw.description).trim();
     const payload = typeof raw.payload === 'object' && raw.payload !== null ? raw.payload : {};
-    const groundingRef = String(
-      raw.groundingReference || `Project: ${context.project.id}`,
-    ).trim();
+    const groundingRef = String(raw.groundingReference || `Project: ${context.project.id}`).trim();
 
-    const enrichment = buildActionEnrichment(
-      actionType,
-      desc,
-      payload,
-      context,
-      groundingRef,
-    );
+    const enrichment = buildActionEnrichment(actionType, desc, payload, context, groundingRef);
 
     validatedProposedActions.push({
       proposalId: computeProposalId(actionType, desc, payload),
@@ -668,7 +676,9 @@ Analyze these delivery ledger records. Formulate the delivery status, identify b
       groundingReference: groundingRef,
       isInference: true,
       payload,
-      triggerCondition: raw.triggerCondition ? String(raw.triggerCondition).trim() : enrichment.triggerCondition,
+      triggerCondition: raw.triggerCondition
+        ? String(raw.triggerCondition).trim()
+        : enrichment.triggerCondition,
       actionCategory: enrichment.actionCategory,
       diffPreview: enrichment.diffPreview,
       referencedRecords: enrichment.referencedRecords,
@@ -747,8 +757,7 @@ export async function generateDeliveryPlan(
   inputHash: string;
 }> {
   const providerType =
-    providerOverride ||
-    (typeof config === 'string' ? config : config.aiProvider || 'nebius');
+    providerOverride || (typeof config === 'string' ? config : config.aiProvider || 'nebius');
 
   // Grounding base
   const latestBrief = context.briefRevisions[0] ?? null;
@@ -758,11 +767,15 @@ export async function generateDeliveryPlan(
 
   // 1. Mock Deterministic Delivery Plan
   if (providerType === 'mock') {
-    const coverageRequirements = existingReqs.map((r, i) => {
+    const coverageRequirements = existingReqs.map((r) => {
       const linkedTasks = context.tasks.filter((t) => t.linkedRequirementIds?.includes(r.id));
       const hasTasks = linkedTasks.length > 0;
       const hasEv = (r.evidenceCount ?? 0) > 0;
-      const status = computeRequirementCoverageStatus({ hasLinkedTasks: hasTasks, hasEvidence: hasEv, isVerified: r.status === 'verified' });
+      const status = computeRequirementCoverageStatus({
+        hasLinkedTasks: hasTasks,
+        hasEvidence: hasEv,
+        isVerified: r.status === 'verified',
+      });
 
       return {
         requirementId: r.id,
@@ -770,7 +783,9 @@ export async function generateDeliveryPlan(
         category: r.category as any,
         priority: r.priority as any,
         coverageStatus: status,
-        sourceReference: r.sourceReference || (latestBrief ? `Brief Rev #${latestBrief.revisionNumber}` : 'Project Scope'),
+        sourceReference:
+          r.sourceReference ||
+          (latestBrief ? `Brief Rev #${latestBrief.revisionNumber}` : 'Project Scope'),
         rationale: hasTasks
           ? `Work established in task ledger; requires verifiable proof artifact for sign-off.`
           : `Proposed execution task generated to fulfill requirement.`,
@@ -781,11 +796,16 @@ export async function generateDeliveryPlan(
     });
 
     const covered = coverageRequirements.filter((r) => r.coverageStatus === 'covered').length;
-    const partiallyCovered = coverageRequirements.filter((r) => r.coverageStatus === 'partially_covered').length;
+    const partiallyCovered = coverageRequirements.filter(
+      (r) => r.coverageStatus === 'partially_covered',
+    ).length;
     const uncovered = coverageRequirements.filter((r) => r.coverageStatus === 'uncovered').length;
-    const needsClarification = coverageRequirements.filter((r) => r.coverageStatus === 'needs_clarification').length;
+    const needsClarification = coverageRequirements.filter(
+      (r) => r.coverageStatus === 'needs_clarification',
+    ).length;
     const total = coverageRequirements.length;
-    const percentCovered = total > 0 ? Math.round(((covered + partiallyCovered * 0.5) / total) * 100) : 0;
+    const percentCovered =
+      total > 0 ? Math.round(((covered + partiallyCovered * 0.5) / total) * 100) : 0;
 
     const mockPlanDraft: DeliveryPlanDraft = {
       summary: `Delivery plan formulated for "${context.project.name}". Establishes requirement-to-proof linkage across ${total} requirement(s).`,
@@ -810,7 +830,13 @@ export async function generateDeliveryPlan(
             evidenceNeeded: cr.evidenceNeeded[0] || 'Verification proof artifact',
             ownerSuggestion: memberNames[0] || null,
             dueDate: context.project.deadline || null,
-            dependencyTitles: idx > 0 && coverageRequirements[idx - 1] ? [coverageRequirements[idx - 1]!.proposedTaskTitles[0] || `Deliver ${coverageRequirements[idx - 1]!.requirementTitle}`] : [],
+            dependencyTitles:
+              idx > 0 && coverageRequirements[idx - 1]
+                ? [
+                    coverageRequirements[idx - 1]!.proposedTaskTitles[0] ||
+                      `Deliver ${coverageRequirements[idx - 1]!.requirementTitle}`,
+                  ]
+                : [],
           })),
         },
       ],
@@ -821,31 +847,30 @@ export async function generateDeliveryPlan(
       risks: [
         'Task completion without attached proof will leave requirements in unverified status.',
       ],
-      openQuestions: total === 0 ? ['No requirements exist yet. Ingest a project brief to extract candidate requirements.'] : [],
+      openQuestions:
+        total === 0
+          ? ['No requirements exist yet. Ingest a project brief to extract candidate requirements.']
+          : [],
     };
 
     return {
       draft: mockPlanDraft,
       provider: 'mock',
       model: 'deterministic-delivery-plan-v1',
-      inputHash: computeProposalId('delivery_plan', context.project.id, { totalRequirements: total }),
+      inputHash: computeProposalId('delivery_plan', context.project.id, {
+        totalRequirements: total,
+      }),
     };
   }
 
   // 2. Live NVIDIA Nemotron / BYOK Execution
-  const resolved = await resolveAiProvider(
-    config,
-    undefined,
-    sessionApiKey,
-    providerOverride,
-    {
-      modelOverride: options?.modelOverride,
-      roleProfile: options?.roleProfile || 'deep_reasoning', // Delivery planning benefits from deep reasoning
-      defaultRole: 'deep_reasoning',
-      workspaceId: context.workspaceId,
-      userId: requesterId,
-    },
-  );
+  const resolved = await resolveAiProvider(config, undefined, sessionApiKey, providerOverride, {
+    modelOverride: options?.modelOverride,
+    roleProfile: options?.roleProfile || 'deep_reasoning', // Delivery planning benefits from deep reasoning
+    defaultRole: 'deep_reasoning',
+    workspaceId: context.workspaceId,
+    userId: requesterId,
+  });
 
   const provider = resolved.provider;
   let modelUsed = resolved.modelId;
@@ -912,7 +937,14 @@ CRITICAL RULES:
 
   const promptPayload = {
     project: context.project,
-    latestBriefRevision: latestBrief ? { id: latestBrief.id, revisionNumber: latestBrief.revisionNumber, title: latestBrief.title, content: latestBrief.content.slice(0, 15000) } : null,
+    latestBriefRevision: latestBrief
+      ? {
+          id: latestBrief.id,
+          revisionNumber: latestBrief.revisionNumber,
+          title: latestBrief.title,
+          content: latestBrief.content.slice(0, 15000),
+        }
+      : null,
     existingRequirements: existingReqs.map((r) => ({
       id: r.id,
       title: r.title,
@@ -920,7 +952,9 @@ CRITICAL RULES:
       priority: r.priority,
       status: r.status,
       sourceReference: r.sourceReference,
-      linkedTasks: context.tasks.filter((t) => t.linkedRequirementIds?.includes(r.id)).map((t) => t.title),
+      linkedTasks: context.tasks
+        .filter((t) => t.linkedRequirementIds?.includes(r.id))
+        .map((t) => t.title),
       evidenceCount: r.evidenceCount,
     })),
     existingTasks: context.tasks.map((t) => ({ id: t.id, title: t.title, status: t.status })),
@@ -934,7 +968,7 @@ ${JSON.stringify(promptPayload, null, 2)}
 
 Formulate the complete, truthful Delivery Plan Draft linking requirements to tasks and required proof now.`;
 
-  let responseContent = '';
+  let responseContent: string;
   if (provider instanceof NebiusTokenFactoryProvider) {
     const res = await provider.callChatCompletions([
       { role: 'system', content: systemPrompt },
@@ -954,7 +988,9 @@ Formulate the complete, truthful Delivery Plan Draft linking requirements to tas
     responseContent = res.content;
     modelUsed = res.modelUsed || provider.model;
   } else {
-    throw new AiProviderValidationError(`Unsupported AI provider for delivery plan: ${provider.id}`);
+    throw new AiProviderValidationError(
+      `Unsupported AI provider for delivery plan: ${provider.id}`,
+    );
   }
 
   const jsonString = extractJsonFromResponse(responseContent);
@@ -969,7 +1005,11 @@ Formulate the complete, truthful Delivery Plan Draft linking requirements to tas
   }
 
   // Validate plan draft against domain rules
-  const valErrors = validateDeliveryPlanDraft(parsed as DeliveryPlanDraft, memberNames, projectDeadline);
+  const valErrors = validateDeliveryPlanDraft(
+    parsed as DeliveryPlanDraft,
+    memberNames,
+    projectDeadline,
+  );
   if (valErrors.length > 0) {
     // If soft errors, sanitize without failing
     if (!Array.isArray(parsed.milestones)) parsed.milestones = [];
@@ -1008,11 +1048,10 @@ export async function generateEvidenceReview(
   },
 ): Promise<EvidenceReviewAdvisory> {
   const providerType =
-    providerOverride ||
-    (typeof config === 'string' ? config : config.aiProvider || 'nebius');
+    providerOverride || (typeof config === 'string' ? config : config.aiProvider || 'nebius');
 
   const linkedTask = evidenceItem.taskId
-    ? context.tasks.find((t) => t.id === evidenceItem.taskId) ?? null
+    ? (context.tasks.find((t) => t.id === evidenceItem.taskId) ?? null)
     : null;
 
   // 1. Mock Deterministic Review
@@ -1028,13 +1067,19 @@ export async function generateEvidenceReview(
       confidence: hasSubstance ? 'high' : 'medium',
       strengths: [
         `Explicitly references requirement "${targetRequirement.title}".`,
-        isUrl ? `Provides direct inspectable link to proof URL.` : 'Includes structured technical verification notes.',
+        isUrl
+          ? `Provides direct inspectable link to proof URL.`
+          : 'Includes structured technical verification notes.',
       ],
-      deficiencies: hasSubstance ? [] : [
-        'Artifact content is brief; reviewer should verify supporting test results or logs before certifying.',
-      ],
+      deficiencies: hasSubstance
+        ? []
+        : [
+            'Artifact content is brief; reviewer should verify supporting test results or logs before certifying.',
+          ],
       stalenessOrScopeWarning: null,
-      suggestedClarification: hasSubstance ? null : 'Request automated test log output or staging verification screenshot.',
+      suggestedClarification: hasSubstance
+        ? null
+        : 'Request automated test log output or staging verification screenshot.',
       sourceCitation: `Evidence: ${evidenceItem.id} -> Requirement: ${targetRequirement.id}`,
       evaluatedAt: new Date().toISOString(),
       provider: 'mock',
@@ -1043,19 +1088,13 @@ export async function generateEvidenceReview(
   }
 
   // 2. Live NVIDIA Nemotron Analysis
-  const resolved = await resolveAiProvider(
-    config,
-    undefined,
-    sessionApiKey,
-    providerOverride,
-    {
-      modelOverride: options?.modelOverride,
-      roleProfile: options?.roleProfile || 'balanced',
-      defaultRole: 'balanced',
-      workspaceId: context.workspaceId,
-      userId: requesterId,
-    },
-  );
+  const resolved = await resolveAiProvider(config, undefined, sessionApiKey, providerOverride, {
+    modelOverride: options?.modelOverride,
+    roleProfile: options?.roleProfile || 'balanced',
+    defaultRole: 'balanced',
+    workspaceId: context.workspaceId,
+    userId: requesterId,
+  });
 
   const provider = resolved.provider;
   let modelUsed = resolved.modelId;
@@ -1104,7 +1143,7 @@ ${linkedTask ? `<LINKED_TASK>\nID: ${linkedTask.id}\nTitle: ${linkedTask.title}\
 
 Conduct the advisory audit and respond in valid JSON now.`;
 
-  let responseContent = '';
+  let responseContent: string;
   if (provider instanceof NebiusTokenFactoryProvider) {
     const res = await provider.callChatCompletions([
       { role: 'system', content: systemPrompt },
@@ -1142,15 +1181,25 @@ Conduct the advisory audit and respond in valid JSON now.`;
     evidenceId: evidenceItem.id,
     requirementId: targetRequirement.id,
     summary: parsed.summary || `Advisory evaluation of evidence artifact "${evidenceItem.title}".`,
-    advisoryRecommendation: ['accept', 'request_more_proof', 'human_review'].includes(parsed.advisoryRecommendation)
+    advisoryRecommendation: ['accept', 'request_more_proof', 'human_review'].includes(
+      parsed.advisoryRecommendation,
+    )
       ? parsed.advisoryRecommendation
       : 'human_review',
-    confidence: ['high', 'medium', 'low'].includes(parsed.confidence) ? parsed.confidence : 'medium',
+    confidence: ['high', 'medium', 'low'].includes(parsed.confidence)
+      ? parsed.confidence
+      : 'medium',
     strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
     deficiencies: Array.isArray(parsed.deficiencies) ? parsed.deficiencies.map(String) : [],
-    stalenessOrScopeWarning: parsed.stalenessOrScopeWarning ? String(parsed.stalenessOrScopeWarning) : null,
-    suggestedClarification: parsed.suggestedClarification ? String(parsed.suggestedClarification) : null,
-    sourceCitation: parsed.sourceCitation ? String(parsed.sourceCitation) : `Evidence: ${evidenceItem.id} -> Requirement: ${targetRequirement.id}`,
+    stalenessOrScopeWarning: parsed.stalenessOrScopeWarning
+      ? String(parsed.stalenessOrScopeWarning)
+      : null,
+    suggestedClarification: parsed.suggestedClarification
+      ? String(parsed.suggestedClarification)
+      : null,
+    sourceCitation: parsed.sourceCitation
+      ? String(parsed.sourceCitation)
+      : `Evidence: ${evidenceItem.id} -> Requirement: ${targetRequirement.id}`,
     evaluatedAt: new Date().toISOString(),
     provider: provider.id,
     model: modelUsed,
@@ -1182,14 +1231,19 @@ export async function answerProjectQuery(
   model: string;
 }> {
   const providerType =
-    providerOverride ||
-    (typeof config === 'string' ? config : config.aiProvider || 'nebius');
+    providerOverride || (typeof config === 'string' ? config : config.aiProvider || 'nebius');
 
   const sourceRecords: SourceRecord[] = [
     { entityType: 'project', id: context.project.id, nameOrTitle: context.project.name },
-    ...context.requirements.slice(0, 10).map((r) => ({ entityType: 'requirement' as const, id: r.id, nameOrTitle: r.title })),
-    ...context.tasks.slice(0, 10).map((t) => ({ entityType: 'task' as const, id: t.id, nameOrTitle: t.title })),
-    ...context.evidence.slice(0, 10).map((e) => ({ entityType: 'evidence' as const, id: e.id, nameOrTitle: e.title })),
+    ...context.requirements
+      .slice(0, 10)
+      .map((r) => ({ entityType: 'requirement' as const, id: r.id, nameOrTitle: r.title })),
+    ...context.tasks
+      .slice(0, 10)
+      .map((t) => ({ entityType: 'task' as const, id: t.id, nameOrTitle: t.title })),
+    ...context.evidence
+      .slice(0, 10)
+      .map((e) => ({ entityType: 'evidence' as const, id: e.id, nameOrTitle: e.title })),
   ];
 
   if (providerType === 'mock') {
@@ -1204,19 +1258,13 @@ export async function answerProjectQuery(
     };
   }
 
-  const resolved = await resolveAiProvider(
-    config,
-    undefined,
-    sessionApiKey,
-    providerOverride,
-    {
-      modelOverride: options?.modelOverride,
-      roleProfile: options?.roleProfile || 'fast',
-      defaultRole: 'fast',
-      workspaceId: context.workspaceId,
-      userId: requesterId,
-    },
-  );
+  const resolved = await resolveAiProvider(config, undefined, sessionApiKey, providerOverride, {
+    modelOverride: options?.modelOverride,
+    roleProfile: options?.roleProfile || 'fast',
+    defaultRole: 'fast',
+    workspaceId: context.workspaceId,
+    userId: requesterId,
+  });
 
   const provider = resolved.provider;
   let modelUsed = resolved.modelId;
@@ -1231,9 +1279,25 @@ CRITICAL RULES:
   const ledgerSummary = {
     project: context.project,
     latestBrief: context.briefRevisions[0] ?? null,
-    requirements: context.requirements.map((r) => ({ id: r.id, title: r.title, category: r.category, status: r.status, evidenceCount: r.evidenceCount })),
-    tasks: context.tasks.map((t) => ({ id: t.id, title: t.title, status: t.status, priority: t.priority })),
-    evidence: context.evidence.map((e) => ({ id: e.id, title: e.title, type: e.type, requirementId: e.requirementId })),
+    requirements: context.requirements.map((r) => ({
+      id: r.id,
+      title: r.title,
+      category: r.category,
+      status: r.status,
+      evidenceCount: r.evidenceCount,
+    })),
+    tasks: context.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      priority: t.priority,
+    })),
+    evidence: context.evidence.map((e) => ({
+      id: e.id,
+      title: e.title,
+      type: e.type,
+      requirementId: e.requirementId,
+    })),
   };
 
   const userPrompt = `<PROJECT_RECORDS>
@@ -1244,7 +1308,7 @@ User question: ${question}
 
 Provide a truthful, grounded answer with explicit citations now.`;
 
-  let responseContent = '';
+  let responseContent: string;
   if (provider instanceof NebiusTokenFactoryProvider) {
     const res = await provider.callChatCompletions([
       { role: 'system', content: systemPrompt },

@@ -611,7 +611,10 @@ export function validateDeliveryPlanDraft(
   }
 
   if (!Array.isArray(plan.milestones) || plan.milestones.length === 0) {
-    errors.push({ path: 'milestones', message: 'At least one milestone is required in delivery plan' });
+    errors.push({
+      path: 'milestones',
+      message: 'At least one milestone is required in delivery plan',
+    });
   }
 
   const allTaskTitles = new Set<string>();
@@ -624,7 +627,10 @@ export function validateDeliveryPlanDraft(
     if (milestone.dueDate) {
       const date = new Date(milestone.dueDate);
       if (isNaN(date.getTime())) {
-        errors.push({ path: `milestones[${mi}].dueDate`, message: 'Invalid milestone due date format' });
+        errors.push({
+          path: `milestones[${mi}].dueDate`,
+          message: 'Invalid milestone due date format',
+        });
       } else if (projectDeadline && date > projectDeadline) {
         errors.push({
           path: `milestones[${mi}].dueDate`,
@@ -665,4 +671,3 @@ export function validateDeliveryPlanDraft(
 
   return errors;
 }
-

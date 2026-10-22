@@ -65,11 +65,11 @@ export class PortfolioAuditJobService {
     // 2. Determine execution target
     const hasNebiusJobsCloud = Boolean(
       config.nebiusJobsEndpoint &&
-        config.nebiusJobsEndpoint.trim().length > 0 &&
-        config.nebiusJobsApiKey &&
-        config.nebiusJobsApiKey.trim().length > 0 &&
-        config.nebiusJobsProjectId &&
-        config.nebiusJobsProjectId.trim().length > 0,
+      config.nebiusJobsEndpoint.trim().length > 0 &&
+      config.nebiusJobsApiKey &&
+      config.nebiusJobsApiKey.trim().length > 0 &&
+      config.nebiusJobsProjectId &&
+      config.nebiusJobsProjectId.trim().length > 0,
     );
 
     if (input.executionTargetPreference === 'nebius_serverless_job') {
@@ -131,7 +131,10 @@ export class PortfolioAuditJobService {
     } else {
       // Local asynchronous simulation worker
       this.executeLocalJob(createdJob.id, input, config, db, logger).catch((err) => {
-        logger.error({ err, jobId: createdJob.id }, 'local portfolio audit worker encountered error');
+        logger.error(
+          { err, jobId: createdJob.id },
+          'local portfolio audit worker encountered error',
+        );
       });
     }
 
@@ -182,7 +185,11 @@ export class PortfolioAuditJobService {
   /**
    * Retrieves single job status.
    */
-  async getJob(jobId: string, workspaceId: string, db: Database): Promise<ServerlessJobRecord | null> {
+  async getJob(
+    jobId: string,
+    workspaceId: string,
+    db: Database,
+  ): Promise<ServerlessJobRecord | null> {
     const [job] = await db
       .select()
       .from(serverlessJobs)
@@ -261,10 +268,7 @@ export class PortfolioAuditJobService {
         .from(requirements)
         .where(inArray(requirements.projectId, projectIds));
 
-      const taskRows = await db
-        .select()
-        .from(tasks)
-        .where(inArray(tasks.projectId, projectIds));
+      const taskRows = await db.select().from(tasks).where(inArray(tasks.projectId, projectIds));
 
       const evidenceRows = await db
         .select()
@@ -293,7 +297,10 @@ export class PortfolioAuditJobService {
 
       const deliveryProofGapRate =
         completedTasks > 0
-          ? Math.max(0, Math.round(((completedTasks - verifiedRequirements) / completedTasks) * 100))
+          ? Math.max(
+              0,
+              Math.round(((completedTasks - verifiedRequirements) / completedTasks) * 100),
+            )
           : 0;
 
       const auditSummaryPayload = {
@@ -325,19 +332,13 @@ export class PortfolioAuditJobService {
       if (controller.signal.aborted) return;
 
       // 3. Resolve AI provider for deep reasoning (Nemotron 3 Ultra profile)
-      const resolved = await resolveAiProvider(
-        config,
-        undefined,
-        undefined,
-        undefined,
-        {
-          modelOverride: input.modelOverride,
-          roleProfile: input.roleProfile || 'deep_reasoning',
-          defaultRole: 'deep_reasoning',
-          workspaceId: input.workspaceId,
-          userId: input.userId,
-        },
-      );
+      const resolved = await resolveAiProvider(config, undefined, undefined, undefined, {
+        modelOverride: input.modelOverride,
+        roleProfile: input.roleProfile || 'deep_reasoning',
+        defaultRole: 'deep_reasoning',
+        workspaceId: input.workspaceId,
+        userId: input.userId,
+      });
 
       await db
         .update(serverlessJobs)
@@ -409,7 +410,8 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
       } catch {
         parsedAuditResult = {
           portfolioIntegrityScore: Math.max(10, 100 - deliveryProofGapRate),
-          integrityStatus: deliveryProofGapRate > 25 ? 'unverified_completion_alert' : 'evidence_lag',
+          integrityStatus:
+            deliveryProofGapRate > 25 ? 'unverified_completion_alert' : 'evidence_lag',
           executiveSummary: `Portfolio audit completed across ${projectList.length} project(s). ${completedTasks} completed task(s) evaluated against ${verifiedRequirements} verified requirement(s). Proof gap rate is ${deliveryProofGapRate}%.`,
           keyFindings: [
             `${unverifiedRequirements} requirement(s) lack formal human or automated verification.`,
@@ -511,7 +513,10 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
     }
 
     try {
-      logger.info({ jobId, endpoint, projectId }, 'initiating Nebius Serverless Job cloud dispatch');
+      logger.info(
+        { jobId, endpoint, projectId },
+        'initiating Nebius Serverless Job cloud dispatch',
+      );
 
       // Nebius AI Cloud Serverless Jobs require container image specification and IAM control-plane tokens.
       // Submit job specification matching deploy/nebius-serverless-jobs/job-spec.yaml
@@ -546,11 +551,17 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
         );
       }
 
-      const resData = (await response.json()) as { id?: string; metadata?: { id?: string }; status?: { state?: string } };
+      const resData = (await response.json()) as {
+        id?: string;
+        metadata?: { id?: string };
+        status?: { state?: string };
+      };
       const cloudId = resData.id || resData.metadata?.id || null;
 
       if (!cloudId) {
-        throw new Error('Nebius Serverless Jobs API did not return a valid cloud job identifier in the response.');
+        throw new Error(
+          'Nebius Serverless Jobs API did not return a valid cloud job identifier in the response.',
+        );
       }
 
       // Do not mark as running until verified by cloud provider response state
@@ -569,10 +580,7 @@ Produce the truthful portfolio audit analysis in valid JSON now.`;
       logger.info({ jobId, cloudJobId: cloudId }, 'Nebius Serverless Job dispatched to cloud');
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      logger.error(
-        { err, jobId },
-        'Nebius Serverless Jobs cloud dispatch failed',
-      );
+      logger.error({ err, jobId }, 'Nebius Serverless Jobs cloud dispatch failed');
       // Mark as failed instead of silently executing a second billable execution without informing user
       await db
         .update(serverlessJobs)

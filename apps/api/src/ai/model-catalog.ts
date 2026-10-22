@@ -1,6 +1,16 @@
 import { createHash } from 'node:crypto';
-import type { DiscoveredModel, ModelCatalogResponse, ModelPreferences, ModelRoleProfile } from '@projectpilot/contracts';
-import { AiProviderAuthError, AiProviderError, AiProviderRateLimitError, AiProviderTimeoutError } from './types.js';
+import type {
+  DiscoveredModel,
+  ModelCatalogResponse,
+  ModelPreferences,
+  ModelRoleProfile,
+} from '@projectpilot/contracts';
+import {
+  AiProviderAuthError,
+  AiProviderError,
+  AiProviderRateLimitError,
+  AiProviderTimeoutError,
+} from './types.js';
 
 interface CacheEntry {
   data: ModelCatalogResponse;
@@ -21,7 +31,9 @@ export class NebiusModelCatalogService {
    * Model catalog responses are strictly scoped to the exact key that requested them.
    */
   private getCacheKey(apiKey: string, baseUrl: string): string {
-    return createHash('sha256').update(`${apiKey.trim()}:${baseUrl.trim().toLowerCase()}`).digest('hex');
+    return createHash('sha256')
+      .update(`${apiKey.trim()}:${baseUrl.trim().toLowerCase()}`)
+      .digest('hex');
   }
 
   /**
@@ -132,7 +144,10 @@ export class NebiusModelCatalogService {
 
     // Parse models list
     const rawList =
-      rawData && typeof rawData === 'object' && 'data' in rawData && Array.isArray((rawData as { data: unknown }).data)
+      rawData &&
+      typeof rawData === 'object' &&
+      'data' in rawData &&
+      Array.isArray((rawData as { data: unknown }).data)
         ? (rawData as { data: unknown[] }).data
         : Array.isArray(rawData)
           ? rawData
@@ -193,8 +208,14 @@ export class NebiusModelCatalogService {
       if (m['pricing'] && typeof m['pricing'] === 'object') {
         const p = m['pricing'] as Record<string, unknown>;
         pricing = {
-          prompt: typeof p['prompt'] === 'string' || typeof p['prompt'] === 'number' ? (p['prompt'] as string | number) : undefined,
-          completion: typeof p['completion'] === 'string' || typeof p['completion'] === 'number' ? (p['completion'] as string | number) : undefined,
+          prompt:
+            typeof p['prompt'] === 'string' || typeof p['prompt'] === 'number'
+              ? (p['prompt'] as string | number)
+              : undefined,
+          completion:
+            typeof p['completion'] === 'string' || typeof p['completion'] === 'number'
+              ? (p['completion'] as string | number)
+              : undefined,
         };
       }
 
@@ -233,7 +254,8 @@ export class NebiusModelCatalogService {
     // Do NOT assign any model to a role merely because it is the only Nemotron model in the catalog.
     const fastCandidate = nemotronModels.find((m) => m.roleSuggestion === 'fast') || null;
     const balancedCandidate = nemotronModels.find((m) => m.roleSuggestion === 'balanced') || null;
-    const deepReasoningCandidate = nemotronModels.find((m) => m.roleSuggestion === 'deep_reasoning') || null;
+    const deepReasoningCandidate =
+      nemotronModels.find((m) => m.roleSuggestion === 'deep_reasoning') || null;
 
     const catalogResult: ModelCatalogResponse = {
       provider: 'nebius',
@@ -310,7 +332,10 @@ export class NebiusModelCatalogService {
       if (savedModel) {
         return {
           modelId: savedModel.id,
-          modelRole: savedModel.roleSuggestion !== 'unclassified' ? savedModel.roleSuggestion : 'user_preferred',
+          modelRole:
+            savedModel.roleSuggestion !== 'unclassified'
+              ? savedModel.roleSuggestion
+              : 'user_preferred',
           routingReason: `User-selected preferred model: "${savedModel.id}" (${savedModel.displayName})`,
           displayName: savedModel.displayName,
           isNemotron: savedModel.isNemotron,

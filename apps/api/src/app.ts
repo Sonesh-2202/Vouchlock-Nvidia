@@ -137,7 +137,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
       (errMessage.includes('relation') && errMessage.includes('does not exist'));
 
     if (isDbError) {
-      let friendlyMessage = 'Database service is unavailable. Please verify PostgreSQL is running and reachable.';
+      let friendlyMessage =
+        'Database service is unavailable. Please verify PostgreSQL is running and reachable.';
       if (errMessage.includes('ECONNREFUSED') || err.code === 'ECONNREFUSED') {
         friendlyMessage =
           'Database connection refused. PostgreSQL is not reachable at the configured host/port in DATABASE_URL. Please verify PostgreSQL is running or start it via Docker (docker compose up -d postgres).';

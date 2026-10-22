@@ -44,7 +44,6 @@ export type {
   ProjectChangeRecord,
 };
 
-
 export interface CopilotProjectContext {
   id: string;
   name: string;
@@ -137,4 +136,3 @@ export interface CopilotContext {
   memberNames: string[];
   changeRecords: ProjectChangeRecord[];
 }
-

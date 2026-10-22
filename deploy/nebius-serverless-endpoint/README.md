@@ -56,6 +56,7 @@ docker push cr.nemax.nebius.cloud/<NEBIUS_PROJECT_ID>/vouchlock:latest
 ### 2. Configure Secrets in Nebius Lockbox
 
 Create secret objects in Nebius Lockbox:
+
 - `vouchlock-db-url`: `postgresql://<user>:<password>@<db-host>:5432/<db-name>?sslmode=require`
 - `vouchlock-jwt-secret`: Cryptographically secure secret (minimum 32 characters)
 - `vouchlock-token-factory-key`: Your Nebius Token Factory API key
@@ -69,6 +70,7 @@ nebius serverless endpoint create -f deploy/nebius-serverless-endpoint/endpoint.
 ```
 
 Alternatively, use the Nebius Web Console:
+
 1. Navigate to **Serverless Endpoints** -> **Create Endpoint**.
 2. Select your container image: `cr.nemax.nebius.cloud/<NEBIUS_PROJECT_ID>/vouchlock:latest`.
 3. Set listening port to `8080`.

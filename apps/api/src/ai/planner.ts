@@ -122,9 +122,7 @@ export async function resolveAiProvider(
 
   const isConfigObj = typeof config === 'object' && config !== null;
   const requestedProvider =
-    providerOverride ||
-    (isConfigObj ? config.aiProvider : config) ||
-    'nebius';
+    providerOverride || (isConfigObj ? config.aiProvider : config) || 'nebius';
   const providerType = requestedProvider.toLowerCase().trim();
 
   if (providerType === 'mock') {
@@ -284,9 +282,7 @@ export function getAiProvider(
 
   const isConfigObj = typeof config === 'object' && config !== null;
   const requestedProvider =
-    providerOverride ||
-    (isConfigObj ? config.aiProvider : config) ||
-    'nebius';
+    providerOverride || (isConfigObj ? config.aiProvider : config) || 'nebius';
   const providerType = requestedProvider.toLowerCase().trim();
 
   if (providerType === 'mock') {
@@ -339,17 +335,26 @@ export function getAiProvider(
 
   if (providerType === 'gemini') {
     const apiKey =
-      sessionApiKey ||
-      (isConfigObj ? config.aiApiKey : '') ||
-      process.env['AI_API_KEY'] ||
-      '';
+      sessionApiKey || (isConfigObj ? config.aiApiKey : '') || process.env['AI_API_KEY'] || '';
     return new GeminiProvider({
       apiKey,
       model: modelOverride || (isConfigObj ? config.aiModel : '') || 'gemini-3.8-flash',
     });
   }
 
-  throw new AiProviderError(`Unsupported AI provider: "${providerType}".`, 'unknown_provider', false);
+  if (providerType === 'anthropic') {
+    throw new AiProviderError(
+      'Anthropic Claude adapter is unvalidated in current test matrix.',
+      'unsupported_provider',
+      false,
+    );
+  }
+
+  throw new AiProviderError(
+    `Unsupported AI provider: "${providerType}".`,
+    'unknown_provider',
+    false,
+  );
 }
 
 /**
@@ -374,9 +379,12 @@ export async function generatePlan(
   maybeOptions?: PlannerExecutionOptions,
 ): Promise<PlanGenerationResult> {
   const isCustomProvider =
-    customProviderOrOptions && typeof (customProviderOrOptions as AiProvider).generatePlan === 'function';
+    customProviderOrOptions &&
+    typeof (customProviderOrOptions as AiProvider).generatePlan === 'function';
   const customProvider = isCustomProvider ? (customProviderOrOptions as AiProvider) : undefined;
-  const options = isCustomProvider ? maybeOptions : (customProviderOrOptions as PlannerExecutionOptions | undefined);
+  const options = isCustomProvider
+    ? maybeOptions
+    : (customProviderOrOptions as PlannerExecutionOptions | undefined);
 
   const inputHash = computeInputHash(input);
   const resolved = await resolveAiProvider(
@@ -423,9 +431,12 @@ export async function extractRequirementsProposal(
   maybeOptions?: PlannerExecutionOptions,
 ): Promise<ProposalExtractionResult> {
   const isCustomProvider =
-    customProviderOrOptions && typeof (customProviderOrOptions as AiProvider).extractRequirements === 'function';
+    customProviderOrOptions &&
+    typeof (customProviderOrOptions as AiProvider).extractRequirements === 'function';
   const customProvider = isCustomProvider ? (customProviderOrOptions as AiProvider) : undefined;
-  const options = isCustomProvider ? maybeOptions : (customProviderOrOptions as PlannerExecutionOptions | undefined);
+  const options = isCustomProvider
+    ? maybeOptions
+    : (customProviderOrOptions as PlannerExecutionOptions | undefined);
 
   const inputHash = computeBriefHash(input.briefText);
   const resolved = await resolveAiProvider(

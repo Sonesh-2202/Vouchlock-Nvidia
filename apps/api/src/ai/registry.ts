@@ -70,10 +70,11 @@ export function isProviderTested(id: string): boolean {
   return desc?.tested === true;
 }
 
-/**
- * Returns only production-advertised providers for user-facing and API consumers.
- * Internal mock fixtures are excluded from product selection.
- */
-export function listSupportedProviders(): ProviderDescriptor[] {
-  return Object.values(PROVIDER_REGISTRY).filter((p) => p.advertised !== false);
+export function listSupportedProviders(options?: {
+  advertisedOnly?: boolean;
+}): ProviderDescriptor[] {
+  if (options?.advertisedOnly) {
+    return Object.values(PROVIDER_REGISTRY).filter((p) => p.advertised !== false);
+  }
+  return Object.values(PROVIDER_REGISTRY);
 }

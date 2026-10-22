@@ -92,7 +92,9 @@ export function ProjectPage() {
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [selectedCopilotProvider, setSelectedCopilotProvider] = useState<string>('nebius');
   const [selectedModelOverride, setSelectedModelOverride] = useState<string>('');
-  const [selectedRoleProfile, setSelectedRoleProfile] = useState<'fast' | 'balanced' | 'deep_reasoning'>('balanced');
+  const [selectedRoleProfile, setSelectedRoleProfile] = useState<
+    'fast' | 'balanced' | 'deep_reasoning'
+  >('balanced');
   const [selectedAgentBriefId, setSelectedAgentBriefId] = useState<string>('');
   const [showCopilotSettings, setShowCopilotSettings] = useState(false);
   const [lastActionNotice, setLastActionNotice] = useState<{
@@ -113,6 +115,8 @@ export function ProjectPage() {
   // Delivery Plan Draft State
   const [deliveryPlan, setDeliveryPlan] = useState<DeliveryPlanDraft | null>(null);
   const [deliveryPlanGenId, setDeliveryPlanGenId] = useState<string | null>(null);
+  const [deliveryPlanProvider, setDeliveryPlanProvider] = useState<string | null>(null);
+  const [deliveryPlanModel, setDeliveryPlanModel] = useState<string | null>(null);
   const [loadingDeliveryPlan, setLoadingDeliveryPlan] = useState(false);
   const [showDeliveryPlanModal, setShowDeliveryPlanModal] = useState(false);
   const [acceptingDeliveryPlan, setAcceptingDeliveryPlan] = useState(false);
@@ -450,16 +454,21 @@ export function ProjectPage() {
     setCopilotError(null);
     try {
       const res = await api.copilot.generateDeliveryPlan(id, {
-        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        providerOverride:
+          selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
         modelOverride: selectedModelOverride || undefined,
         roleProfile: selectedRoleProfile,
         briefRevisionId: selectedAgentBriefId || undefined,
       });
-      setDeliveryPlan(res.plan);
+      setDeliveryPlan(res.plan || res.draft || null);
       setDeliveryPlanGenId(res.generationId);
+      setDeliveryPlanProvider(res.provider || null);
+      setDeliveryPlanModel(res.model || null);
       setShowDeliveryPlanModal(true);
     } catch (err: any) {
-      setCopilotError(err?.error?.message || err?.message || 'Failed to generate delivery plan draft.');
+      setCopilotError(
+        err?.error?.message || err?.message || 'Failed to generate delivery plan draft.',
+      );
     } finally {
       setLoadingDeliveryPlan(false);
     }
@@ -486,7 +495,11 @@ export function ProjectPage() {
   }
 
   // Advisory Evidence Review Handler
-  async function handleOpenEvidenceReview(evidenceId: string, title: string, requirementId?: string) {
+  async function handleOpenEvidenceReview(
+    evidenceId: string,
+    title: string,
+    requirementId?: string,
+  ) {
     setEvidenceReviewModal({ evidenceId, title, requirementId });
     setEvidenceReview(null);
     setEvidenceReviewError(null);
@@ -495,13 +508,16 @@ export function ProjectPage() {
       const res = await api.copilot.reviewEvidence({
         evidenceId,
         requirementId,
-        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        providerOverride:
+          selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
         modelOverride: selectedModelOverride || undefined,
         roleProfile: selectedRoleProfile,
       });
       setEvidenceReview(res.review);
     } catch (err: any) {
-      setEvidenceReviewError(err?.error?.message || err?.message || 'Failed to evaluate evidence advisory review.');
+      setEvidenceReviewError(
+        err?.error?.message || err?.message || 'Failed to evaluate evidence advisory review.',
+      );
     } finally {
       setLoadingEvidenceReview(false);
     }
@@ -517,14 +533,17 @@ export function ProjectPage() {
       const res = await api.copilot.askQuery({
         projectId: id,
         query: textToRun.trim(),
-        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        providerOverride:
+          selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
         modelOverride: selectedModelOverride || undefined,
         roleProfile: selectedRoleProfile,
       });
       setCopilotQueryResult(res);
       setCopilotQueryText(textToRun.trim());
     } catch (err: any) {
-      setCopilotQueryError(err?.error?.message || err?.message || 'Failed to query project records.');
+      setCopilotQueryError(
+        err?.error?.message || err?.message || 'Failed to query project records.',
+      );
     } finally {
       setCopilotQueryLoading(false);
     }
@@ -815,7 +834,8 @@ export function ProjectPage() {
     try {
       const res = await api.projects.proposals.extract(id, {
         briefRevisionId: selectedBrief.id,
-        providerOverride: selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
+        providerOverride:
+          selectedCopilotProvider !== 'nebius' ? selectedCopilotProvider : undefined,
         modelOverride: selectedModelOverride || undefined,
         roleProfile: selectedRoleProfile,
       });
@@ -1741,7 +1761,10 @@ export function ProjectPage() {
           </div>
 
           {/* ── Underlined Tab Bar with Shared Sliding Indicator (Sleek, Non-Clipping) ── */}
-          <div className="nav-fade-mask" style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+          <div
+            className="nav-fade-mask"
+            style={{ position: 'relative', width: '100%', overflow: 'hidden' }}
+          >
             <nav
               aria-label="Project views"
               className="flex items-center overflow-x-auto no-scrollbar whitespace-nowrap border-b border-zinc-800/60 gap-1.5 px-4"
@@ -1809,8 +1832,8 @@ export function ProjectPage() {
                           ? 'rgba(16, 185, 129, 0.15)'
                           : 'rgba(16, 185, 129, 0.05)'
                         : isSelected
-                        ? 'var(--bg-surface-elevated)'
-                        : 'transparent',
+                          ? 'var(--bg-surface-elevated)'
+                          : 'transparent',
                       border: tab.isAgent
                         ? isSelected
                           ? '1px solid var(--accent-primary)'
@@ -1821,15 +1844,15 @@ export function ProjectPage() {
                           ? '2px solid var(--accent-primary)'
                           : '1px solid rgba(16, 185, 129, 0.25)'
                         : isSelected
-                        ? '2px solid var(--accent-primary)'
-                        : '2px solid transparent',
+                          ? '2px solid var(--accent-primary)'
+                          : '2px solid transparent',
                       borderRadius: 'var(--radius-sm)',
                       padding: '8px 12px',
                       color: tab.isAgent
                         ? 'var(--accent-primary)'
                         : isSelected
-                        ? 'var(--text-primary)'
-                        : 'var(--text-muted)',
+                          ? 'var(--text-primary)'
+                          : 'var(--text-muted)',
                       fontWeight: isSelected ? 600 : 500,
                       cursor: 'pointer',
                       display: 'inline-flex',
@@ -1839,7 +1862,8 @@ export function ProjectPage() {
                       flexShrink: 0,
                       whiteSpace: 'nowrap',
                       minHeight: 38,
-                      boxShadow: tab.isAgent && isSelected ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none',
+                      boxShadow:
+                        tab.isAgent && isSelected ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none',
                       transition: 'all 160ms cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
@@ -1851,7 +1875,9 @@ export function ProjectPage() {
                         fontSize: '10px',
                         padding: '1px 5px',
                         borderRadius: 'var(--radius-full)',
-                        backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-surface)',
+                        backgroundColor: isSelected
+                          ? 'rgba(16, 185, 129, 0.2)'
+                          : 'var(--bg-surface)',
                         color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)',
                         border: '1px solid var(--border-subtle)',
                       }}
@@ -2069,7 +2095,8 @@ export function ProjectPage() {
                       lineHeight: '1.6',
                     }}
                   >
-                    The source brief forms the cryptographic root for requirement extraction and delivery audit trails.
+                    The source brief forms the cryptographic root for requirement extraction and
+                    delivery audit trails.
                   </p>
                   <button
                     type="button"
@@ -4747,7 +4774,9 @@ export function ProjectPage() {
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}
+                >
                   <span
                     style={{
                       fontFamily: 'var(--font-mono)',
@@ -4772,25 +4801,39 @@ export function ProjectPage() {
                 >
                   Project Delivery Agent
                 </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                >
                   <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
                     Truthful delivery orchestration.
                   </span>
                   <span
                     className="telemetry-pill"
-                    style={{ fontSize: '11px', color: '#10B981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
+                    style={{
+                      fontSize: '11px',
+                      color: '#10B981',
+                      borderColor: 'rgba(16, 185, 129, 0.3)',
+                    }}
                   >
                     ✓ Brief-to-Requirement Traceability
                   </span>
                   <span
                     className="telemetry-pill"
-                    style={{ fontSize: '11px', color: '#3B82F6', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                    style={{
+                      fontSize: '11px',
+                      color: '#3B82F6',
+                      borderColor: 'rgba(59, 130, 246, 0.3)',
+                    }}
                   >
                     ✓ Automated Gap Audit
                   </span>
                   <span
                     className="telemetry-pill"
-                    style={{ fontSize: '11px', color: '#F59E0B', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+                    style={{
+                      fontSize: '11px',
+                      color: '#F59E0B',
+                      borderColor: 'rgba(245, 158, 11, 0.3)',
+                    }}
                   >
                     ✓ Human Sign-Off Gate
                   </span>
@@ -4808,7 +4851,9 @@ export function ProjectPage() {
               >
                 {briefRevisions.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Source Context:</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Source Context:
+                    </span>
                     <select
                       value={selectedAgentBriefId}
                       onChange={(e) => setSelectedAgentBriefId(e.target.value)}
@@ -4824,7 +4869,10 @@ export function ProjectPage() {
                       }}
                       title="Select which project brief version grounds the agent's delivery analysis"
                     >
-                      <option value="">Latest Approved Brief ({briefRevisions[0]?.version ? `v${briefRevisions[0].version}` : 'Default'})</option>
+                      <option value="">
+                        Latest Approved Brief (
+                        {briefRevisions[0]?.version ? `v${briefRevisions[0].version}` : 'Default'})
+                      </option>
                       {briefRevisions.map((b) => (
                         <option key={b.id} value={b.id}>
                           Brief v{b.version} ({new Date(b.createdAt).toLocaleDateString()})
@@ -4868,7 +4916,9 @@ export function ProjectPage() {
                   }}
                   title="Synthesize an auditable brief-to-proof delivery plan linking requirements, tasks, and proof artifacts"
                 >
-                  <span>{loadingDeliveryPlan ? 'Planning Delivery...' : '📋 Plan Delivery from Brief'}</span>
+                  <span>
+                    {loadingDeliveryPlan ? 'Planning Delivery...' : '📋 Plan Delivery from Brief'}
+                  </span>
                 </button>
 
                 <button
@@ -4886,7 +4936,9 @@ export function ProjectPage() {
                     fontWeight: 600,
                   }}
                 >
-                  <span>{loadingCopilot ? 'Reasoning Across Ledger...' : 'Run Agent Analysis'}</span>
+                  <span>
+                    {loadingCopilot ? 'Reasoning Across Ledger...' : 'Run Agent Analysis'}
+                  </span>
                   <span>{loadingCopilot ? '🔄' : '🤖'}</span>
                 </button>
               </div>
@@ -4895,7 +4947,9 @@ export function ProjectPage() {
             {/* Unified AI Brain & Speed Bar (Replaces the complicated multi-box setup) */}
             <div style={{ marginBottom: 'var(--space-4)' }}>
               <ModelPicker
-                workspaceId={typeof project?.workspaceId === 'string' ? project.workspaceId : undefined}
+                workspaceId={
+                  typeof project?.workspaceId === 'string' ? project.workspaceId : undefined
+                }
                 selectedProvider={selectedCopilotProvider}
                 onSelectProvider={(p) => setSelectedCopilotProvider(p)}
                 selectedModelId={selectedModelOverride}
@@ -4924,25 +4978,36 @@ export function ProjectPage() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                >
                   <span>⚠️</span>
                   <span>
                     <strong>Project ledger updated since this analysis:</strong>{' '}
-                    {copilotFreshness.changesSinceReport.length} change(s) recorded after{' '}
-                    {new Date(copilotFreshness.reportTimestamp).toLocaleTimeString()}.
+                    {copilotFreshness.changedRecords.length} change(s) recorded
+                    {copilotFreshness.lastReportGeneratedAt
+                      ? ` after ${new Date(copilotFreshness.lastReportGeneratedAt).toLocaleTimeString()}`
+                      : ''}
+                    .
                   </span>
                   <div style={{ display: 'inline-flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {copilotFreshness.changesSinceReport.slice(0, 3).map((c, i) => (
+                    {copilotFreshness.changedRecords.slice(0, 3).map((c, i) => (
                       <span
                         key={i}
                         className="telemetry-pill"
-                        style={{ fontSize: '10px', color: '#D97706', borderColor: 'rgba(245,158,11,0.4)' }}
+                        style={{
+                          fontSize: '10px',
+                          color: '#D97706',
+                          borderColor: 'rgba(245,158,11,0.4)',
+                        }}
                       >
-                        {c.recordType}: {c.title.slice(0, 24)} ({c.action})
+                        {c.entityType}: {c.title.slice(0, 24)}
                       </span>
                     ))}
-                    {copilotFreshness.changesSinceReport.length > 3 && (
-                      <span style={{ fontSize: '10px' }}>+{copilotFreshness.changesSinceReport.length - 3} more</span>
+                    {copilotFreshness.changedRecords.length > 3 && (
+                      <span style={{ fontSize: '10px' }}>
+                        +{copilotFreshness.changedRecords.length - 3} more
+                      </span>
                     )}
                   </div>
                 </div>
@@ -5177,7 +5242,10 @@ export function ProjectPage() {
                     minWidth: 140,
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: briefRevisions.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    backgroundColor:
+                      briefRevisions.length > 0
+                        ? 'rgba(16, 185, 129, 0.08)'
+                        : 'rgba(255,255,255,0.02)',
                     border: `1px solid ${briefRevisions.length > 0 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
                     display: 'flex',
                     flexDirection: 'column',
@@ -5185,18 +5253,47 @@ export function ProjectPage() {
                     transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                      }}
+                    >
                       1. BRIEF
                     </span>
-                    <span style={{ fontSize: '12px' }}>{briefRevisions.length > 0 ? '✓' : '⚠️'}</span>
+                    <span style={{ fontSize: '12px' }}>
+                      {briefRevisions.length > 0 ? '✓' : '⚠️'}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: briefRevisions.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                    {briefRevisions.length > 0 ? `Rev #${selectedBrief?.revisionNumber ?? 1} Ingested` : 'Missing Brief'}
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color:
+                        briefRevisions.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {briefRevisions.length > 0
+                      ? `Rev #${selectedBrief?.revisionNumber ?? 1} Ingested`
+                      : 'Missing Brief'}
                   </div>
                 </div>
 
-                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+                <span
+                  className="pipeline-chevron"
+                  style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}
+                >
+                  →
+                </span>
 
                 {/* Stage 2: Requirements */}
                 <div
@@ -5206,7 +5303,10 @@ export function ProjectPage() {
                     minWidth: 140,
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: requirements.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    backgroundColor:
+                      requirements.length > 0
+                        ? 'rgba(16, 185, 129, 0.08)'
+                        : 'rgba(255,255,255,0.02)',
                     border: `1px solid ${requirements.length > 0 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
                     display: 'flex',
                     flexDirection: 'column',
@@ -5214,18 +5314,44 @@ export function ProjectPage() {
                     transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                      }}
+                    >
                       2. REQUIREMENTS
                     </span>
                     <span style={{ fontSize: '12px' }}>{requirements.length > 0 ? '✓' : '⚠️'}</span>
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: requirements.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                    {requirements.length > 0 ? `${requirements.length} Defined` : 'Needs Extraction'}
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: requirements.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {requirements.length > 0
+                      ? `${requirements.length} Defined`
+                      : 'Needs Extraction'}
                   </div>
                 </div>
 
-                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+                <span
+                  className="pipeline-chevron"
+                  style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}
+                >
+                  →
+                </span>
 
                 {/* Stage 3: Tasks */}
                 <div
@@ -5235,7 +5361,8 @@ export function ProjectPage() {
                     minWidth: 140,
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: tasks.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    backgroundColor:
+                      tasks.length > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
                     border: `1px solid ${tasks.length > 0 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
                     display: 'flex',
                     flexDirection: 'column',
@@ -5243,18 +5370,42 @@ export function ProjectPage() {
                     transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                      }}
+                    >
                       3. TASKS
                     </span>
                     <span style={{ fontSize: '12px' }}>{tasks.length > 0 ? '⚡' : '○'}</span>
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: tasks.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: tasks.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                  >
                     {tasks.length > 0 ? `${tasks.length} Executing` : '0 Tasks'}
                   </div>
                 </div>
 
-                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+                <span
+                  className="pipeline-chevron"
+                  style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}
+                >
+                  →
+                </span>
 
                 {/* Stage 4: Proof Evidence */}
                 <div
@@ -5264,9 +5415,10 @@ export function ProjectPage() {
                     minWidth: 140,
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: copilotReport && copilotReport.evidenceGaps?.length === 0
-                      ? 'rgba(16, 185, 129, 0.08)'
-                      : 'rgba(245, 158, 11, 0.08)',
+                    backgroundColor:
+                      copilotReport && copilotReport.evidenceGaps?.length === 0
+                        ? 'rgba(16, 185, 129, 0.08)'
+                        : 'rgba(245, 158, 11, 0.08)',
                     border: `1px solid ${
                       copilotReport && copilotReport.evidenceGaps?.length === 0
                         ? 'rgba(16, 185, 129, 0.35)'
@@ -5278,8 +5430,21 @@ export function ProjectPage() {
                     transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                      }}
+                    >
                       4. PROOF / EVIDENCE
                     </span>
                     <span style={{ fontSize: '12px' }}>
@@ -5295,7 +5460,12 @@ export function ProjectPage() {
                   </div>
                 </div>
 
-                <span className="pipeline-chevron" style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}>→</span>
+                <span
+                  className="pipeline-chevron"
+                  style={{ color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0 }}
+                >
+                  →
+                </span>
 
                 {/* Stage 5: Human Verification */}
                 <div
@@ -5305,7 +5475,10 @@ export function ProjectPage() {
                     minWidth: 140,
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: percentVerified === 100 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                    backgroundColor:
+                      percentVerified === 100
+                        ? 'rgba(16, 185, 129, 0.08)'
+                        : 'rgba(255,255,255,0.02)',
                     border: `1px solid ${percentVerified === 100 ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-subtle)'}`,
                     display: 'flex',
                     flexDirection: 'column',
@@ -5313,13 +5486,32 @@ export function ProjectPage() {
                     transition: 'all 180ms ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                      }}
+                    >
                       5. HUMAN CERTIFIED
                     </span>
                     <span style={{ fontSize: '12px' }}>{percentVerified === 100 ? '✍️' : '○'}</span>
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: percentVerified === 100 ? '#10B981' : 'var(--text-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: percentVerified === 100 ? '#10B981' : 'var(--text-primary)',
+                    }}
+                  >
                     {percentVerified}% Certified
                   </div>
                 </div>
@@ -5354,7 +5546,8 @@ export function ProjectPage() {
                     transform: 'translateX(-50%)',
                     width: '380px',
                     height: '220px',
-                    background: 'radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%)',
+                    background:
+                      'radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%)',
                     pointerEvents: 'none',
                   }}
                 />
@@ -5403,17 +5596,39 @@ export function ProjectPage() {
                   delivery action. Inferences remain strictly separate from verified ledger records.
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>🛡️ Verified Ledger Only</span>
-                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>🔍 Zero Hallucination Gate</span>
-                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>📋 Auditable Proposals</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: 'var(--space-4)',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>
+                    🛡️ Verified Ledger Only
+                  </span>
+                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>
+                    🔍 Zero Hallucination Gate
+                  </span>
+                  <span className="telemetry-pill" style={{ fontSize: '10px' }}>
+                    📋 Auditable Proposals
+                  </span>
                 </div>
 
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={handleGenerateCopilotReport}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 22px', fontSize: '12px', fontWeight: 600 }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 22px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
                 >
                   <span>Start Agent Analysis Now</span>
                   <span>→</span>
@@ -5438,12 +5653,25 @@ export function ProjectPage() {
                 }}
               >
                 <div className="loading-spinner" style={{ margin: '0 auto var(--space-3)' }} />
-                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
+                <p
+                  style={{
+                    fontSize: 'var(--font-size-sm)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                  }}
+                >
                   {selectedCopilotProvider === 'nebius'
                     ? 'NVIDIA Nemotron is reasoning across project ledger records...'
                     : `${selectedCopilotProvider.toUpperCase()} is reasoning across project ledger records...`}
                 </p>
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '480px' }}>
+                <p
+                  style={{
+                    fontSize: 'var(--font-size-xs)',
+                    color: 'var(--text-muted)',
+                    marginTop: '4px',
+                    maxWidth: '480px',
+                  }}
+                >
                   {selectedCopilotProvider === 'nebius'
                     ? 'Calling Nebius Token Factory serverless runtime. Assembling brief citations, task links, and evidence audit trails.'
                     : `Calling ${selectedCopilotProvider.toUpperCase()} personal BYOK runtime. Assembling brief citations, task links, and evidence audit trails.`}
@@ -5471,7 +5699,9 @@ export function ProjectPage() {
                   <span className="telemetry-pill">📄 {briefRevisions.length} Briefs</span>
                   <span className="telemetry-pill">🎯 {requirements.length} Requirements</span>
                   <span className="telemetry-pill">🔧 {tasks.length} Tasks</span>
-                  <span className="telemetry-pill">🛡️ {copilotReport.sourceRecords?.length ?? 0} Proofs</span>
+                  <span className="telemetry-pill">
+                    🛡️ {copilotReport.sourceRecords?.length ?? 0} Proofs
+                  </span>
                   <span
                     className="telemetry-pill"
                     style={{
@@ -5480,7 +5710,8 @@ export function ProjectPage() {
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
-                    ⚡ {copilotReport.provider ? `${copilotReport.provider.toUpperCase()} · ` : ''}{copilotReport.model || 'Confirmed Model'}
+                    ⚡ {copilotReport.provider ? `${copilotReport.provider.toUpperCase()} · ` : ''}
+                    {copilotReport.model || 'Confirmed Model'}
                   </span>
                   <span
                     style={{
@@ -5538,8 +5769,8 @@ export function ProjectPage() {
                           {copilotReport.provider === 'openai'
                             ? 'OPENAI GPT-4O REASONING'
                             : copilotReport.provider === 'gemini'
-                            ? 'GOOGLE GEMINI REASONING'
-                            : 'NVIDIA NEMOTRON REASONING'}
+                              ? 'GOOGLE GEMINI REASONING'
+                              : 'NVIDIA NEMOTRON REASONING'}
                         </span>
                       </div>
                       <span
@@ -5717,24 +5948,69 @@ export function ProjectPage() {
                             {copilotReport.requirementCoverage.length} Requirements Tracked
                           </span>
                         </div>
-                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Auditable ledger mapping connecting brief requirements to planned tasks, attached evidence, and missing proof.
+                        <p
+                          style={{
+                            margin: '2px 0 0',
+                            fontSize: '11px',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          Auditable ledger mapping connecting brief requirements to planned tasks,
+                          attached evidence, and missing proof.
                         </p>
                       </div>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        <span className="telemetry-pill" style={{ fontSize: '10px', color: '#10B981', borderColor: 'rgba(16,185,129,0.3)' }}>
-                          {copilotReport.requirementCoverage.filter((c: any) => c.coverageStatus === 'covered').length} Covered
+                        <span
+                          className="telemetry-pill"
+                          style={{
+                            fontSize: '10px',
+                            color: '#10B981',
+                            borderColor: 'rgba(16,185,129,0.3)',
+                          }}
+                        >
+                          {
+                            copilotReport.requirementCoverage.filter(
+                              (c: any) => c.coverageStatus === 'covered',
+                            ).length
+                          }{' '}
+                          Covered
                         </span>
-                        <span className="telemetry-pill" style={{ fontSize: '10px', color: '#3B82F6', borderColor: 'rgba(59,130,246,0.3)' }}>
-                          {copilotReport.requirementCoverage.filter((c: any) => c.coverageStatus === 'partially_covered').length} Partial
+                        <span
+                          className="telemetry-pill"
+                          style={{
+                            fontSize: '10px',
+                            color: '#3B82F6',
+                            borderColor: 'rgba(59,130,246,0.3)',
+                          }}
+                        >
+                          {
+                            copilotReport.requirementCoverage.filter(
+                              (c: any) => c.coverageStatus === 'partially_covered',
+                            ).length
+                          }{' '}
+                          Partial
                         </span>
-                        <span className="telemetry-pill" style={{ fontSize: '10px', color: '#EF4444', borderColor: 'rgba(239,68,68,0.3)' }}>
-                          {copilotReport.requirementCoverage.filter((c: any) => c.coverageStatus === 'uncovered').length} Uncovered
+                        <span
+                          className="telemetry-pill"
+                          style={{
+                            fontSize: '10px',
+                            color: '#EF4444',
+                            borderColor: 'rgba(239,68,68,0.3)',
+                          }}
+                        >
+                          {
+                            copilotReport.requirementCoverage.filter(
+                              (c: any) => c.coverageStatus === 'uncovered',
+                            ).length
+                          }{' '}
+                          Uncovered
                         </span>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <div
+                      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
+                    >
                       {copilotReport.requirementCoverage.map((item: RequirementCoverageItem) => {
                         const isCovered = item.coverageStatus === 'covered';
                         const isPartial = item.coverageStatus === 'partially_covered';
@@ -5779,7 +6055,14 @@ export function ProjectPage() {
                                 gap: '8px',
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  flexWrap: 'wrap',
+                                }}
+                              >
                                 <span
                                   className="telemetry-pill"
                                   style={{
@@ -5820,15 +6103,29 @@ export function ProjectPage() {
                                 fontSize: '11px',
                               }}
                             >
-                              <div style={{ padding: '6px 8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px' }}>
-                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>WORK (TASKS):</span>
+                              <div
+                                style={{
+                                  padding: '6px 8px',
+                                  backgroundColor: 'var(--bg-app)',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+                                  WORK (TASKS):
+                                </span>
                                 <div style={{ marginTop: '2px', color: 'var(--text-primary)' }}>
-                                  {item.linkedTasks.length > 0 ? (
-                                    item.linkedTasks.map((t) => (
-                                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {item.linkedTaskTitles.length > 0 ? (
+                                    item.linkedTaskTitles.map((title, tIdx) => (
+                                      <div
+                                        key={tIdx}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                        }}
+                                      >
                                         <span>•</span>
-                                        <span title={t.title}>{t.title}</span>
-                                        <span className="telemetry-pill" style={{ fontSize: '9px', padding: '0 4px' }}>{t.status}</span>
+                                        <span title={title}>{title}</span>
                                       </div>
                                     ))
                                   ) : (
@@ -5837,25 +6134,62 @@ export function ProjectPage() {
                                 </div>
                               </div>
 
-                              <div style={{ padding: '6px 8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px' }}>
-                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>PROOF (EVIDENCE):</span>
+                              <div
+                                style={{
+                                  padding: '6px 8px',
+                                  backgroundColor: 'var(--bg-app)',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+                                  PROOF (EVIDENCE):
+                                </span>
                                 <div style={{ marginTop: '2px', color: 'var(--text-primary)' }}>
-                                  {item.evidenceRecords.length > 0 ? (
-                                    item.evidenceRecords.map((e) => (
-                                      <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <span>🛡️</span>
-                                        <span>{e.title}</span>
-                                      </div>
-                                    ))
+                                  {item.evidenceIds.length > 0 ? (
+                                    <div
+                                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      <span>🛡️</span>
+                                      <span>
+                                        {item.evidenceIds.length} proof artifact(s) attached
+                                      </span>
+                                      {item.isVerified && (
+                                        <span
+                                          className="telemetry-pill"
+                                          style={{
+                                            fontSize: '9px',
+                                            color: '#10B981',
+                                            borderColor: 'rgba(16,185,129,0.3)',
+                                          }}
+                                        >
+                                          ✓ Verified
+                                        </span>
+                                      )}
+                                    </div>
                                   ) : (
-                                    <span style={{ color: 'var(--text-muted)' }}>No evidence submitted</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>
+                                      No evidence submitted
+                                    </span>
                                   )}
                                 </div>
                               </div>
 
-                              <div style={{ padding: '6px 8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px' }}>
-                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>EVIDENCE STILL NEEDED:</span>
-                                <div style={{ marginTop: '2px', color: isCovered ? '#10B981' : '#F59E0B' }}>
+                              <div
+                                style={{
+                                  padding: '6px 8px',
+                                  backgroundColor: 'var(--bg-app)',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+                                  EVIDENCE STILL NEEDED:
+                                </span>
+                                <div
+                                  style={{
+                                    marginTop: '2px',
+                                    color: isCovered ? '#10B981' : '#F59E0B',
+                                  }}
+                                >
                                   {item.evidenceNeeded}
                                 </div>
                               </div>
@@ -5863,7 +6197,14 @@ export function ProjectPage() {
 
                             {/* Rationale Footnote */}
                             {item.rationale && (
-                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', fontStyle: 'italic' }}>
+                              <div
+                                style={{
+                                  fontSize: '11px',
+                                  color: 'var(--text-secondary)',
+                                  marginTop: '2px',
+                                  fontStyle: 'italic',
+                                }}
+                              >
                                 💡 Rationale: {item.rationale}
                               </div>
                             )}
@@ -6031,7 +6372,9 @@ export function ProjectPage() {
                           >
                             {r.severity ? r.severity.toUpperCase() : 'MED'}
                           </span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.risk}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {r.risk}
+                          </span>
                           {r.mitigation && (
                             <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
                               ({r.mitigation})
@@ -6278,7 +6621,7 @@ export function ProjectPage() {
                                   - BEFORE: {p.diffPreview.before}
                                 </div>
                                 <div style={{ color: '#10B981' }}>
-                                  + AFTER:  {p.diffPreview.after}
+                                  + AFTER: {p.diffPreview.after}
                                 </div>
                               </div>
                             )}
@@ -6462,8 +6805,11 @@ export function ProjectPage() {
                           ZERO HALLUCINATION GATE
                         </span>
                       </div>
-                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                        Inquire about brief requirements, milestone coverage, evidence gaps, or audit trails. Every answer cites canonical project records.
+                      <p
+                        style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}
+                      >
+                        Inquire about brief requirements, milestone coverage, evidence gaps, or
+                        audit trails. Every answer cites canonical project records.
                       </p>
                     </div>
                   </div>
@@ -6598,9 +6944,14 @@ export function ProjectPage() {
                         </div>
                         <span
                           className="telemetry-pill"
-                          style={{ fontSize: '10px', color: '#10B981', borderColor: 'rgba(16,185,129,0.3)' }}
+                          style={{
+                            fontSize: '10px',
+                            color: '#10B981',
+                            borderColor: 'rgba(16,185,129,0.3)',
+                          }}
                         >
-                          ⚡ {copilotQueryResult.provider.toUpperCase()} · {copilotQueryResult.model}
+                          ⚡ {copilotQueryResult.provider.toUpperCase()} ·{' '}
+                          {copilotQueryResult.model}
                         </span>
                       </div>
 
@@ -6628,7 +6979,13 @@ export function ProjectPage() {
                             flexWrap: 'wrap',
                           }}
                         >
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              color: 'var(--text-muted)',
+                              fontFamily: 'var(--font-mono)',
+                            }}
+                          >
                             CITED RECORDS:
                           </span>
                           {copilotQueryResult.sourceRecords.map((rec) => (
@@ -7622,7 +7979,9 @@ export function ProjectPage() {
             <div className="mobile-only modal-sheet-handle" />
             <div className="modal-header-static">
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                >
                   <span
                     style={{
                       fontFamily: 'var(--font-mono)',
@@ -7639,6 +7998,29 @@ export function ProjectPage() {
                   >
                     UNCOMMITTED DRAFT
                   </span>
+                  {deliveryPlanModel && (
+                    <span
+                      className="telemetry-pill"
+                      style={{
+                        fontSize: '9px',
+                        borderColor:
+                          deliveryPlanModel.includes('deterministic') ||
+                          deliveryPlanProvider === 'mock'
+                            ? 'rgba(245, 158, 11, 0.4)'
+                            : 'rgba(59, 130, 246, 0.4)',
+                        color:
+                          deliveryPlanModel.includes('deterministic') ||
+                          deliveryPlanProvider === 'mock'
+                            ? '#D97706'
+                            : '#2563EB',
+                      }}
+                    >
+                      {deliveryPlanModel.includes('deterministic') ||
+                      deliveryPlanProvider === 'mock'
+                        ? `⚙️ Deterministic (${deliveryPlanModel})`
+                        : `🤖 Model: ${deliveryPlanModel}`}
+                    </span>
+                  )}
                 </div>
                 <h3
                   className="serif-display"
@@ -7658,7 +8040,15 @@ export function ProjectPage() {
               </button>
             </div>
 
-            <div className="modal-body-scrollable" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div
+              className="modal-body-scrollable"
+              style={{
+                padding: 'var(--space-6)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-4)',
+              }}
+            >
               {/* Summary & Rationale */}
               <div
                 style={{
@@ -7669,28 +8059,65 @@ export function ProjectPage() {
                   borderRadius: 'var(--radius-sm)',
                 }}
               >
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', marginBottom: '4px' }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#10B981',
+                    marginBottom: '4px',
+                  }}
+                >
                   PLANNING RATIONALE & APPROACH
                 </div>
-                <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', lineHeight: '1.5', color: 'var(--text-primary)' }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 'var(--font-size-sm)',
+                    lineHeight: '1.5',
+                    color: 'var(--text-primary)',
+                  }}
+                >
                   {deliveryPlan.summary}
                 </p>
-                {deliveryPlan.rationale && (
-                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    💡 {deliveryPlan.rationale}
-                  </p>
-                )}
               </div>
 
               {/* Assumptions & Risks */}
-              {((deliveryPlan.assumptions && deliveryPlan.assumptions.length > 0) || (deliveryPlan.risks && deliveryPlan.risks.length > 0)) && (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr', gap: '8px' }}>
+              {((deliveryPlan.assumptions && deliveryPlan.assumptions.length > 0) ||
+                (deliveryPlan.risks && deliveryPlan.risks.length > 0)) && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr',
+                    gap: '8px',
+                  }}
+                >
                   {deliveryPlan.assumptions && deliveryPlan.assumptions.length > 0 && (
-                    <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: 'var(--bg-surface)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                        }}
+                      >
                         ASSUMPTIONS ({deliveryPlan.assumptions.length})
                       </span>
-                      <ul style={{ margin: '4px 0 0', paddingLeft: '16px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      <ul
+                        style={{
+                          margin: '4px 0 0',
+                          paddingLeft: '16px',
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
                         {deliveryPlan.assumptions.map((a, i) => (
                           <li key={i}>{a}</li>
                         ))}
@@ -7698,11 +8125,32 @@ export function ProjectPage() {
                     </div>
                   )}
                   {deliveryPlan.risks && deliveryPlan.risks.length > 0 && (
-                    <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#EF4444' }}>
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: 'var(--bg-surface)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 700,
+                          color: '#EF4444',
+                        }}
+                      >
                         DELIVERY RISKS ({deliveryPlan.risks.length})
                       </span>
-                      <ul style={{ margin: '4px 0 0', paddingLeft: '16px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      <ul
+                        style={{
+                          margin: '4px 0 0',
+                          paddingLeft: '16px',
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
                         {deliveryPlan.risks.map((r, i) => (
                           <li key={i}>{r}</li>
                         ))}
@@ -7714,12 +8162,28 @@ export function ProjectPage() {
 
               {/* Proposed Milestones & Tasks */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-mono)',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
                     Proposed Milestones ({deliveryPlan.milestones.length})
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    Total Tasks: {deliveryPlan.milestones.reduce((acc, m) => acc + m.tasks.length, 0)}
+                    Total Tasks:{' '}
+                    {deliveryPlan.milestones.reduce((acc, m) => acc + m.tasks.length, 0)}
                   </span>
                 </div>
 
@@ -7734,25 +8198,56 @@ export function ProjectPage() {
                         borderRadius: 'var(--radius-sm)',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '6px',
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className="telemetry-pill" style={{ fontSize: '10px' }}>M{mIdx + 1}</span>
-                          <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{m.title}</strong>
+                          <span className="telemetry-pill" style={{ fontSize: '10px' }}>
+                            M{mIdx + 1}
+                          </span>
+                          <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                            {m.title}
+                          </strong>
                         </div>
                         {m.dueDate && (
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              color: 'var(--text-muted)',
+                              fontFamily: 'var(--font-mono)',
+                            }}
+                          >
                             Due: {m.dueDate}
                           </span>
                         )}
                       </div>
                       {m.description && (
-                        <p style={{ margin: '0 0 8px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        <p
+                          style={{
+                            margin: '0 0 8px',
+                            fontSize: '11px',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
                           {m.description}
                         </p>
                       )}
 
                       {/* Tasks under this milestone */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '8px', borderLeft: '2px solid var(--border-subtle)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          paddingLeft: '8px',
+                          borderLeft: '2px solid var(--border-subtle)',
+                        }}
+                      >
                         {m.tasks.map((t, tIdx) => (
                           <div
                             key={tIdx}
@@ -7765,8 +8260,22 @@ export function ProjectPage() {
                               gap: '4px',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '4px',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  color: 'var(--text-primary)',
+                                }}
+                              >
                                 {t.title}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -7776,30 +8285,55 @@ export function ProjectPage() {
                                   </span>
                                 )}
                                 {t.dueDate && (
-                                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      color: 'var(--text-muted)',
+                                      fontFamily: 'var(--font-mono)',
+                                    }}
+                                  >
                                     {t.dueDate}
                                   </span>
                                 )}
                               </div>
                             </div>
                             {t.description && (
-                              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              <p
+                                style={{
+                                  margin: 0,
+                                  fontSize: '11px',
+                                  color: 'var(--text-secondary)',
+                                }}
+                              >
                                 {t.description}
                               </p>
                             )}
                             {/* Required Evidence Artifacts */}
-                            {t.requiredEvidence && t.requiredEvidence.length > 0 && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
-                                <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>PROOF REQUIRED:</span>
-                                {t.requiredEvidence.map((ev, evIdx) => (
-                                  <span
-                                    key={evIdx}
-                                    className="telemetry-pill"
-                                    style={{ fontSize: '9px', color: '#10B981', borderColor: 'rgba(16,185,129,0.3)' }}
-                                  >
-                                    🛡️ {ev}
-                                  </span>
-                                ))}
+                            {t.evidenceNeeded && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  flexWrap: 'wrap',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                <span
+                                  style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}
+                                >
+                                  PROOF REQUIRED:
+                                </span>
+                                <span
+                                  className="telemetry-pill"
+                                  style={{
+                                    fontSize: '9px',
+                                    color: '#10B981',
+                                    borderColor: 'rgba(16,185,129,0.3)',
+                                  }}
+                                >
+                                  🛡️ {t.evidenceNeeded}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -7820,16 +8354,40 @@ export function ProjectPage() {
                     borderRadius: 'var(--radius-sm)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginBottom: '4px',
+                    }}
+                  >
                     <span>❓</span>
-                    <strong style={{ fontSize: '11px', color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <strong
+                      style={{
+                        fontSize: '11px',
+                        color: '#D97706',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
                       Open Questions & Ambiguities ({deliveryPlan.openQuestions.length})
                     </strong>
                   </div>
-                  <p style={{ margin: '0 0 6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Unknowns identified in the project brief that should be clarified with stakeholders:
+                  <p
+                    style={{ margin: '0 0 6px', fontSize: '11px', color: 'var(--text-secondary)' }}
+                  >
+                    Unknowns identified in the project brief that should be clarified with
+                    stakeholders:
                   </p>
-                  <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: 'var(--text-primary)' }}>
+                  <ul
+                    style={{
+                      margin: 0,
+                      paddingLeft: '16px',
+                      fontSize: '11px',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
                     {deliveryPlan.openQuestions.map((q, idx) => (
                       <li key={idx}>{q}</li>
                     ))}
@@ -7852,7 +8410,8 @@ export function ProjectPage() {
               }}
             >
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Commitment creates canonical milestones, tasks, and requirement links in the project ledger.
+                Commitment creates canonical milestones, tasks, and requirement links in the project
+                ledger.
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
@@ -7869,7 +8428,9 @@ export function ProjectPage() {
                   disabled={acceptingDeliveryPlan}
                   style={{ fontWeight: 600, padding: '8px 18px', minHeight: 38 }}
                 >
-                  {acceptingDeliveryPlan ? 'Committing to Ledger...' : 'Accept & Commit Plan to Ledger →'}
+                  {acceptingDeliveryPlan
+                    ? 'Committing to Ledger...'
+                    : 'Accept & Commit Plan to Ledger →'}
                 </button>
               </div>
             </div>
@@ -7895,10 +8456,19 @@ export function ProjectPage() {
           >
             <div className="modal-header-static">
               <div>
-                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--proof)' }}>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--proof)',
+                  }}
+                >
                   HUMAN EDITING GATE
                 </span>
-                <h3 className="serif-display" style={{ fontSize: 'var(--font-size-lg)', margin: '2px 0 0' }}>
+                <h3
+                  className="serif-display"
+                  style={{ fontSize: 'var(--font-size-lg)', margin: '2px 0 0' }}
+                >
                   Edit Draft Action: {editingProposal.actionType?.replace(/_/g, ' ')}
                 </h3>
               </div>
@@ -7912,9 +8482,24 @@ export function ProjectPage() {
               </button>
             </div>
 
-            <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div
+              style={{
+                padding: 'var(--space-6)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}
+            >
               <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                <label
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
+                >
                   TITLE / SUMMARY
                 </label>
                 <input
@@ -7932,7 +8517,15 @@ export function ProjectPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                <label
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
+                >
                   DESCRIPTION
                 </label>
                 <textarea
@@ -7951,7 +8544,15 @@ export function ProjectPage() {
 
               {editingProposal.payload?.priority !== undefined && (
                 <div>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  <label
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      display: 'block',
+                      marginBottom: '4px',
+                    }}
+                  >
                     PRIORITY
                   </label>
                   <select
@@ -7972,7 +8573,14 @@ export function ProjectPage() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: 'var(--space-3)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '8px',
+                  marginTop: 'var(--space-3)',
+                }}
+              >
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -7983,7 +8591,9 @@ export function ProjectPage() {
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleApproveEditedProposal(editingProposal, editingProposal.payload)}
+                  onClick={() =>
+                    handleApproveEditedProposal(editingProposal, editingProposal.payload)
+                  }
                 >
                   Approve & Commit Edited Draft
                 </button>
@@ -8011,10 +8621,46 @@ export function ProjectPage() {
           >
             <div className="modal-header-static">
               <div>
-                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--proof)' }}>
-                  ADVISORY EVIDENCE AUDIT // NVIDIA NEMOTRON
-                </span>
-                <h3 className="serif-display" style={{ fontSize: 'var(--font-size-lg)', margin: '2px 0 0' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                >
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--proof)',
+                    }}
+                  >
+                    ADVISORY EVIDENCE AUDIT
+                  </span>
+                  {evidenceReview?.model && (
+                    <span
+                      className="telemetry-pill"
+                      style={{
+                        fontSize: '9px',
+                        borderColor:
+                          evidenceReview.model.includes('deterministic') ||
+                          evidenceReview.provider === 'mock'
+                            ? 'rgba(245, 158, 11, 0.4)'
+                            : 'rgba(59, 130, 246, 0.4)',
+                        color:
+                          evidenceReview.model.includes('deterministic') ||
+                          evidenceReview.provider === 'mock'
+                            ? '#D97706'
+                            : '#2563EB',
+                      }}
+                    >
+                      {evidenceReview.model.includes('deterministic') ||
+                      evidenceReview.provider === 'mock'
+                        ? `⚙️ Deterministic (${evidenceReview.model})`
+                        : `🤖 Model: ${evidenceReview.model}`}
+                    </span>
+                  )}
+                </div>
+                <h3
+                  className="serif-display"
+                  style={{ fontSize: 'var(--font-size-lg)', margin: '2px 0 0' }}
+                >
                   {evidenceReviewModal.title}
                 </h3>
               </div>
@@ -8028,7 +8674,14 @@ export function ProjectPage() {
               </button>
             </div>
 
-            <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div
+              style={{
+                padding: 'var(--space-6)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}
+            >
               {/* Strict Non-Autonomous Advisory Notice */}
               <div
                 style={{
@@ -8045,7 +8698,9 @@ export function ProjectPage() {
               >
                 <span>ℹ️</span>
                 <span>
-                  <strong>Advisory Assessment:</strong> The AI model evaluates support and flags deficiencies. It cannot certify, approve, reject, or delete canonical evidence records.
+                  <strong>Advisory Assessment:</strong> The AI model evaluates support and flags
+                  deficiencies. It cannot certify, approve, reject, or delete canonical evidence
+                  records.
                 </span>
               </div>
 
@@ -8053,7 +8708,8 @@ export function ProjectPage() {
                 <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
                   <div className="loading-spinner" style={{ margin: '0 auto 8px' }} />
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Analyzing evidence support, cryptographic assertions, and requirement alignment...
+                    Analyzing evidence support, cryptographic assertions, and requirement
+                    alignment...
                   </p>
                 </div>
               )}
@@ -8077,37 +8733,73 @@ export function ProjectPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                   {/* Summary */}
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                      }}
+                    >
                       EVIDENCE SUMMARY
                     </div>
-                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <p
+                      style={{
+                        margin: '2px 0 0',
+                        fontSize: '13px',
+                        color: 'var(--text-primary)',
+                        lineHeight: '1.5',
+                      }}
+                    >
                       {evidenceReview.summary}
-                    </p>
-                  </div>
-
-                  {/* Alignment with Target */}
-                  <div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      TARGET ALIGNMENT
-                    </div>
-                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {evidenceReview.alignment}
                     </p>
                   </div>
 
                   {/* Strengths & Deficiencies */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#10B981' }}>SUPPORT STRENGTHS</span>
-                      <ul style={{ margin: '4px 0 0', paddingLeft: '14px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <div
+                      style={{
+                        padding: '8px 10px',
+                        backgroundColor: 'var(--bg-surface)',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#10B981' }}>
+                        SUPPORT STRENGTHS
+                      </span>
+                      <ul
+                        style={{
+                          margin: '4px 0 0',
+                          paddingLeft: '14px',
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
                         {evidenceReview.strengths?.map((s, i) => (
                           <li key={i}>{s}</li>
                         ))}
                       </ul>
                     </div>
-                    <div style={{ padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#EF4444' }}>DEFICIENCIES / GAPS</span>
-                      <ul style={{ margin: '4px 0 0', paddingLeft: '14px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <div
+                      style={{
+                        padding: '8px 10px',
+                        backgroundColor: 'var(--bg-surface)',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#EF4444' }}>
+                        DEFICIENCIES / GAPS
+                      </span>
+                      <ul
+                        style={{
+                          margin: '4px 0 0',
+                          paddingLeft: '14px',
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
                         {evidenceReview.deficiencies?.map((d, i) => (
                           <li key={i}>{d}</li>
                         ))}
@@ -8120,39 +8812,77 @@ export function ProjectPage() {
                     style={{
                       padding: '10px 14px',
                       backgroundColor:
-                        evidenceReview.recommendation === 'accept'
+                        evidenceReview.advisoryRecommendation === 'accept'
                           ? 'rgba(16, 185, 129, 0.08)'
                           : 'rgba(245, 158, 11, 0.08)',
                       border: `1px solid ${
-                        evidenceReview.recommendation === 'accept' ? '#10B981' : '#F59E0B'
+                        evidenceReview.advisoryRecommendation === 'accept' ? '#10B981' : '#F59E0B'
                       }`,
                       borderRadius: 'var(--radius-sm)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '4px',
+                      }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>{evidenceReview.recommendation === 'accept' ? '✓' : '⚠️'}</span>
+                        <span>
+                          {evidenceReview.advisoryRecommendation === 'accept' ? '✓' : '⚠️'}
+                        </span>
                         <strong
                           style={{
                             fontSize: '11px',
-                            color: evidenceReview.recommendation === 'accept' ? '#059669' : '#D97706',
+                            color:
+                              evidenceReview.advisoryRecommendation === 'accept'
+                                ? '#059669'
+                                : '#D97706',
                           }}
                         >
-                          ADVISORY RECOMMENDATION: {evidenceReview.recommendation?.toUpperCase().replace(/_/g, ' ')}
+                          ADVISORY RECOMMENDATION:{' '}
+                          {evidenceReview.advisoryRecommendation?.toUpperCase().replace(/_/g, ' ')}
                         </strong>
                       </div>
                       <span className="telemetry-pill" style={{ fontSize: '10px' }}>
-                        Confidence: {Math.round(evidenceReview.confidenceScore * 100)}%
+                        Confidence: {evidenceReview.confidence?.toUpperCase()}
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-primary)' }}>
-                      {evidenceReview.explanation}
-                    </p>
+                    {evidenceReview.stalenessOrScopeWarning && (
+                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#D97706' }}>
+                        ⚠️ {evidenceReview.stalenessOrScopeWarning}
+                      </p>
+                    )}
+                    {evidenceReview.suggestedClarification && (
+                      <p
+                        style={{
+                          margin: '4px 0 0',
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        💡 Suggested clarification: {evidenceReview.suggestedClarification}
+                      </p>
+                    )}
+                    <div
+                      style={{
+                        marginTop: '6px',
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
+                      Citation: {evidenceReview.sourceCitation}
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+              <div
+                style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}
+              >
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"

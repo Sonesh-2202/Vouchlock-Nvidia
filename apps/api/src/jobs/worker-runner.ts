@@ -28,17 +28,15 @@ async function main() {
   }
 
   if (!jobId) {
-    logger.error('No JOB_ID provided to worker runner. Specify via --job-id <id> or JOB_ID env var.');
+    logger.error(
+      'No JOB_ID provided to worker runner. Specify via --job-id <id> or JOB_ID env var.',
+    );
     process.exit(1);
   }
 
   logger.info({ jobId }, 'Nebius Serverless Job worker started');
 
-  const [job] = await db
-    .select()
-    .from(serverlessJobs)
-    .where(eq(serverlessJobs.id, jobId))
-    .limit(1);
+  const [job] = await db.select().from(serverlessJobs).where(eq(serverlessJobs.id, jobId)).limit(1);
 
   if (!job) {
     logger.error({ jobId }, 'Job record not found in database');

@@ -243,10 +243,7 @@ export interface AuditEvent {
 // ── Brief-to-Proof Delivery Agent Domain Types ──
 
 export type RequirementCoverageStatus =
-  | 'covered'
-  | 'partially_covered'
-  | 'uncovered'
-  | 'needs_clarification';
+  'covered' | 'partially_covered' | 'uncovered' | 'needs_clarification';
 
 export interface RequirementCoverageItem {
   readonly requirementId: string;
@@ -332,7 +329,8 @@ export interface EvidenceReviewAdvisory {
 }
 
 export interface ProjectChangeRecord {
-  readonly entityType: 'task' | 'requirement' | 'evidence' | 'brief_revision' | 'verification' | 'project';
+  readonly entityType:
+    'task' | 'requirement' | 'evidence' | 'brief_revision' | 'verification' | 'project';
   readonly id: string;
   readonly title: string;
   readonly updatedAt: string;
@@ -343,4 +341,3 @@ export interface ProjectFreshnessEvaluation {
   readonly lastReportGeneratedAt: string | null;
   readonly changedRecords: readonly ProjectChangeRecord[];
 }
-

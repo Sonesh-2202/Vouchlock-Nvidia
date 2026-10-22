@@ -7,7 +7,13 @@ import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { registerSchema, loginSchema, resetPasswordSchema } from '@projectpilot/contracts';
 import { users } from '../db/schema.js';
-import { hashPassword, verifyPassword, createSessionToken, verifySessionToken, authenticate } from '../auth.js';
+import {
+  hashPassword,
+  verifyPassword,
+  createSessionToken,
+  verifySessionToken,
+  authenticate,
+} from '../auth.js';
 import { ephemeralSessionStore } from '../ai/ephemeral-store.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
@@ -253,7 +259,9 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRouteOpts) {
   // POST /api/v1/auth/logout
   app.post('/logout', async (request, reply) => {
     // Attempt graceful extraction of userId to clean up ephemeral session store
-    const cookieToken = (request.cookies as Record<string, string | undefined>)?.[config.sessionCookieName];
+    const cookieToken = (request.cookies as Record<string, string | undefined>)?.[
+      config.sessionCookieName
+    ];
     const authHeader = request.headers.authorization;
     const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
     const token = cookieToken ?? headerToken;

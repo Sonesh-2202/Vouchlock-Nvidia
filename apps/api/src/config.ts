@@ -135,15 +135,11 @@ export function loadConfig(): AppConfig {
 
   // 8. Nebius Token Factory API Key (server-side default, never leaked to client)
   const nebiusApiKey =
-    process.env['NEBIUS_API_KEY'] ||
-    process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] ||
-    '';
+    process.env['NEBIUS_API_KEY'] || process.env['NEBIUS_TOKEN_FACTORY_API_KEY'] || '';
 
   // 9. NVIDIA Open-Source Model on Nebius Token Factory (dynamically discovered from live catalog)
   const nebiusModelId =
-    process.env['NEBIUS_MODEL_ID'] ||
-    process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] ||
-    '';
+    process.env['NEBIUS_MODEL_ID'] || process.env['NEBIUS_TOKEN_FACTORY_MODEL_ID'] || '';
 
   // 10. Nebius Token Factory Base URL
   const nebiusBaseUrl = (
@@ -165,8 +161,10 @@ export function loadConfig(): AppConfig {
   const openaiApiKey = process.env['OPENAI_API_KEY'] || '';
   const openaiModel = process.env['OPENAI_MODEL'] || 'gpt-4o';
   const openaiBaseUrl = process.env['OPENAI_BASE_URL'] || 'https://api.openai.com/v1';
-  const aiApiKey = process.env['AI_API_KEY'] || nebiusApiKey;
-  const aiModel = process.env['AI_MODEL'] || nebiusModelId;
+  const aiApiKey =
+    process.env['AI_API_KEY'] || (aiProvider === 'openai' ? openaiApiKey : nebiusApiKey);
+  const aiModel =
+    process.env['AI_MODEL'] || (aiProvider === 'openai' ? openaiModel : nebiusModelId);
 
   // 13. Logging
   const logLevel = process.env['LOG_LEVEL'] || 'info';

@@ -49,6 +49,7 @@ To transition from the local simulation worker to live Nebius Serverless Job exe
 ## Status & Boundaries Notice
 
 > **Important Truthfulness Boundary:**
+>
 > - Local simulation worker execution is fully implemented and tested with asynchronous job tracking, progress polling, and truthful reporting.
 > - Nebius AI Cloud Serverless Job execution requires the container registry and IAM control-plane prerequisites above. Cloud execution remains marked as unconfigured until those credentials and endpoints are supplied.
 > - Neither automated tests nor billable live job dispatches were run during this integration phase.

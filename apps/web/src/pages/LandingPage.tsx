@@ -1487,9 +1487,9 @@ export function LandingPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  A closed Jira ticket is not proof. Real answers require raw test runs,
-                  commit hashes, and human sign-off stamps. If evidence is absent, the ledger
-                  marks an unambiguous gap.
+                  A closed Jira ticket is not proof. Real answers require raw test runs, commit
+                  hashes, and human sign-off stamps. If evidence is absent, the ledger marks an
+                  unambiguous gap.
                 </p>
               </div>
             </div>
@@ -1522,8 +1522,8 @@ export function LandingPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Evidence is an immutable artifact: terminal outputs, schema snapshots,
-                  and verifiable screen traces. Cryptographic evidence cannot be bluff-claimed.
+                  Evidence is an immutable artifact: terminal outputs, schema snapshots, and
+                  verifiable screen traces. Cryptographic evidence cannot be bluff-claimed.
                 </p>
               </div>
               <div
@@ -1575,7 +1575,8 @@ export function LandingPage() {
                   }}
                 >
                   When client and engineering teams inspect the exact same signed ledger, scope
-                  creep evaporates. Completed work is certified, and invoices are approved without argument.
+                  creep evaporates. Completed work is certified, and invoices are approved without
+                  argument.
                 </p>
               </div>
             </div>
@@ -1694,8 +1695,8 @@ export function LandingPage() {
                   lineHeight: 1.55,
                 }}
               >
-                Present final capstones with verifiable code traces rather than slides.
-                Reviewers inspect requirement lineage directly down to automated CI logs.
+                Present final capstones with verifiable code traces rather than slides. Reviewers
+                inspect requirement lineage directly down to automated CI logs.
               </p>
             </div>
 

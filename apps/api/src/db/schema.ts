@@ -526,8 +526,10 @@ export const serverlessJobs = pgTable(
     workspaceIdIdx: index('serverless_jobs_workspace_id_idx').on(table.workspaceId),
     projectIdIdx: index('serverless_jobs_project_id_idx').on(table.projectId),
     userIdIdx: index('serverless_jobs_user_id_idx').on(table.userId),
-    idempotencyIdx: index('serverless_jobs_idempotency_idx').on(table.workspaceId, table.idempotencyKey),
+    idempotencyIdx: index('serverless_jobs_idempotency_idx').on(
+      table.workspaceId,
+      table.idempotencyKey,
+    ),
     statusIdx: index('serverless_jobs_status_idx').on(table.status),
   }),
 );
-

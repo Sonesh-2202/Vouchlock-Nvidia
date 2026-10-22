@@ -163,7 +163,8 @@ export async function modelRoutes(app: FastifyInstance, opts: ModelRouteOpts) {
     const query = request.query as { workspaceId?: string };
 
     let prefKey = userId;
-    let effectiveApiKey = ephemeralSessionStore.getSessionKey(userId, 'nebius') || config.nebiusApiKey;
+    let effectiveApiKey =
+      ephemeralSessionStore.getSessionKey(userId, 'nebius') || config.nebiusApiKey;
 
     if (query.workspaceId) {
       const role = await getMemberRole(db, query.workspaceId, userId);
@@ -222,11 +223,7 @@ export async function modelRoutes(app: FastifyInstance, opts: ModelRouteOpts) {
     } catch (err: unknown) {
       const errorObj = err as { code?: string; message?: string };
       const statusCode =
-        errorObj.code === 'ai_auth_error'
-          ? 401
-          : errorObj.code === 'ai_rate_limit'
-            ? 429
-            : 502;
+        errorObj.code === 'ai_auth_error' ? 401 : errorObj.code === 'ai_rate_limit' ? 429 : 502;
       return reply.code(statusCode).send({
         error: {
           code: errorObj.code || 'catalog_validation_failed',
@@ -272,7 +269,10 @@ export async function modelRoutes(app: FastifyInstance, opts: ModelRouteOpts) {
       customRoleAssignments,
     });
 
-    logger.info({ userId, prefKey, selectedModelId, selectedRoleProfile }, 'model preferences updated');
+    logger.info(
+      { userId, prefKey, selectedModelId, selectedRoleProfile },
+      'model preferences updated',
+    );
 
     return reply.code(200).send({
       ok: true,

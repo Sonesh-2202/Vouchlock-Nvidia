@@ -34,11 +34,7 @@ import {
   requirements,
 } from '../db/schema.js';
 import { authenticate } from '../auth.js';
-import {
-  generatePlan,
-  extractRequirementsProposal,
-  ephemeralSessionStore,
-} from '../ai/planner.js';
+import { generatePlan, extractRequirementsProposal, ephemeralSessionStore } from '../ai/planner.js';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/connection.js';
 import type { Logger } from '../logger.js';

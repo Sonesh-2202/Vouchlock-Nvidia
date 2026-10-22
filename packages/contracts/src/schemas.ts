@@ -162,7 +162,7 @@ export const generatePlanDraftSchema = z.object({
   audience: z.string().trim().max(500).optional(),
   deliverable: z.string().trim().max(500).optional(),
   deadline: isoDateSchema.optional(),
-  constraints: z.record(z.unknown()).optional(),
+  constraints: z.union([z.array(z.string()), z.record(z.unknown())]).optional(),
   providerOverride: z.string().optional(),
   modelOverride: z.string().optional(),
   roleProfile: z.enum(['fast', 'balanced', 'deep_reasoning']).optional(),
@@ -567,7 +567,14 @@ export const copilotQueryResponseSchema = z.object({
 // ── Change Awareness & Freshness Schemas ──
 
 export const projectChangeRecordSchema = z.object({
-  entityType: z.enum(['task', 'requirement', 'evidence', 'brief_revision', 'verification', 'project']),
+  entityType: z.enum([
+    'task',
+    'requirement',
+    'evidence',
+    'brief_revision',
+    'verification',
+    'project',
+  ]),
   id: z.string(),
   title: z.string(),
   updatedAt: isoDateSchema,
@@ -641,7 +648,9 @@ export type RequirementCoverageStatus = z.infer<typeof requirementCoverageStatus
 export type RequirementCoverageItem = z.infer<typeof requirementCoverageItemSchema>;
 export type DeliveryPlanTaskProposal = z.infer<typeof deliveryPlanTaskProposalSchema>;
 export type DeliveryPlanMilestoneProposal = z.infer<typeof deliveryPlanMilestoneProposalSchema>;
-export type DeliveryPlanRequirementCoverageProposal = z.infer<typeof deliveryPlanRequirementCoverageProposalSchema>;
+export type DeliveryPlanRequirementCoverageProposal = z.infer<
+  typeof deliveryPlanRequirementCoverageProposalSchema
+>;
 export type DeliveryPlanDraft = z.infer<typeof deliveryPlanDraftSchema>;
 export type GenerateDeliveryPlanInput = z.infer<typeof generateDeliveryPlanSchema>;
 export type AcceptDeliveryPlanInput = z.infer<typeof acceptDeliveryPlanSchema>;
@@ -649,11 +658,11 @@ export type EvidenceReviewRecommendation = z.infer<typeof evidenceReviewRecommen
 export type EvidenceConfidenceLevel = z.infer<typeof evidenceConfidenceLevelSchema>;
 export type EvidenceReviewRequest = z.infer<typeof evidenceReviewRequestSchema>;
 export type EvidenceReviewResponse = z.infer<typeof evidenceReviewResponseSchema>;
+export type EvidenceReviewAdvisory = EvidenceReviewResponse;
 export type CopilotQueryInput = z.infer<typeof copilotQuerySchema>;
 export type CopilotQueryResponse = z.infer<typeof copilotQueryResponseSchema>;
 export type ProjectChangeRecord = z.infer<typeof projectChangeRecordSchema>;
 export type CopilotFreshness = z.infer<typeof copilotFreshnessSchema>;
-
 
 // ── MCP (Model Context Protocol) ──
 
@@ -785,4 +794,3 @@ export const serverlessJobRecordSchema = z.object({
   updatedAt: z.string(),
 });
 export type ServerlessJobRecord = z.infer<typeof serverlessJobRecordSchema>;
-

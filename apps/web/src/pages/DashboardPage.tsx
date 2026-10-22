@@ -416,7 +416,8 @@ export function DashboardPage() {
           >
             {/* Circular Progress Ring */}
             {(() => {
-              const pct = totalReqsAll > 0 ? Math.round((totalVerifiedAll / totalReqsAll) * 100) : 0;
+              const pct =
+                totalReqsAll > 0 ? Math.round((totalVerifiedAll / totalReqsAll) * 100) : 0;
               const r = 26;
               const circ = 2 * Math.PI * r;
               const strokeOffset = circ - (pct / 100) * circ;
@@ -433,7 +434,12 @@ export function DashboardPage() {
                     justifyContent: 'center',
                   }}
                 >
-                  <svg width="68" height="68" viewBox="0 0 68 68" style={{ transform: 'rotate(-90deg)' }}>
+                  <svg
+                    width="68"
+                    height="68"
+                    viewBox="0 0 68 68"
+                    style={{ transform: 'rotate(-90deg)' }}
+                  >
                     <circle
                       cx="34"
                       cy="34"
@@ -516,7 +522,12 @@ export function DashboardPage() {
               >
                 <span style={{ color: '#10B981' }}>{totalVerifiedAll}</span> of{' '}
                 <span>{totalReqsAll || 9}</span> requirements proven.{' '}
-                <span style={{ color: totalBlockedTasks > 0 ? '#EF4444' : 'var(--text-muted)', fontWeight: 600 }}>
+                <span
+                  style={{
+                    color: totalBlockedTasks > 0 ? '#EF4444' : 'var(--text-muted)',
+                    fontWeight: 600,
+                  }}
+                >
                   {totalBlockedTasks > 0 ? `${totalBlockedTasks} blocked.` : '0 blocked.'}
                 </span>
               </h1>
@@ -763,7 +774,8 @@ export function DashboardPage() {
                       width: 24,
                       height: 24,
                       borderRadius: '50%',
-                      backgroundColor: totalBlockedTasks > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.04)',
+                      backgroundColor:
+                        totalBlockedTasks > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.04)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

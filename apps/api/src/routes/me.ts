@@ -179,10 +179,7 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
 
     if (provider === 'nebius') {
       try {
-        await verifyNebiusApiKey(
-          apiKey || '',
-          config.nebiusBaseUrl,
-        );
+        await verifyNebiusApiKey(apiKey || '', config.nebiusBaseUrl);
       } catch (err) {
         const error = err as { code?: string; message?: string };
         const status =
@@ -202,11 +199,9 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
       }
     } else if (provider === 'openai') {
       try {
-        await verifyOpenAiApiKey(
-          apiKey || '',
-          config.openaiModel || 'gpt-4o',
-          { baseUrl: config.openaiBaseUrl || 'https://api.openai.com/v1' },
-        );
+        await verifyOpenAiApiKey(apiKey || '', config.openaiModel || 'gpt-4o', {
+          baseUrl: config.openaiBaseUrl || 'https://api.openai.com/v1',
+        });
       } catch (err) {
         const error = err as { code?: string; message?: string };
         const status =
@@ -226,10 +221,7 @@ export async function meRoutes(app: FastifyInstance, opts: MeRouteOpts) {
       }
     } else if (provider === 'gemini') {
       try {
-        await verifyGeminiApiKey(
-          apiKey || '',
-          config.aiModel || 'gemini-3.8-flash',
-        );
+        await verifyGeminiApiKey(apiKey || '', config.aiModel || 'gemini-3.8-flash');
       } catch (err) {
         const error = err as { code?: string; message?: string };
         const status =

@@ -555,7 +555,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       const { projectId } = request.params;
 
       const parsed = generateDeliveryPlanSchema.safeParse({
-        ...((typeof request.body === 'object' && request.body !== null ? request.body : {}) as object),
+        ...((typeof request.body === 'object' && request.body !== null
+          ? request.body
+          : {}) as object),
         projectId,
       });
       if (!parsed.success) {
@@ -593,7 +595,10 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
 
       if (!member || !hasPermission(member.role, 'ai:generate')) {
         return reply.code(403).send({
-          error: { code: 'forbidden', message: 'Insufficient permission to generate delivery plans' },
+          error: {
+            code: 'forbidden',
+            message: 'Insufficient permission to generate delivery plans',
+          },
         });
       }
 
@@ -652,6 +657,7 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
         return reply.code(200).send({
           generationId: generation!.id,
           draft: result.draft,
+          plan: result.draft,
           provider: result.provider,
           model: result.model,
           inputHash: result.inputHash,
@@ -664,7 +670,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
         return reply.code(statusCode).send({
           error: {
             code: errorObj.code || 'plan_generation_failed',
-            message: errorObj.message || 'Failed to generate delivery plan from project brief and requirements.',
+            message:
+              errorObj.message ||
+              'Failed to generate delivery plan from project brief and requirements.',
           },
         });
       }
@@ -679,7 +687,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       const { projectId, planId } = request.params;
 
       const parsed = acceptDeliveryPlanSchema.safeParse({
-        ...((typeof request.body === 'object' && request.body !== null ? request.body : {}) as object),
+        ...((typeof request.body === 'object' && request.body !== null
+          ? request.body
+          : {}) as object),
         projectId,
         generationId: planId,
       });
@@ -718,7 +728,10 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
 
       if (!member || !hasPermission(member.role, 'ai:accept')) {
         return reply.code(403).send({
-          error: { code: 'forbidden', message: 'Insufficient permission to approve delivery plans' },
+          error: {
+            code: 'forbidden',
+            message: 'Insufficient permission to approve delivery plans',
+          },
         });
       }
 
@@ -773,7 +786,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
 
       await db.transaction(async (tx) => {
         let sortOrder = 0;
-        const milestonesList = Array.isArray(draftToApply.milestones) ? draftToApply.milestones : [];
+        const milestonesList = Array.isArray(draftToApply.milestones)
+          ? draftToApply.milestones
+          : [];
 
         for (const m of milestonesList) {
           const [newMilestone] = await tx
@@ -805,7 +820,9 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
                 title: t.title,
                 description: t.description
                   ? `${t.description}${t.evidenceNeeded ? `\n\n**Evidence Needed for Verification:**\n${t.evidenceNeeded}` : ''}`
-                  : (t.evidenceNeeded ? `**Evidence Needed for Verification:**\n${t.evidenceNeeded}` : null),
+                  : t.evidenceNeeded
+                    ? `**Evidence Needed for Verification:**\n${t.evidenceNeeded}`
+                    : null,
                 status: 'todo',
                 priority: 'normal',
                 assigneeUserId: assigneeId,

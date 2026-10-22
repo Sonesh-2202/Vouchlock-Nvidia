@@ -66,11 +66,11 @@ Vouchlock implements a clean **Two-Path AI Architecture**:
    - **Ephemeral In-Memory Security & Persistence:** User BYOK keys and role routing preferences live strictly in temporary server process memory (24-hour TTL, automatically wiped on logout). Keys and preferences are never written to disk, database, browser storage, or application logs, and do not persist across server process restarts.
 
 3. **End-to-End Brief-to-Proof Delivery Agent:**
-   - *Stage 1: Brief Intake* (source brief coverage and grounded revision selection — users can target specific brief versions or the latest approved brief)
-   - *Stage 2: Requirement Analysis* (candidate requirement extraction with grounded source citations)
-   - *Stage 3: Task Planning* (linking execution tasks to canonical requirements)
-   - *Stage 4: Evidence Collection* (surfacing unproven tasks and proof artifact gaps)
-   - *Stage 5: Verification* (human attestation stamp)
+   - _Stage 1: Brief Intake_ (source brief coverage and grounded revision selection — users can target specific brief versions or the latest approved brief)
+   - _Stage 2: Requirement Analysis_ (candidate requirement extraction with grounded source citations)
+   - _Stage 3: Task Planning_ (linking execution tasks to canonical requirements)
+   - _Stage 4: Evidence Collection_ (surfacing unproven tasks and proof artifact gaps)
+   - _Stage 5: Verification_ (human attestation stamp)
 4. **Bounded Proposal & Approval Flow:** The agent formulates the **Most Useful Next Action** and prepares concrete proposal cards (`create_requirement`, `link_task_requirement`, `request_evidence`, `create_task`, `update_task`). Authorized team members approve or reject with one click. Server boundaries enforce strict schema validation, returning clean 422 errors rather than fabricating synthetic summaries on parse failures.
 5. **Truthful UI Distinction:** Project facts, source passages, model suggestions, and items needing review are visibly and semantically segregated with distinct badges (`Project record`, `Source passage`, `AI suggestion`, `Needs review`).
 6. **Immutable Audit Trail:** All agent analyses, proposal approvals, and rejections are immutably recorded in the workspace audit trail.
@@ -80,18 +80,18 @@ Vouchlock implements a clean **Two-Path AI Architecture**:
 
 ## 🌟 Key Features
 
-| Feature | Description |
-| :--- | :--- |
-| **🤖 Delivery Agent (NVIDIA Nemotron)** | Grounded delivery agent powered by NVIDIA Nemotron on Nebius Token Factory. Evaluates brief coverage, requirement linkages, and evidence gaps. |
-| **✨ AI Brief Decomposition** | Turns unstructured client briefs into structured candidate requirements with source quote citations, assumptions, and risks. |
-| **🛡️ Proposal-Before-Write Pattern** | AI never writes directly to canonical records. All changes are generated as bounded proposals requiring explicit human approval. |
-| **🔑 Server-Side Nebius Security** | Nebius Token Factory keys are held exclusively server-side in ephemeral memory or environment config. Keys are never exposed to browsers, client storage, or logs. |
-| **🔌 Standard MCP Server** | Official `@modelcontextprotocol/sdk` Streamable HTTP server at `/mcp` with scoped cryptographic tokens and read-only project audit tools. |
-| **📑 Requirements & Traceability** | Expandable ledger rows with vertical traceability chains: _Requirement Claim_ → _Linked Tasks_ → _Proof Artifacts_ → _Human Attestation Stamp_. |
-| **📋 5-Column Horizontal Kanban** | Equal-width horizontal board (`Backlog`, `To Do`, `In Progress`, `Blocked`, `Done`) with card lift, blocker alerts, and accessible keyboard moves. |
-| **📊 Truthful Delivery Reports** | Printable attestation documents featuring delivery verdicts, tabular metric registers, claims-vs-proof matrix, and formal sign-off blocks. |
-| **👥 Executive Briefing Dashboard** | State-of-delivery metric strip across all projects, ruled Projects ledger table, and compact team roster. |
-| **📥 Full Data Portability** | One-click JSON exports for projects, tasks, comments, and workspace audit trails. |
+| Feature                                 | Description                                                                                                                                                        |
+| :-------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **🤖 Delivery Agent (NVIDIA Nemotron)** | Grounded delivery agent powered by NVIDIA Nemotron on Nebius Token Factory. Evaluates brief coverage, requirement linkages, and evidence gaps.                     |
+| **✨ AI Brief Decomposition**           | Turns unstructured client briefs into structured candidate requirements with source quote citations, assumptions, and risks.                                       |
+| **🛡️ Proposal-Before-Write Pattern**    | AI never writes directly to canonical records. All changes are generated as bounded proposals requiring explicit human approval.                                   |
+| **🔑 Server-Side Nebius Security**      | Nebius Token Factory keys are held exclusively server-side in ephemeral memory or environment config. Keys are never exposed to browsers, client storage, or logs. |
+| **🔌 Standard MCP Server**              | Official `@modelcontextprotocol/sdk` Streamable HTTP server at `/mcp` with scoped cryptographic tokens and read-only project audit tools.                          |
+| **📑 Requirements & Traceability**      | Expandable ledger rows with vertical traceability chains: _Requirement Claim_ → _Linked Tasks_ → _Proof Artifacts_ → _Human Attestation Stamp_.                    |
+| **📋 5-Column Horizontal Kanban**       | Equal-width horizontal board (`Backlog`, `To Do`, `In Progress`, `Blocked`, `Done`) with card lift, blocker alerts, and accessible keyboard moves.                 |
+| **📊 Truthful Delivery Reports**        | Printable attestation documents featuring delivery verdicts, tabular metric registers, claims-vs-proof matrix, and formal sign-off blocks.                         |
+| **👥 Executive Briefing Dashboard**     | State-of-delivery metric strip across all projects, ruled Projects ledger table, and compact team roster.                                                          |
+| **📥 Full Data Portability**            | One-click JSON exports for projects, tasks, comments, and workspace audit trails.                                                                                  |
 
 ---
 
@@ -193,7 +193,7 @@ Follow this step-by-step path to evaluate the live agent workflow:
    - The exact model ID returned, profile, and routing reason are recorded and displayed in the result provenance strip.
    - The response is parsed and validated against application-owned domain schemas.
 6. Inspect the resulting delivery analysis:
-   - **5-Stage Pipeline Progress:** See real-time progress across *Brief Intake*, *Requirement Analysis*, *Task Planning*, *Evidence Collection*, and *Verification*.
+   - **5-Stage Pipeline Progress:** See real-time progress across _Brief Intake_, _Requirement Analysis_, _Task Planning_, _Evidence Collection_, and _Verification_.
    - **Most Useful Next Action:** Read the model's grounded analysis explaining exactly why a specific next action is needed, citing concrete project facts.
    - **Visibly Segregated Fact Badges:** Confirm that items are explicitly tagged with `Project record` (verified fact), `Source passage` (brief citation), `AI suggestion` (unverified inference), and `Needs review` (human review required).
    - **Grounded Action Envelopes:** Inspect proposed change cards (such as candidate requirement generation with source quote citations, task-to-requirement linking, or evidence requests).
@@ -204,6 +204,7 @@ Follow this step-by-step path to evaluate the live agent workflow:
    - Or click **"Reject"** and confirm that the rejection reason is logged to the audit trail without modifying project state.
 
 > **Feature Credential & Reviewer Notice:**
+>
 > - **Default Hackathon Experience (Zero-Config for Reviewers):** The server-side deployment comes pre-configured with `NEBIUS_API_KEY`. Reviewers can immediately evaluate the Delivery Agent (Nemotron reasoning, candidate requirement extraction, plan proposals, and evidence gap analysis) without entering any personal credentials.
 > - **Dynamic Model Discovery:** Reviewers can inspect the exact discovered model IDs and catalog metadata via the in-app **Model Selection & Routing** panel.
 > - **Optional BYOK Providers (OpenAI & Gemini):** If desired, users can test alternative providers by entering their own API keys via **⚙️ BYOK Settings**. BYOK requests use exclusively the user's personal key in ephemeral memory and do not consume application Nebius credits.
@@ -238,28 +239,37 @@ Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotro
 ### Brief-to-Proof Delivery Plan Lifecycle
 
 The agent provides a dedicated **Delivery Plan Workspace**:
+
 1. **Draft Generation (`POST /api/v1/copilot/projects/:projectId/delivery-plan`):**
-   - Ingests the project brief revision and existing requirements.
-   - Synthesizes proposed milestones with target completion dates.
-   - Proposes actionable tasks with owner suggestions and **Required Evidence Artifacts** (e.g. "Automated SAML assertion test log + IdP configuration manifest").
-   - Identifies open questions and ambiguities in the brief so stakeholders can resolve unknowns before work starts.
+   - **Dual-Path Execution Architecture:**
+     - **Live NVIDIA Nemotron Path:** When configured with Nebius Token Factory credentials (`NEBIUS_API_KEY`) or BYOK keys, requests route to NVIDIA Nemotron (defaulting to the Deep Reasoning profile). The model generates phased milestones, owner suggestions, open questions, and explicit evidence requirements. Output adheres strictly to schema validation before reaching the user.
+     - **Deterministic Heuristic Path (`deterministic-delivery-plan-v1`):** When running in test/mock mode (`providerOverride: 'mock'` or `aiProvider: 'mock'`), the server generates a fully deterministic delivery plan derived algorithmically from existing requirements, tasks, and brief metadata without network or model inference calls.
+   - **Truth in Provenance:** The UI displays explicit provenance badges on the draft modal header (`⚙️ Deterministic (deterministic-delivery-plan-v1)` vs `🤖 Model: <model-name>`). Deterministic outputs are never mislabeled as model-generated.
+   - **Ephemeral Draft State:** Plan drafts remain uncommitted in memory and do NOT mutate canonical project records until explicit human approval.
+
 2. **Review & Human Gate:**
-   - Displayed in an interactive review modal with the explicit badge `UNCOMMITTED DRAFT`.
-   - Reviewers inspect the proposed milestones, tasks, and proof artifacts.
+   - Displayed in an interactive review modal with the explicit badge `UNCOMMITTED DRAFT` alongside provider provenance.
+   - Reviewers inspect the proposed milestones, tasks, and required proof artifacts.
+   - Action proposals also support inline editing ("Edit Draft ✏️") before approval, recalculating content-addressed checksums (`computeProposalId`) on the server.
+
 3. **Atomic Commitment (`POST /api/v1/copilot/projects/:projectId/delivery-plan/:planId/accept`):**
-   - Validates workspace permissions (`ai:accept`, `tasks:create`, `requirements:update`).
-   - Applies the plan atomically to canonical tables (`milestones`, `tasks`, `requirementTasks`).
+   - Server re-verifies workspace membership and permissions (`ai:accept`, `tasks:create`, `requirements:update`).
+   - Ignores client-supplied role claims.
+   - Applies the plan atomically in a single database transaction to canonical tables (`milestones`, `tasks`, `requirementTasks`).
    - Immutably records the action in `auditEvents`.
+   - Rejects stale, modified, or unauthorized plan submissions.
 
 ### Requirement-to-Proof Coverage Ledger
 
 The Delivery Agent maintains an auditable requirement coverage matrix:
+
 - **`COVERED & PROVEN`:** Requirement has active linked tasks AND verified cryptographic or external proof artifacts.
 - **`PARTIALLY COVERED`:** Requirement has linked tasks or preliminary evidence, but verification attestation is incomplete.
 - **`UNCOVERED GAP`:** Requirement is present in the brief but has zero linked tasks and zero submitted evidence.
 - **`NEEDS CLARIFICATION`:** Requirement contains ambiguities, conflicting constraints, or unverified assumptions identified in the brief.
 
 For every requirement, the ledger displays:
+
 - **Work (Tasks):** Canonical linked execution tasks with status pills.
 - **Proof (Evidence):** Attached proof artifacts with SHA-256 checksums and test assertions.
 - **Evidence Still Needed:** Concrete specification of the missing proof artifact.
@@ -268,6 +278,7 @@ For every requirement, the ledger displays:
 ### Action Envelopes with Diff Previews & Human-in-the-Loop Editing
 
 Proposed actions feature complete transparency before commitment:
+
 - **Trigger Condition:** Explicit project state that triggered the recommendation (e.g., "Requirement 'SAML 2.0 SSO' has no active execution tasks").
 - **Referenced Records:** Direct badges linking to the exact project records involved.
 - **Diff Preview:** Clear Before vs. After view (`- BEFORE: No task linked` → `+ AFTER: New task 'Implement SAML 2.0 Auth Handler'`).
@@ -276,11 +287,14 @@ Proposed actions feature complete transparency before commitment:
 
 ### Advisory Evidence Review Assistant
 
-When inspecting attached evidence, reviewers can run **Advisory AI Review**:
-- Compares artifact content against requirement claims.
-- Assesses support strength, missing context, and potential scope mismatch.
-- Outputs an advisory recommendation pill (`ACCEPT`, `REQUEST_MORE_PROOF`, `HUMAN_REVIEW`) with confidence level and explanation.
-- Displays an authoritative banner reminding reviewers that AI evaluation is advisory and human certification is legally required for compliance.
+When inspecting attached evidence, reviewers can run **Advisory Evidence Review**:
+
+- **Dual-Path Execution Architecture:**
+  - **Live NVIDIA Nemotron Path:** When configured with Nebius Token Factory credentials, NVIDIA Nemotron evaluates the artifact's substance, alignment against target requirements, cryptographic or technical strengths, deficiencies, and scope mismatches.
+  - **Deterministic Heuristic Path (`deterministic-evidence-reviewer-v1`):** In mock or non-billable test mode, an algorithmic reviewer inspects URL presence and note substance without external inference calls.
+- **Strict Non-Autonomous Boundary:** Evidence review is strictly advisory. It CANNOT approve, certify, reject, or delete canonical evidence records in the database. Canonical attestation remains exclusively reserved for authenticated human workspace members.
+- **Explainable Advisory Ledger:** Outputs an advisory recommendation pill (`ACCEPT`, `REQUEST_MORE_PROOF`, `HUMAN_REVIEW`) with confidence level (`HIGH`, `MEDIUM`, `LOW`), strengths, deficiencies, suggested clarifications, and citation links.
+- **Truth in Provenance:** The modal displays an explicit provenance badge (`⚙️ Deterministic (deterministic-evidence-reviewer-v1)` vs `🤖 Model: <model-name>`). Deterministic output is never mislabeled as model-generated.
 
 ### Data Privacy & Provider Isolation
 
@@ -325,7 +339,7 @@ Vouchlock exposes a standard Model Context Protocol (MCP) server over Streamable
 > [!IMPORTANT]
 > **Implementation-First Testing Boundary Notice:**
 > In accordance with the repository owner's explicit instructions, **no automated tests, typechecks, build commands, or live billable inference calls were executed during this implementation phase**. All code modifications were authored with strict schema alignment, dual `src/` and `dist/` contract exports, and validated domain rules.
-> 
+>
 > Reviewers can manually verify the end-to-end Delivery Agent workflow using the following checklist:
 
 1. **Verify Live Model Discovery & Model Picker:**
@@ -371,12 +385,12 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>🔐 Authentication & Sessions</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/register` | Register new user account |
-| `POST` | `/api/v1/auth/login` | Sign in & receive HTTP-only session cookie |
-| `POST` | `/api/v1/auth/logout` | Revoke session & clear cookies |
-| `GET` | `/api/v1/auth/me` | Return active authenticated user profile |
+| Method | Endpoint                | Description                                |
+| :----- | :---------------------- | :----------------------------------------- |
+| `POST` | `/api/v1/auth/register` | Register new user account                  |
+| `POST` | `/api/v1/auth/login`    | Sign in & receive HTTP-only session cookie |
+| `POST` | `/api/v1/auth/logout`   | Revoke session & clear cookies             |
+| `GET`  | `/api/v1/auth/me`       | Return active authenticated user profile   |
 
 </details>
 
@@ -384,15 +398,15 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>🏢 Workspaces & Collaboration</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/workspaces` | List current user's workspaces |
-| `POST` | `/api/v1/workspaces` | Create workspace (creator becomes `owner`) |
-| `GET` | `/api/v1/workspaces/:id` | Workspace details & member directory |
-| `POST` | `/api/v1/workspaces/:id/invitations` | Generate secure 7-day invite token |
-| `POST` | `/api/v1/workspaces/invitations/:token/accept` | Accept invitation link |
-| `DELETE` | `/api/v1/workspaces/:id/members/:userId` | Remove member (last owner protected) |
-| `GET` | `/api/v1/workspaces/:id/export` | Full workspace data export (JSON) |
+| Method   | Endpoint                                       | Description                                |
+| :------- | :--------------------------------------------- | :----------------------------------------- |
+| `GET`    | `/api/v1/workspaces`                           | List current user's workspaces             |
+| `POST`   | `/api/v1/workspaces`                           | Create workspace (creator becomes `owner`) |
+| `GET`    | `/api/v1/workspaces/:id`                       | Workspace details & member directory       |
+| `POST`   | `/api/v1/workspaces/:id/invitations`           | Generate secure 7-day invite token         |
+| `POST`   | `/api/v1/workspaces/invitations/:token/accept` | Accept invitation link                     |
+| `DELETE` | `/api/v1/workspaces/:id/members/:userId`       | Remove member (last owner protected)       |
+| `GET`    | `/api/v1/workspaces/:id/export`                | Full workspace data export (JSON)          |
 
 </details>
 
@@ -400,20 +414,20 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>📁 Projects & Brief Intake</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/workspaces/:wid/projects` | List projects in workspace |
-| `POST` | `/api/v1/workspaces/:wid/projects` | Create project with goal and constraints |
-| `GET` | `/api/v1/projects/:id` | Project brief, milestones, and tasks |
-| `PATCH` | `/api/v1/projects/:id` | Update project brief with concurrency checks |
-| `GET` | `/api/v1/projects/:id/briefs` | List versioned source brief revisions |
-| `POST` | `/api/v1/projects/:id/briefs` | Create new source brief revision |
-| `POST` | `/api/v1/projects/:id/proposals/extract` | Extract candidate requirements from brief |
-| `POST` | `/api/v1/projects/:id/proposals/accept` | Accept candidate requirements into project |
-| `POST` | `/api/v1/projects/:id/plan-drafts` | **AI Plan Generator** (non-mutating proposal) |
-| `POST` | `/api/v1/projects/:id/plan-drafts/:draftId/accept` | **Accept Plan** (atomic transaction) |
-| `POST` | `/api/v1/projects/:id/ai/progress-summary` | Read-only delivery progress analysis |
-| `GET` | `/api/v1/projects/:id/export` | Complete project export (JSON) |
+| Method  | Endpoint                                           | Description                                   |
+| :------ | :------------------------------------------------- | :-------------------------------------------- |
+| `GET`   | `/api/v1/workspaces/:wid/projects`                 | List projects in workspace                    |
+| `POST`  | `/api/v1/workspaces/:wid/projects`                 | Create project with goal and constraints      |
+| `GET`   | `/api/v1/projects/:id`                             | Project brief, milestones, and tasks          |
+| `PATCH` | `/api/v1/projects/:id`                             | Update project brief with concurrency checks  |
+| `GET`   | `/api/v1/projects/:id/briefs`                      | List versioned source brief revisions         |
+| `POST`  | `/api/v1/projects/:id/briefs`                      | Create new source brief revision              |
+| `POST`  | `/api/v1/projects/:id/proposals/extract`           | Extract candidate requirements from brief     |
+| `POST`  | `/api/v1/projects/:id/proposals/accept`            | Accept candidate requirements into project    |
+| `POST`  | `/api/v1/projects/:id/plan-drafts`                 | **AI Plan Generator** (non-mutating proposal) |
+| `POST`  | `/api/v1/projects/:id/plan-drafts/:draftId/accept` | **Accept Plan** (atomic transaction)          |
+| `POST`  | `/api/v1/projects/:id/ai/progress-summary`         | Read-only delivery progress analysis          |
+| `GET`   | `/api/v1/projects/:id/export`                      | Complete project export (JSON)                |
 
 </details>
 
@@ -421,16 +435,16 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>📑 Requirements, Evidence & Verification</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/projects/:id/requirements` | List requirements with linked tasks & evidence counts |
-| `POST` | `/api/v1/projects/:id/requirements` | Register requirement claim |
-| `GET` | `/api/v1/requirements/:id` | Requirement detail, task links, evidence, and verifications |
-| `POST` | `/api/v1/requirements/:id/tasks/:taskId` | Link task to requirement |
-| `DELETE` | `/api/v1/requirements/:id/tasks/:taskId` | Unlink task from requirement |
-| `POST` | `/api/v1/requirements/:id/evidence` | Attach proof artifact (URL or note) |
-| `POST` | `/api/v1/requirements/:id/verify` | Human attestation sign-off (`verified`, `rejected`, `unverified`) |
-| `GET` | `/api/v1/projects/:id/delivery-report` | Compute Truthful Delivery Report and audit metrics |
+| Method   | Endpoint                                 | Description                                                       |
+| :------- | :--------------------------------------- | :---------------------------------------------------------------- |
+| `GET`    | `/api/v1/projects/:id/requirements`      | List requirements with linked tasks & evidence counts             |
+| `POST`   | `/api/v1/projects/:id/requirements`      | Register requirement claim                                        |
+| `GET`    | `/api/v1/requirements/:id`               | Requirement detail, task links, evidence, and verifications       |
+| `POST`   | `/api/v1/requirements/:id/tasks/:taskId` | Link task to requirement                                          |
+| `DELETE` | `/api/v1/requirements/:id/tasks/:taskId` | Unlink task from requirement                                      |
+| `POST`   | `/api/v1/requirements/:id/evidence`      | Attach proof artifact (URL or note)                               |
+| `POST`   | `/api/v1/requirements/:id/verify`        | Human attestation sign-off (`verified`, `rejected`, `unverified`) |
+| `GET`    | `/api/v1/projects/:id/delivery-report`   | Compute Truthful Delivery Report and audit metrics                |
 
 </details>
 
@@ -438,15 +452,15 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>✅ Tasks & Milestones</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/projects/:id/milestones` | Create milestone |
-| `PATCH` | `/api/v1/projects/milestones/:id` | Update milestone dates / title |
-| `DELETE` | `/api/v1/projects/milestones/:id` | Delete milestone |
-| `POST` | `/api/v1/tasks/projects/:pid/tasks` | Create task |
-| `GET` | `/api/v1/tasks/:id` | Task details with threaded comments |
-| `PATCH` | `/api/v1/tasks/:id` | Update task status or priority |
-| `POST` | `/api/v1/tasks/:id/comments` | Add comment to task |
+| Method   | Endpoint                            | Description                         |
+| :------- | :---------------------------------- | :---------------------------------- |
+| `POST`   | `/api/v1/projects/:id/milestones`   | Create milestone                    |
+| `PATCH`  | `/api/v1/projects/milestones/:id`   | Update milestone dates / title      |
+| `DELETE` | `/api/v1/projects/milestones/:id`   | Delete milestone                    |
+| `POST`   | `/api/v1/tasks/projects/:pid/tasks` | Create task                         |
+| `GET`    | `/api/v1/tasks/:id`                 | Task details with threaded comments |
+| `PATCH`  | `/api/v1/tasks/:id`                 | Update task status or priority      |
+| `POST`   | `/api/v1/tasks/:id/comments`        | Add comment to task                 |
 
 </details>
 
@@ -454,16 +468,16 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>🤖 Delivery Agent (Bounded Read → Nemotron Reasoning → Propose → Approve)</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/copilot/reports` | Generate bounded project analysis, requirement coverage, progress, next actions, and proposed action envelopes |
-| `GET` | `/api/v1/copilot/projects/:projectId/freshness` | Watchdog endpoint checking whether prior analysis is stale based on subsequent project mutations |
-| `POST` | `/api/v1/copilot/projects/:projectId/delivery-plan` | Synthesize auditable draft delivery plan linking brief requirements -> tasks -> required proof artifacts |
-| `POST` | `/api/v1/copilot/projects/:projectId/delivery-plan/:planId/accept` | Atomically commit reviewed delivery plan to canonical database with permission verification |
-| `POST` | `/api/v1/copilot/evidence-review` | Advisory evidence evaluation comparing submitted artifact against target requirement |
-| `POST` | `/api/v1/copilot/query` | Grounded project ledger Q&A with verifiable bracketed citations |
-| `POST` | `/api/v1/copilot/approve` | Execute proposal action with human approval gate, permission check & content-hash verification |
-| `POST` | `/api/v1/copilot/reject` | Record explicit rejection with reason in immutable audit trail |
+| Method | Endpoint                                                           | Description                                                                                                    |
+| :----- | :----------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/v1/copilot/reports`                                          | Generate bounded project analysis, requirement coverage, progress, next actions, and proposed action envelopes |
+| `GET`  | `/api/v1/copilot/projects/:projectId/freshness`                    | Watchdog endpoint checking whether prior analysis is stale based on subsequent project mutations               |
+| `POST` | `/api/v1/copilot/projects/:projectId/delivery-plan`                | Synthesize auditable draft delivery plan linking brief requirements -> tasks -> required proof artifacts       |
+| `POST` | `/api/v1/copilot/projects/:projectId/delivery-plan/:planId/accept` | Atomically commit reviewed delivery plan to canonical database with permission verification                    |
+| `POST` | `/api/v1/copilot/evidence-review`                                  | Advisory evidence evaluation comparing submitted artifact against target requirement                           |
+| `POST` | `/api/v1/copilot/query`                                            | Grounded project ledger Q&A with verifiable bracketed citations                                                |
+| `POST` | `/api/v1/copilot/approve`                                          | Execute proposal action with human approval gate, permission check & content-hash verification                 |
+| `POST` | `/api/v1/copilot/reject`                                           | Record explicit rejection with reason in immutable audit trail                                                 |
 
 </details>
 
@@ -471,13 +485,13 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>🔑 Nebius Token Factory & Ephemeral BYOK Sessions</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/me/providers/available` | List supported AI providers (default: Nebius / NVIDIA Nemotron, optional BYOK: OpenAI, Gemini) |
-| `GET` | `/api/v1/me/providers` | List active ephemeral session status (masked keys only, zero plaintext) |
-| `POST` | `/api/v1/me/provider-test` | Provider-specific credential verification (tested against selected provider's API) |
-| `POST` | `/api/v1/me/provider-session` | Store ephemeral in-memory BYOK key (24h TTL, auto-wiped on logout) |
-| `DELETE` | `/api/v1/me/provider-session/:provider` | Revoke ephemeral provider session key from process memory |
+| Method   | Endpoint                                | Description                                                                                    |
+| :------- | :-------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/v1/me/providers/available`        | List supported AI providers (default: Nebius / NVIDIA Nemotron, optional BYOK: OpenAI, Gemini) |
+| `GET`    | `/api/v1/me/providers`                  | List active ephemeral session status (masked keys only, zero plaintext)                        |
+| `POST`   | `/api/v1/me/provider-test`              | Provider-specific credential verification (tested against selected provider's API)             |
+| `POST`   | `/api/v1/me/provider-session`           | Store ephemeral in-memory BYOK key (24h TTL, auto-wiped on logout)                             |
+| `DELETE` | `/api/v1/me/provider-session/:provider` | Revoke ephemeral provider session key from process memory                                      |
 
 </details>
 
@@ -485,11 +499,11 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>🔍 Dynamic Model Discovery & Preferences</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/models/catalog` | Live model discovery from authenticated Nebius Token Factory account (`?refresh=true` for manual refresh) |
-| `GET` | `/api/v1/models/preferences` | Retrieve user/workspace model preferences and role assignments |
-| `POST` | `/api/v1/models/preferences` | Save preferred model ID and role assignments (validated against live catalog) |
+| Method | Endpoint                     | Description                                                                                               |
+| :----- | :--------------------------- | :-------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/models/catalog`     | Live model discovery from authenticated Nebius Token Factory account (`?refresh=true` for manual refresh) |
+| `GET`  | `/api/v1/models/preferences` | Retrieve user/workspace model preferences and role assignments                                            |
+| `POST` | `/api/v1/models/preferences` | Save preferred model ID and role assignments (validated against live catalog)                             |
 
 </details>
 
@@ -497,12 +511,12 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>⚡ Asynchronous Serverless Jobs (Portfolio Delivery Audits)</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/jobs/portfolio-audit` | Queue asynchronous workspace portfolio delivery audit (idempotent submission) |
-| `GET` | `/api/v1/jobs/:jobId` | Poll job status, progress percentage, execution target, and completed report |
-| `POST` | `/api/v1/jobs/:jobId/cancel` | Cancel an in-flight portfolio audit job |
-| `GET` | `/api/v1/jobs/workspace/:workspaceId` | List previous portfolio audit jobs for workspace |
+| Method | Endpoint                              | Description                                                                   |
+| :----- | :------------------------------------ | :---------------------------------------------------------------------------- |
+| `POST` | `/api/v1/jobs/portfolio-audit`        | Queue asynchronous workspace portfolio delivery audit (idempotent submission) |
+| `GET`  | `/api/v1/jobs/:jobId`                 | Poll job status, progress percentage, execution target, and completed report  |
+| `POST` | `/api/v1/jobs/:jobId/cancel`          | Cancel an in-flight portfolio audit job                                       |
+| `GET`  | `/api/v1/jobs/workspace/:workspaceId` | List previous portfolio audit jobs for workspace                              |
 
 </details>
 
@@ -510,14 +524,14 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 <summary><b>🔌 Model Context Protocol (MCP) Server</b></summary>
 <br>
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `ALL` | `/mcp` | Official `@modelcontextprotocol/sdk` Streamable HTTP transport endpoint |
-| `GET` | `/mcp/v1/tools` | REST tool discovery endpoint (lists 4 read-only Vouchlock audit tools) |
-| `POST` | `/mcp/v1/call` | REST tool invocation (`get_project_summary`, `list_requirements`, `list_tasks`, `get_delivery_report`) |
-| `GET` | `/mcp/v1/tokens` | List caller's active MCP tokens for workspace |
+| Method | Endpoint         | Description                                                                                                  |
+| :----- | :--------------- | :----------------------------------------------------------------------------------------------------------- |
+| `ALL`  | `/mcp`           | Official `@modelcontextprotocol/sdk` Streamable HTTP transport endpoint                                      |
+| `GET`  | `/mcp/v1/tools`  | REST tool discovery endpoint (lists 4 read-only Vouchlock audit tools)                                       |
+| `POST` | `/mcp/v1/call`   | REST tool invocation (`get_project_summary`, `list_requirements`, `list_tasks`, `get_delivery_report`)       |
+| `GET`  | `/mcp/v1/tokens` | List caller's active MCP tokens for workspace                                                                |
 | `POST` | `/mcp/v1/tokens` | Generate scoped MCP token (one-time reveal; SHA-256 hash stored; `mcp:admin` requires workspace owner/admin) |
-| `POST` | `/mcp/v1/revoke` | Revoke MCP token (enforces caller ownership; prevents cross-user revocation) |
+| `POST` | `/mcp/v1/revoke` | Revoke MCP token (enforces caller ownership; prevents cross-user revocation)                                 |
 
 </details>
 

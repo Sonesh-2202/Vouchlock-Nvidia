@@ -161,13 +161,18 @@ export async function readCopilotContext(
       })
       .from(auditEvents)
       .where(eq(auditEvents.workspaceId, project.workspaceId))
-      .orderBy(desc(auditEvents.createdAt))
+      .orderBy(desc(auditEvents.createdAt)),
+  ]);
+
   let orderedBriefRevisions = briefRevisionsList;
   if (briefRevisionId) {
     const foundIndex = orderedBriefRevisions.findIndex((b) => b.id === briefRevisionId);
     if (foundIndex > 0) {
       const selected = orderedBriefRevisions[foundIndex]!;
-      orderedBriefRevisions = [selected, ...orderedBriefRevisions.filter((b) => b.id !== briefRevisionId)];
+      orderedBriefRevisions = [
+        selected,
+        ...orderedBriefRevisions.filter((b) => b.id !== briefRevisionId),
+      ];
     } else if (foundIndex === -1) {
       // If the selected brief revision is older than top 5, fetch it specifically
       const [specificBrief] = await db
@@ -176,6 +181,7 @@ export async function readCopilotContext(
           revisionNumber: projectBriefRevisions.revisionNumber,
           title: projectBriefRevisions.title,
           content: projectBriefRevisions.content,
+          createdAt: projectBriefRevisions.createdAt,
         })
         .from(projectBriefRevisions)
         .where(
@@ -258,23 +264,6 @@ export async function readCopilotContext(
 
   const memberNames = workspaceUsersList.map((u) => u.displayName);
 
-  return {
-    workspaceId: project.workspaceId,
-    project: {
-      id: project.id,
-      name: project.name,
-      goal: project.goal,
-      audience: project.audience,
-      deliverable: project.deliverable,
-      deadline: project.deadline ? project.deadline.toISOString() : null,
-      status: project.status,
-    },
-    milestones: milestonesList.map((m) => ({
-      id: m.id,
-      title: m.title,
-      description: m.description,
-      dueDate: m.dueDate ? m.dueDate.toISOString() : null,
-    })),
   // Assemble all change records for change awareness & freshness analysis
   const changeRecords = [
     {

@@ -34,7 +34,9 @@ export function getModelCapabilityBadge(modelId: string, roleSuggestion?: string
   return { label: '❓ Unclassified', badgeClass: 'badge-role badge-role-unclassified' };
 }
 
-export function getModelHumanTitle(model: DiscoveredModel | { id: string; displayName?: string }): string {
+export function getModelHumanTitle(
+  model: DiscoveredModel | { id: string; displayName?: string },
+): string {
   const id = model.id || '';
   if (model.displayName && model.displayName.trim().length > 0 && model.displayName !== id) {
     return model.displayName.trim();
@@ -167,7 +169,10 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
     if (onSelectModel) onSelectModel('');
 
     try {
-      await api.models.savePreferences({ selectedRoleProfile: role, selectedModelId: '' }, workspaceId);
+      await api.models.savePreferences(
+        { selectedRoleProfile: role, selectedModelId: '' },
+        workspaceId,
+      );
     } catch {
       // Local state is preserved regardless
     }
@@ -187,11 +192,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
   };
 
   const discoveredNemotrons = catalog?.nemotronModels || [];
-  const visibleModels = catalog
-    ? filterNemotronOnly
-      ? discoveredNemotrons
-      : catalog.models
-    : [];
+  const visibleModels = catalog ? (filterNemotronOnly ? discoveredNemotrons : catalog.models) : [];
 
   const currentSelectedModel = catalog?.models?.find((m) => m.id === selectedId);
   const isSelectedModelUnavailable = Boolean(selectedId && catalog && !currentSelectedModel);
@@ -201,7 +202,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
       ? catalog.roleAssignments[activeRole]
       : currentSelectedModel;
 
-  const isCurrentRoleUnavailable = mode === 'role' && catalog && !catalog.roleAssignments?.[activeRole];
+  const isCurrentRoleUnavailable =
+    mode === 'role' && catalog && !catalog.roleAssignments?.[activeRole];
 
   const effectiveActiveId =
     selectedProvider !== 'nebius'
@@ -211,7 +213,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
       : mode === 'role'
         ? currentActiveModelForRole?.id ||
           (catalog ? 'Role Unavailable (No Candidate)' : 'Discovering Models...')
-        : selectedId || (catalog?.models?.[0]?.id ? `${catalog.models[0].id} (Unpinned)` : 'No Model Selected');
+        : selectedId ||
+          (catalog?.models?.[0]?.id ? `${catalog.models[0].id} (Unpinned)` : 'No Model Selected');
 
   if (compact) {
     return (
@@ -237,12 +240,22 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
             />
             <span className="text-zinc-400 font-medium">Model:</span>
             {mode === 'role' ? (
-              <span className={`font-mono font-medium ${isCurrentRoleUnavailable ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {getRoleProfileLabel(activeRole)} {currentActiveModelForRole ? `(${getModelHumanTitle(currentActiveModelForRole)})` : '(Unavailable)'}
+              <span
+                className={`font-mono font-medium ${isCurrentRoleUnavailable ? 'text-amber-400' : 'text-emerald-400'}`}
+              >
+                {getRoleProfileLabel(activeRole)}{' '}
+                {currentActiveModelForRole
+                  ? `(${getModelHumanTitle(currentActiveModelForRole)})`
+                  : '(Unavailable)'}
               </span>
             ) : (
-              <span className="text-zinc-200 font-mono font-medium truncate max-w-[200px]" title={selectedId}>
-                {currentSelectedModel ? getModelHumanTitle(currentSelectedModel) : selectedId || 'No selection'}
+              <span
+                className="text-zinc-200 font-mono font-medium truncate max-w-[200px]"
+                title={selectedId}
+              >
+                {currentSelectedModel
+                  ? getModelHumanTitle(currentSelectedModel)
+                  : selectedId || 'No selection'}
               </span>
             )}
             <button
@@ -277,12 +290,20 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
           </select>
 
           {selectedProvider === 'nebius' ? (
-            <div className="ai-speed-switcher" role="radiogroup" aria-label="NVIDIA Nemotron Speed Profile">
+            <div
+              className="ai-speed-switcher"
+              role="radiogroup"
+              aria-label="NVIDIA Nemotron Speed Profile"
+            >
               <button
                 type="button"
                 onClick={() => handleRoleChange('fast')}
                 className={`ai-speed-pill ${mode === 'role' && activeRole === 'fast' ? 'active' : ''} ${catalog && !catalog.roleAssignments?.fast ? 'opacity-60' : ''}`}
-                title={catalog?.roleAssignments?.fast ? `Nano candidate: ${catalog.roleAssignments.fast.id}` : 'Fast profile unavailable in this account catalog'}
+                title={
+                  catalog?.roleAssignments?.fast
+                    ? `Nano candidate: ${catalog.roleAssignments.fast.id}`
+                    : 'Fast profile unavailable in this account catalog'
+                }
               >
                 <span>⚡ Fast</span>
                 {catalog && !catalog.roleAssignments?.fast && (
@@ -293,7 +314,11 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                 type="button"
                 onClick={() => handleRoleChange('balanced')}
                 className={`ai-speed-pill ${mode === 'role' && activeRole === 'balanced' ? 'active' : ''} ${catalog && !catalog.roleAssignments?.balanced ? 'opacity-60' : ''}`}
-                title={catalog?.roleAssignments?.balanced ? `Super candidate: ${catalog.roleAssignments.balanced.id}` : 'Balanced profile unavailable in this account catalog'}
+                title={
+                  catalog?.roleAssignments?.balanced
+                    ? `Super candidate: ${catalog.roleAssignments.balanced.id}`
+                    : 'Balanced profile unavailable in this account catalog'
+                }
               >
                 <span>⚖️ Balanced</span>
                 {catalog && !catalog.roleAssignments?.balanced && (
@@ -304,7 +329,11 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                 type="button"
                 onClick={() => handleRoleChange('deep_reasoning')}
                 className={`ai-speed-pill ${mode === 'role' && activeRole === 'deep_reasoning' ? 'active' : ''} ${catalog && !catalog.roleAssignments?.deep_reasoning ? 'opacity-60' : ''}`}
-                title={catalog?.roleAssignments?.deep_reasoning ? `Ultra candidate: ${catalog.roleAssignments.deep_reasoning.id}` : 'Deep reasoning profile unavailable in this account catalog'}
+                title={
+                  catalog?.roleAssignments?.deep_reasoning
+                    ? `Ultra candidate: ${catalog.roleAssignments.deep_reasoning.id}`
+                    : 'Deep reasoning profile unavailable in this account catalog'
+                }
               >
                 <span>🧠 Deep Reasoning</span>
                 {catalog && !catalog.roleAssignments?.deep_reasoning && (
@@ -316,7 +345,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-full flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                {selectedProvider === 'openai' ? 'OpenAI GPT-4o' : 'Google Gemini 1.5 Pro'} (BYOK Active)
+                {selectedProvider === 'openai' ? 'OpenAI GPT-4o' : 'Google Gemini 1.5 Pro'} (BYOK
+                Active)
               </span>
               {onOpenSettings && (
                 <button
@@ -398,9 +428,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
           <strong className="font-semibold text-amber-300">Saved Model No Longer in Catalog</strong>
           <p className="mt-0.5 text-amber-300/90">
             Previously configured model{' '}
-            <code className="bg-amber-950 px-1 py-0.5 rounded font-mono">{selectedId}</code> is not listed in
-            the live catalog for this account. Vouchlock will not silently substitute an unconfirmed model. Please select an
-            available model from the catalog below.
+            <code className="bg-amber-950 px-1 py-0.5 rounded font-mono">{selectedId}</code> is not
+            listed in the live catalog for this account. Vouchlock will not silently substitute an
+            unconfirmed model. Please select an available model from the catalog below.
           </p>
         </div>
       )}
@@ -408,11 +438,14 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
       {/* Role Profile Unavailable warning */}
       {isCurrentRoleUnavailable && !error && (
         <div className="p-3 bg-amber-950/40 border border-amber-700/60 rounded text-xs text-amber-200 mt-3">
-          <strong className="font-semibold text-amber-300">Role Profile Candidate Unavailable</strong>
+          <strong className="font-semibold text-amber-300">
+            Role Profile Candidate Unavailable
+          </strong>
           <p className="mt-0.5 text-amber-300/90">
-            The live Nebius Token Factory catalog does not contain a verified model classified for the{' '}
-            <strong>{getRoleProfileLabel(activeRole)}</strong> profile. Switch to another profile or switch to{' '}
-            <strong>Pin Specific Model</strong> below to select an exact model ID from your account catalog.
+            The live Nebius Token Factory catalog does not contain a verified model classified for
+            the <strong>{getRoleProfileLabel(activeRole)}</strong> profile. Switch to another
+            profile or switch to <strong>Pin Specific Model</strong> below to select an exact model
+            ID from your account catalog.
           </p>
         </div>
       )}
@@ -480,7 +513,13 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                   className={`role-card ${activeRole === 'fast' ? 'active' : ''} ${!catalog?.roleAssignments?.fast ? 'border-dashed opacity-80' : ''}`}
                 >
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
                       <span
                         style={{
                           fontSize: '12px',
@@ -497,7 +536,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         <span
                           style={{
                             fontSize: '9px',
-                            background: catalog?.roleAssignments?.fast ? 'var(--accent-primary)' : '#f59e0b',
+                            background: catalog?.roleAssignments?.fast
+                              ? 'var(--accent-primary)'
+                              : '#f59e0b',
                             color: '#060a08',
                             fontWeight: 700,
                             padding: '2px 8px',
@@ -509,12 +550,33 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
-                      Routes to confirmed Nemotron Nano for rapid brief extraction and quick summaries.
+                    <p
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginTop: '6px',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Routes to confirmed Nemotron Nano for rapid brief extraction and quick
+                      summaries.
                     </p>
                   </div>
-                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', fontFamily: 'var(--font-mono)' }}>
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        display: 'block',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
                       Discovered Candidate:
                     </span>
                     <span
@@ -532,7 +594,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                       {catalog?.roleAssignments?.fast ? (
                         <span style={{ color: 'var(--accent-primary)' }}>
                           {getModelHumanTitle(catalog.roleAssignments.fast)} ·{' '}
-                          <code style={{ fontSize: '10px', opacity: 0.8 }}>{catalog.roleAssignments.fast.id}</code>
+                          <code style={{ fontSize: '10px', opacity: 0.8 }}>
+                            {catalog.roleAssignments.fast.id}
+                          </code>
                         </span>
                       ) : (
                         <span style={{ color: '#F59E0B' }}>
@@ -549,7 +613,13 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                   className={`role-card ${activeRole === 'balanced' ? 'active' : ''} ${!catalog?.roleAssignments?.balanced ? 'border-dashed opacity-80' : ''}`}
                 >
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
                       <span
                         style={{
                           fontSize: '12px',
@@ -566,7 +636,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         <span
                           style={{
                             fontSize: '9px',
-                            background: catalog?.roleAssignments?.balanced ? 'var(--accent-primary)' : '#f59e0b',
+                            background: catalog?.roleAssignments?.balanced
+                              ? 'var(--accent-primary)'
+                              : '#f59e0b',
                             color: '#060a08',
                             fontWeight: 700,
                             padding: '2px 8px',
@@ -578,12 +650,33 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
-                      Routes to confirmed Nemotron Super for Delivery Agent ledger analysis and gap audits.
+                    <p
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginTop: '6px',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Routes to confirmed Nemotron Super for Delivery Agent ledger analysis and gap
+                      audits.
                     </p>
                   </div>
-                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', fontFamily: 'var(--font-mono)' }}>
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        display: 'block',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
                       Discovered Candidate:
                     </span>
                     <span
@@ -601,7 +694,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                       {catalog?.roleAssignments?.balanced ? (
                         <span style={{ color: 'var(--accent-primary)' }}>
                           {getModelHumanTitle(catalog.roleAssignments.balanced)} ·{' '}
-                          <code style={{ fontSize: '10px', opacity: 0.8 }}>{catalog.roleAssignments.balanced.id}</code>
+                          <code style={{ fontSize: '10px', opacity: 0.8 }}>
+                            {catalog.roleAssignments.balanced.id}
+                          </code>
                         </span>
                       ) : (
                         <span style={{ color: '#F59E0B' }}>
@@ -618,7 +713,13 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                   className={`role-card ${activeRole === 'deep_reasoning' ? 'active' : ''} ${!catalog?.roleAssignments?.deep_reasoning ? 'border-dashed opacity-80' : ''}`}
                 >
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
                       <span
                         style={{
                           fontSize: '12px',
@@ -635,7 +736,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         <span
                           style={{
                             fontSize: '9px',
-                            background: catalog?.roleAssignments?.deep_reasoning ? 'var(--accent-primary)' : '#f59e0b',
+                            background: catalog?.roleAssignments?.deep_reasoning
+                              ? 'var(--accent-primary)'
+                              : '#f59e0b',
                             color: '#060a08',
                             fontWeight: 700,
                             padding: '2px 8px',
@@ -647,12 +750,33 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
-                      Routes to confirmed Nemotron 3 Ultra for cross-dependency planning and complex gap synthesis.
+                    <p
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginTop: '6px',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Routes to confirmed Nemotron 3 Ultra for cross-dependency planning and complex
+                      gap synthesis.
                     </p>
                   </div>
-                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', fontFamily: 'var(--font-mono)' }}>
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                        display: 'block',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
                       Discovered Candidate:
                     </span>
                     <span
@@ -670,7 +794,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                       {catalog?.roleAssignments?.deep_reasoning ? (
                         <span style={{ color: 'var(--accent-primary)' }}>
                           {getModelHumanTitle(catalog.roleAssignments.deep_reasoning)} ·{' '}
-                          <code style={{ fontSize: '10px', opacity: 0.8 }}>{catalog.roleAssignments.deep_reasoning.id}</code>
+                          <code style={{ fontSize: '10px', opacity: 0.8 }}>
+                            {catalog.roleAssignments.deep_reasoning.id}
+                          </code>
                         </span>
                       ) : (
                         <span style={{ color: '#F59E0B' }}>
@@ -726,14 +852,34 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                         className={`model-radio-card ${isSelected ? 'selected' : ''}`}
                       >
                         {/* Left: Radio + Title + Monospace ID */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            minWidth: 0,
+                          }}
+                        >
                           <div className="model-radio-circle">
                             {isSelected && <span className="model-radio-dot" />}
                           </div>
 
                           <div className="min-w-0">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  color: 'var(--text-primary)',
+                                }}
+                              >
                                 {humanTitle}
                               </span>
                               <span
@@ -753,20 +899,24 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                             </div>
                             {model.roleSuggestion === 'unclassified' && (
                               <div style={{ fontSize: '10px', color: '#A1A1AA', marginTop: '2px' }}>
-                                Unclassified: Metadata does not assign a specific role. Explicitly selectable for all tasks.
+                                Unclassified: Metadata does not assign a specific role. Explicitly
+                                selectable for all tasks.
                               </div>
                             )}
                           </div>
                         </div>
 
                         {/* Middle & Right: Capability Badge + Verified Status */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                          <span className={cap.badgeClass}>
-                            {cap.label}
-                          </span>
-                          <span className="badge-verified">
-                            ✓ Live API
-                          </span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span className={cap.badgeClass}>{cap.label}</span>
+                          <span className="badge-verified">✓ Live API</span>
                         </div>
                       </div>
                     );
@@ -785,7 +935,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                 </span>
                 <span className="text-zinc-500">|</span>
                 <span className="font-mono text-[11px] text-zinc-400">
-                  Target: <span className="text-emerald-400 font-semibold">{effectiveActiveId}</span>
+                  Target:{' '}
+                  <span className="text-emerald-400 font-semibold">{effectiveActiveId}</span>
                 </span>
                 <span className="text-zinc-500">|</span>
                 <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300">
@@ -805,7 +956,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
             </div>
 
             <p className="text-[10px] text-zinc-400 font-mono">
-              🔒 In-Memory Persistence: Model preferences and ephemeral keys are stored in server process memory and isolated per user/session. They reset upon server restart.
+              🔒 In-Memory Persistence: Model preferences and ephemeral keys are stored in server
+              process memory and isolated per user/session. They reset upon server restart.
             </p>
 
             {showMetadataDetails && currentActiveModelForRole && (
@@ -813,7 +965,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                 <div>
                   <span className="block text-zinc-400 text-[10px]">Vendor / Family</span>
                   <span className="text-zinc-200">
-                    {currentActiveModelForRole.vendor || 'Unknown'} / {currentActiveModelForRole.family || 'Unknown'}
+                    {currentActiveModelForRole.vendor || 'Unknown'} /{' '}
+                    {currentActiveModelForRole.family || 'Unknown'}
                   </span>
                 </div>
                 <div>

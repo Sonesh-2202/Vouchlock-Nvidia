@@ -606,7 +606,10 @@ export const api = {
     ) =>
       request<{
         plan: DeliveryPlanDraft;
+        draft?: DeliveryPlanDraft;
         generationId: string;
+        provider?: string;
+        model?: string;
         validationErrors?: Array<{ path: string; message: string }>;
       }>('POST', `/copilot/projects/${projectId}/delivery-plan`, options || {}),
     acceptDeliveryPlan: (
@@ -785,7 +788,8 @@ export const api = {
       idempotencyKey?: string;
     }) => request<{ job: ServerlessJobRecord }>('POST', '/jobs/portfolio-audit', data),
     getJob: (jobId: string) => request<{ job: ServerlessJobRecord }>('GET', `/jobs/${jobId}`),
-    cancelJob: (jobId: string) => request<{ job: ServerlessJobRecord }>('POST', `/jobs/${jobId}/cancel`),
+    cancelJob: (jobId: string) =>
+      request<{ job: ServerlessJobRecord }>('POST', `/jobs/${jobId}/cancel`),
     listWorkspaceJobs: (workspaceId: string) =>
       request<{ jobs: ServerlessJobRecord[] }>('GET', `/jobs/workspace/${workspaceId}`),
   },

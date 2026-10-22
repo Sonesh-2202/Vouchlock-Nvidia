@@ -369,22 +369,41 @@ export function SettingsModal({
                 </strong>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div>
-                    <strong>1. Nebius Token Factory (Server Default · Hackathon Runtime):</strong> Uses the server-configured
-                    <code>NEBIUS_API_KEY</code> to query the live model catalog (<code>GET /v1/models</code>) and run NVIDIA
-                    open-source Nemotron models. Model roles (Nano/Super for Fast, Super for Balanced, Ultra for Deep Reasoning)
-                    are mapped directly from confirmed API metadata. Reviewers do <em>not</em> need to input credentials.
+                    <strong>1. Nebius Token Factory (Server Default · Hackathon Runtime):</strong>{' '}
+                    Uses the server-configured
+                    <code>NEBIUS_API_KEY</code> to query the live model catalog (
+                    <code>GET /v1/models</code>) and run NVIDIA open-source Nemotron models. Model
+                    roles (Nano/Super for Fast, Super for Balanced, Ultra for Deep Reasoning) are
+                    mapped directly from confirmed API metadata. Reviewers do <em>not</em> need to
+                    input credentials.
                   </div>
                   <div>
-                    <strong>2. Optional Personal BYOK (Nebius, OpenAI, Gemini):</strong> You can optionally supply your own
-                    API key to route requests through personal quotas. BYOK requests execute with your key without cross-provider fallback.
+                    <strong>2. Optional Personal BYOK (Nebius, OpenAI, Gemini):</strong> You can
+                    optionally supply your own API key to route requests through personal quotas.
+                    BYOK requests execute with your key without cross-provider fallback.
                   </div>
                   <div>
-                    <strong>3. Separate Nebius AI Cloud Job Credentials:</strong> Asynchronous batch portfolio audits use Nebius
-                    Serverless Jobs container infrastructure when configured with dedicated control-plane credentials (<code>NEBIUS_JOBS_API_KEY</code>, <code>NEBIUS_PROJECT_ID</code>).
-                    Token Factory inference keys are <em>never</em> used as a fallback for cloud control-plane jobs.
+                    <strong>3. Separate Nebius AI Cloud Job Credentials:</strong> Asynchronous batch
+                    portfolio audits use Nebius Serverless Jobs container infrastructure when
+                    configured with dedicated control-plane credentials (
+                    <code>NEBIUS_JOBS_API_KEY</code>, <code>NEBIUS_PROJECT_ID</code>). Token Factory
+                    inference keys are <em>never</em> used as a fallback for cloud control-plane
+                    jobs.
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px', borderTop: '1px solid rgba(59, 130, 246, 0.2)', paddingTop: '6px' }}>
-                    🔒 <strong>Ephemeral In-Memory Persistence:</strong> All personal BYOK keys and role preferences are held strictly in server process memory (24h TTL, wiped automatically upon logout). They are <strong>never</strong> written to disk, database, browser local storage, or server logs, and do <strong>not</strong> persist across server process restarts.
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '11px',
+                      marginTop: '2px',
+                      borderTop: '1px solid rgba(59, 130, 246, 0.2)',
+                      paddingTop: '6px',
+                    }}
+                  >
+                    🔒 <strong>Ephemeral In-Memory Persistence:</strong> All personal BYOK keys and
+                    role preferences are held strictly in server process memory (24h TTL, wiped
+                    automatically upon logout). They are <strong>never</strong> written to disk,
+                    database, browser local storage, or server logs, and do <strong>not</strong>{' '}
+                    persist across server process restarts.
                   </div>
                 </div>
               </div>
@@ -504,24 +523,30 @@ export function SettingsModal({
                       selectedProvider === 'nebius'
                         ? 'Nebius Token Factory API key (optional — server default is active)'
                         : selectedProvider === 'openai'
-                        ? 'OpenAI API key (sk-...)'
-                        : selectedProvider === 'gemini'
-                        ? 'Google AI Studio API key (AIza...)'
-                        : 'Paste provider API key'
+                          ? 'OpenAI API key (sk-...)'
+                          : selectedProvider === 'gemini'
+                            ? 'Google AI Studio API key (AIza...)'
+                            : 'Paste provider API key'
                     }
                     value={apiKeyInput}
                     onChange={(e) => setApiKeyInput(e.target.value)}
                     className="input"
                     style={{ width: '100%', fontFamily: 'var(--font-mono)' }}
                   />
-                  <p style={{ margin: 'var(--space-2) 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <p
+                    style={{
+                      margin: 'var(--space-2) 0 0',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
                     {selectedProvider === 'nebius'
                       ? '💡 Nebius Token Factory runs on server-configured credentials by default with live discovered NVIDIA Nemotron models. You only need to enter a key here if you want to use your personal Nebius account credits. Stored strictly in ephemeral server memory (cleared on restart/logout).'
                       : selectedProvider === 'openai'
-                      ? '🔑 Optional BYOK: Personal key used for GPT-4o / standard chat completions. Runs in ephemeral memory and does not consume Nebius credits. Cleared on restart/logout.'
-                      : selectedProvider === 'gemini'
-                      ? '🔑 Optional BYOK: Personal key used for Gemini 1.5 Flash. Runs in ephemeral memory and does not consume Nebius credits. Cleared on restart/logout.'
-                      : 'Ephemeral key will be stored in server memory only for this session.'}
+                        ? '🔑 Optional BYOK: Personal key used for GPT-4o / standard chat completions. Runs in ephemeral memory and does not consume Nebius credits. Cleared on restart/logout.'
+                        : selectedProvider === 'gemini'
+                          ? '🔑 Optional BYOK: Personal key used for Gemini 1.5 Flash. Runs in ephemeral memory and does not consume Nebius credits. Cleared on restart/logout.'
+                          : 'Ephemeral key will be stored in server memory only for this session.'}
                   </p>
                   <div
                     style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}
