@@ -1,12 +1,11 @@
 #!/bin/sh
 set -e
 
-# If running the API server and DATABASE_URL is configured, apply pending database migrations
+# Apply pending database migrations before the API starts. A failed migration
+# must fail the deployment instead of leaving a live API with a stale schema.
 if [ "$1" = "node" ] && [ -n "$DATABASE_URL" ]; then
   echo "[entrypoint] Applying pending database migrations..."
-  pnpm --filter @projectpilot/api db:migrate || {
-    echo "[entrypoint] Warning: database migration step returned non-zero code. Verifying connectivity..."
-  }
+  pnpm --filter @projectpilot/api db:migrate
 fi
 
 exec "$@"

@@ -111,8 +111,9 @@ export function loadConfig(): AppConfig {
         })()
       : 'postgresql://postgres:postgres@localhost:5432/projectpilot');
 
-  // 3. Port reconciliation (API_PORT or PORT, default 4000 in prod, 3001 in dev)
-  const portStr = process.env['API_PORT'] || process.env['PORT'] || (isProd ? '4000' : '3001');
+  // Hosting platforms such as Render inject PORT at runtime. It must take
+  // precedence over the Docker/local API_PORT default.
+  const portStr = process.env['PORT'] || process.env['API_PORT'] || (isProd ? '4000' : '3001');
 
   // 4. Host
   const host = process.env['API_HOST'] || '0.0.0.0';
@@ -123,7 +124,11 @@ export function loadConfig(): AppConfig {
   // 6. CORS Origin
   const corsOrigin = parseCorsOrigins(
     process.env['CORS_ORIGIN'] ||
-      (isProd ? 'http://localhost,http://localhost:80' : 'http://localhost:5173'),
+      (isProd && process.env['RENDER_EXTERNAL_HOSTNAME']
+        ? `https://${process.env['RENDER_EXTERNAL_HOSTNAME']}`
+        : isProd
+          ? 'http://localhost,http://localhost:80'
+          : 'http://localhost:5173'),
   );
 
   // 7. AI Provider: default to nebius (NVIDIA Nemotron via Nebius Token Factory)

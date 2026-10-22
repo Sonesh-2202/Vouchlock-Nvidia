@@ -212,6 +212,16 @@ Follow this step-by-step path to evaluate the live agent workflow:
 
 ---
 
+## 🌐 Free-Tier Demo Deployment (Render + Neon)
+
+The repository includes a Render Blueprint and setup guide for a public demo using the existing Fastify API, Vite frontend, Neon PostgreSQL, and Nebius Token Factory. The same-origin deployment keeps the current cookie-based login flow intact and keeps the Nebius key on the server.
+
+- Start with [`deploy/render-neon/README.md`](./deploy/render-neon/README.md).
+- The Render service serves the frontend and API together; Neon provides `DATABASE_URL`.
+- The free Render service sleeps after inactivity and can take about a minute to wake. This is a demo setup, not production hosting.
+- Nebius Token Factory credits cover inference only; this Blueprint does not provision Nebius AI Cloud or Serverless Jobs.
+- Review the repository license before submission; the hackathon requires a recognized open-source license, while the current README identifies the project as founder-controlled.
+
 ## 🤖 Agentic Delivery Agent (NVIDIA Nemotron)
 
 Vouchlock features a grounded project delivery agent powered by **NVIDIA Nemotron** on **Nebius Token Factory**, built to guide projects from source brief to verified proof with strict human-in-the-loop safety:

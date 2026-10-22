@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: vouchlock-demo-sonesh
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    autoDeployTrigger: commit
+    healthCheckPath: /health/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_PROVIDER
+        value: nebius
+      - key: NEBIUS_BASE_URL
+        value: https://api.tokenfactory.nebius.com/v1
+      - key: NEBIUS_CATALOG_TTL_MS
+        value: "300000"
+      - key: SESSION_COOKIE_NAME
+        value: vouchlock_session
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_REDACT
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: NEBIUS_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_SECRET
+        generateValue: true
