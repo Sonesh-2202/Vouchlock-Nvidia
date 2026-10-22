@@ -543,7 +543,10 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       }
 
       const freshness = computeFreshness(context, since || null);
-      return reply.code(200).send(freshness);
+      return reply.code(200).send({
+        freshness,
+        ...freshness,
+      });
     },
   );
 
@@ -881,6 +884,7 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
         createdMilestonesCount,
         createdTasksCount,
         linkedRequirementsCount,
+        createdRequirementsCount: linkedRequirementsCount,
       });
     },
   );
@@ -983,7 +987,10 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
         },
       });
 
-      return reply.code(200).send(review);
+      return reply.code(200).send({
+        review,
+        ...review,
+      });
     } catch (err: unknown) {
       logger.error({ err, projectId, evidenceId }, 'evidence review failed');
       const errorObj = err as { code?: string; message?: string };

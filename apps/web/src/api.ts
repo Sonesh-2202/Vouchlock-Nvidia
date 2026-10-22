@@ -590,7 +590,7 @@ export const api = {
       }),
     getFreshness: (projectId: string, since?: string) => {
       const qs = since ? `?since=${encodeURIComponent(since)}` : '';
-      return request<{ freshness: ProjectFreshnessEvaluation }>(
+      return request<{ freshness: ProjectFreshnessEvaluation } & ProjectFreshnessEvaluation>(
         'GET',
         `/copilot/projects/${projectId}/freshness${qs}`,
       );
@@ -624,7 +624,8 @@ export const api = {
         ok: boolean;
         createdMilestonesCount: number;
         createdTasksCount: number;
-        createdRequirementsCount: number;
+        createdRequirementsCount?: number;
+        linkedRequirementsCount?: number;
         alreadyAccepted?: boolean;
       }>('POST', `/copilot/projects/${projectId}/delivery-plan/${planId}/accept`, data),
     reviewEvidence: (data: {
@@ -634,7 +635,7 @@ export const api = {
       modelOverride?: string;
       roleProfile?: 'fast' | 'balanced' | 'deep_reasoning';
     }) =>
-      request<{ review: EvidenceReviewAdvisory; generationId: string }>(
+      request<{ review: EvidenceReviewAdvisory; generationId?: string } & EvidenceReviewAdvisory>(
         'POST',
         '/copilot/evidence-review',
         data,

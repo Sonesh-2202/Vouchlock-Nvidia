@@ -513,7 +513,7 @@ export function ProjectPage() {
         modelOverride: selectedModelOverride || undefined,
         roleProfile: selectedRoleProfile,
       });
-      setEvidenceReview(res.review);
+      setEvidenceReview((res as any)?.review ?? (res as any));
     } catch (err: any) {
       setEvidenceReviewError(
         err?.error?.message || err?.message || 'Failed to evaluate evidence advisory review.',
@@ -565,7 +565,7 @@ export function ProjectPage() {
       setCheckingFreshness(true);
       api.copilot
         .getFreshness(id, copilotReport.generatedAt)
-        .then((res) => setCopilotFreshness(res.freshness))
+        .then((res: any) => setCopilotFreshness(res?.freshness ?? res))
         .catch(() => setCopilotFreshness(null))
         .finally(() => setCheckingFreshness(false));
     }
@@ -6618,10 +6618,25 @@ export function ProjectPage() {
                                 }}
                               >
                                 <div style={{ color: '#EF4444', marginBottom: '2px' }}>
-                                  - BEFORE: {p.diffPreview.before}
+                                  - BEFORE:{' '}
+                                  {(p.diffPreview as any).before ??
+                                    (p.diffPreview.currentValue &&
+                                    Object.keys(p.diffPreview.currentValue).length > 0
+                                      ? Object.entries(p.diffPreview.currentValue)
+                                          .map(([k, v]) => `${k}: ${v}`)
+                                          .join(', ')
+                                      : 'None (new record)')}
                                 </div>
                                 <div style={{ color: '#10B981' }}>
-                                  + AFTER: {p.diffPreview.after}
+                                  + AFTER:{' '}
+                                  {(p.diffPreview as any).after ??
+                                    p.diffPreview.changeDescription ??
+                                    (p.diffPreview.proposedValue &&
+                                    Object.keys(p.diffPreview.proposedValue).length > 0
+                                      ? Object.entries(p.diffPreview.proposedValue)
+                                          .map(([k, v]) => `${k}: ${v}`)
+                                          .join(', ')
+                                      : 'Proposed action')}
                                 </div>
                               </div>
                             )}
