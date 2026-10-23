@@ -51,7 +51,7 @@ The frontend and API share one origin, so the existing HttpOnly session cookie w
 - It does not provide an always-on API. Render's free web service sleeps after inactivity and may cold-start when a judge opens the app.
 - It does not provide a production backup/restore guarantee for the Neon free project. Export any demo data you need to retain.
 - It does not make signup abuse or model-credit usage impossible. Keep rate limits enabled, use disposable demo data, and monitor Token Factory usage.
-- It does not make a legal open-source license decision. Confirm the repository license before hackathon submission; the current README describes a founder-controlled license.
+- The repository is released under the MIT License; see the root [`LICENSE`](../../LICENSE) file.
 
 ## Upgrade path
 
