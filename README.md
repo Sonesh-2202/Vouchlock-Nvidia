@@ -11,7 +11,7 @@
 [![Nebius Token Factory](https://img.shields.io/badge/Nebius-Token_Factory-00E5FF.svg)](https://tokenfactory.nebius.com/)
 [![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA-Nemotron-76B900.svg?logo=nvidia&logoColor=white)](https://build.nvidia.com/)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-00C7B7.svg)](https://modelcontextprotocol.io/)
-[![License](https://img.shields.io/badge/License-Founder_Controlled-purple.svg)](./docs/decisions.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 [Why Vouchlock?](#-why-vouchlock) •
 [Hackathon Updates](#-hackathon-updates-nebius-x-nvidia) •
@@ -211,6 +211,16 @@ Follow this step-by-step path to evaluate the live agent workflow:
 > - **Operates Without Any AI Credentials:** The complete delivery ledger, manual requirement registration, 5-column Kanban task board, manual task-requirement linking, proof artifact submission, human verification attestation stamps, Truthful Delivery Reports, full JSON export, and standard MCP audit tools.
 
 ---
+
+## 🌐 Free-Tier Demo Deployment (Render + Neon)
+
+The repository includes a Render Blueprint and setup guide for a public demo using the existing Fastify API, Vite frontend, Neon PostgreSQL, and Nebius Token Factory. The same-origin deployment keeps the current cookie-based login flow intact and keeps the Nebius key on the server.
+
+- Start with [`deploy/render-neon/README.md`](./deploy/render-neon/README.md).
+- The Render service serves the frontend and API together; Neon provides `DATABASE_URL`.
+- The free Render service sleeps after inactivity and can take about a minute to wake. This is a demo setup, not production hosting.
+- Nebius Token Factory credits cover inference only; this Blueprint does not provision Nebius AI Cloud or Serverless Jobs.
+- The project is released under the MIT License; see [`LICENSE`](./LICENSE).
 
 ## 🤖 Agentic Delivery Agent (NVIDIA Nemotron)
 
@@ -549,10 +559,7 @@ All endpoints return JSON wrapped in an error envelope upon failure: `{ error: {
 
 ## 📄 License
 
-**Founder-controlled.** Project delivery and traceability suite with agentic intelligence. See [decisions.md](./docs/decisions.md) for architectural records.
-
-> ⚠️ **Hackathon Submission Blocker — Licensing:**
-> The Nebius x NVIDIA Global AI Hackathon requires a recognized open-source license visible at the repository root. The current repository is under a Founder-Controlled license. In accordance with strict agent boundaries, consent to relicense cannot be assumed without explicit repository owner action. The repository owner must commit a recognized open-source license file (e.g. Apache 2.0 or MIT) to the root before submission.
+Vouchlock is released under the [MIT License](./LICENSE).
 
 <div align="center">
   <sub>Built with precision by <a href="https://github.com/Sonesh-2202">Sonesh-2202</a> • <b>ProjectPilot / Vouchlock</b></sub>

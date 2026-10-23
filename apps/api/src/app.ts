@@ -8,6 +8,8 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import path from 'node:path';
 import { loadConfig, type AppConfig } from './config.js';
 import { createDb, type Database } from './db/connection.js';
 import { createLogger, type Logger } from './logger.js';
@@ -62,6 +64,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
     logger: false,
     genReqId: () => nanoid(12),
     requestTimeout: 30000,
+    trustProxy: config.nodeEnv === 'production',
   });
 
   // Gracefully handle empty JSON request bodies without throwing FST_ERR_CTP_EMPTY_JSON_BODY
@@ -206,6 +209,40 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   // ── MCP Server & Custom Tool Endpoints (/mcp, /mcp/v1) ──
   await app.register(mcpRoutes, { prefix: '/mcp', config, db: db!, logger });
   await app.register(mcpRoutes, { prefix: '/mcp/v1', config, db: db!, logger });
+
+  // In the single-origin demo deployment, Fastify serves the built SPA as well
+  // as the API. Local development continues to use Vite's dev server/proxy.
+  if (process.env['SERVE_WEB'] === 'true') {
+    const webRoot = path.resolve(process.env['WEB_DIST_DIR'] || 'apps/web/dist');
+    await app.register(fastifyStatic, {
+      root: webRoot,
+      prefix: '/',
+      wildcard: false,
+    });
+
+    app.setNotFoundHandler((request, reply) => {
+      const pathname = new URL(request.url, 'http://localhost').pathname;
+      const isApiPath =
+        pathname === '/api' ||
+        pathname.startsWith('/api/') ||
+        pathname === '/mcp' ||
+        pathname.startsWith('/mcp/') ||
+        pathname === '/health' ||
+        pathname.startsWith('/health/');
+      const looksLikeAsset = Boolean(path.extname(pathname));
+
+      if ((request.method === 'GET' || request.method === 'HEAD') && !isApiPath && !looksLikeAsset) {
+        return reply
+          .type('text/html')
+          .header('Cache-Control', 'no-cache')
+          .sendFile('index.html');
+      }
+
+      return reply.code(404).send({
+        error: { code: 'not_found', message: 'Route or asset not found.' },
+      });
+    });
+  }
 
   return { app, config, db, client, logger };
 }
