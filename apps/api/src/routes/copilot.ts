@@ -7,8 +7,9 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import {
+  copilotReportSchema,
   generateCopilotReportSchema,
   approveCopilotActionSchema,
   rejectCopilotActionSchema,
@@ -229,237 +230,329 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
       });
     }
 
-    // 3. Verify proposal content hash
+    // 3. Confirm this exact proposal was returned by a server-generated report.
+    // A content hash alone is not an authorization boundary: a caller can hash
+    // any action they invent. Only actions in persisted reports are approvable.
+    const recentReports = await db
+      .select({ outputJson: aiGenerations.outputJson })
+      .from(aiGenerations)
+      .where(and(eq(aiGenerations.projectId, projectId), eq(aiGenerations.kind, 'copilot_report')))
+      .orderBy(desc(aiGenerations.createdAt))
+      .limit(50);
+
+    const storedProposal = recentReports
+      .map(({ outputJson }) => copilotReportSchema.safeParse(outputJson))
+      .filter((result) => result.success)
+      .flatMap((result) => (result.success ? result.data.proposedActions : []))
+      .find((candidate) => candidate.proposalId === proposalId);
+
+    if (!storedProposal) {
+      return reply.code(404).send({
+        error: {
+          code: 'proposal_not_found',
+          message: 'This proposal is not present in a recent Delivery Agent report for this project. Generate a fresh report and review its proposals.',
+        },
+      });
+    }
+
+    // 4. Verify the submitted content still matches the persisted proposal.
     const expectedProposalId = computeProposalId(
       action.actionType,
       action.description,
       action.payload,
     );
 
-    if (proposalId !== expectedProposalId) {
+    if (
+      proposalId !== expectedProposalId ||
+      storedProposal.actionType !== action.actionType ||
+      storedProposal.description !== action.description ||
+      JSON.stringify(storedProposal.payload) !== JSON.stringify(action.payload)
+    ) {
       return reply.code(400).send({
         error: {
           code: 'invalid_proposal_id',
-          message: 'Proposal ID does not match the content hash of the proposed action.',
+          message: 'Proposal content does not match the server-generated action. Generate a fresh report before approving.',
         },
       });
     }
 
-    // 4. Execute single action based on type
-    let entityId = projectId;
-    const payload = action.payload as Record<string, any>;
+    // 5. Execute the action and its audit record atomically. A failed audit
+    // write must never leave an unrecorded project mutation behind.
+    const approvalResult = await db.transaction(async (tx) => {
+      let entityId = projectId;
+      const payload = action.payload as Record<string, any>;
 
-    switch (action.actionType) {
-      case 'create_task': {
-        if (!hasPermission(member.role, 'task:create')) {
-          return reply.code(403).send({
-            error: { code: 'forbidden', message: 'Insufficient permission to create tasks' },
-          });
-        }
-        const [newTask] = await db
-          .insert(tasks)
-          .values({
-            projectId,
-            createdBy: userId,
-            title: payload.title || action.description,
-            description: payload.description || `Created via Copilot proposal ${proposalId}`,
-            milestoneId: payload.milestoneId || null,
-            status: payload.status || 'todo',
-            priority: payload.priority || 'normal',
-          })
-          .returning({ id: tasks.id });
-        if (newTask) entityId = newTask.id;
-        break;
-      }
-
-      case 'update_task': {
-        if (!hasPermission(member.role, 'task:update')) {
-          return reply.code(403).send({
-            error: { code: 'forbidden', message: 'Insufficient permission to update tasks' },
-          });
-        }
-        const taskId = payload.taskId;
-        if (!taskId) {
-          return reply.code(400).send({
-            error: { code: 'validation_error', message: 'Missing taskId in payload' },
-          });
-        }
-        const updateData: Record<string, any> = { updatedAt: new Date() };
-        if (payload.status) updateData.status = payload.status;
-        if (payload.title) updateData.title = payload.title;
-        if (payload.description !== undefined) updateData.description = payload.description;
-        if (payload.priority) updateData.priority = payload.priority;
-        if (payload.milestoneId !== undefined) updateData.milestoneId = payload.milestoneId;
-
-        await db
-          .update(tasks)
-          .set(updateData)
-          .where(and(eq(tasks.id, taskId), eq(tasks.projectId, projectId)));
-        entityId = taskId;
-        break;
-      }
-
-      case 'create_milestone': {
-        if (!hasPermission(member.role, 'project:update')) {
-          return reply.code(403).send({
-            error: { code: 'forbidden', message: 'Insufficient permission to create milestones' },
-          });
-        }
-        const [newMilestone] = await db
-          .insert(milestones)
-          .values({
-            projectId,
-            title: payload.title || action.description,
-            description: payload.description || null,
-            dueDate: payload.dueDate ? new Date(payload.dueDate) : null,
-          })
-          .returning({ id: milestones.id });
-        if (newMilestone) entityId = newMilestone.id;
-        break;
-      }
-
-      case 'update_requirement': {
-        if (!hasPermission(member.role, 'requirement:update')) {
-          return reply.code(403).send({
-            error: { code: 'forbidden', message: 'Insufficient permission to update requirements' },
-          });
-        }
-        const reqId = payload.requirementId;
-        if (!reqId) {
-          return reply.code(400).send({
-            error: { code: 'validation_error', message: 'Missing requirementId in payload' },
-          });
-        }
-        await db
-          .update(requirements)
-          .set({
-            status: payload.status || 'active',
-            description: payload.description,
-            updatedAt: new Date(),
-          })
-          .where(and(eq(requirements.id, reqId), eq(requirements.projectId, projectId)));
-        entityId = reqId;
-        break;
-      }
-
-      case 'request_evidence': {
-        if (!hasPermission(member.role, 'evidence:create')) {
-          return reply.code(403).send({
-            error: { code: 'forbidden', message: 'Insufficient permission to request evidence' },
-          });
-        }
-        const reqId = payload.requirementId;
-        if (!reqId) {
-          return reply.code(400).send({
-            error: { code: 'validation_error', message: 'Missing requirementId in payload' },
-          });
-        }
-        const [newEvidence] = await db
-          .insert(evidence)
-          .values({
-            projectId,
-            requirementId: reqId,
-            authorUserId: userId,
-            type: 'note',
-            title: payload.evidenceTitle || 'Verification Request (Copilot)',
-            content: `Evidence requested via Copilot proposal ${proposalId}. Context: ${action.description}`,
-          })
-          .returning({ id: evidence.id });
-        if (newEvidence) entityId = newEvidence.id;
-        break;
-      }
-
-      case 'create_requirement': {
-        if (!hasPermission(member.role, 'requirement:create')) {
-          return reply.code(403).send({
-            error: { code: 'forbidden', message: 'Insufficient permission to create requirements' },
-          });
-        }
-        const [newReq] = await db
-          .insert(requirements)
-          .values({
-            projectId,
-            title: payload.title || action.description,
-            description: payload.description || null,
-            category: payload.category || 'functional',
-            priority: payload.priority || 'normal',
-            status: 'draft',
-            sourceReference: payload.sourceReference || null,
-          })
-          .returning({ id: requirements.id });
-        if (newReq) entityId = newReq.id;
-        break;
-      }
-
-      case 'link_task_requirement': {
-        if (!hasPermission(member.role, 'requirement:update')) {
-          return reply.code(403).send({
-            error: {
-              code: 'forbidden',
-              message: 'Insufficient permission to link tasks to requirements',
-            },
-          });
-        }
-        const reqId = payload.requirementId;
-        const taskId = payload.taskId;
-        if (!reqId || !taskId) {
-          return reply.code(400).send({
-            error: {
-              code: 'validation_error',
-              message: 'Missing requirementId or taskId in payload',
-            },
-          });
-        }
-        const [req] = await db
-          .select()
-          .from(requirements)
-          .where(and(eq(requirements.id, reqId), eq(requirements.projectId, projectId)))
-          .limit(1);
-        const [tsk] = await db
-          .select()
-          .from(tasks)
-          .where(and(eq(tasks.id, taskId), eq(tasks.projectId, projectId)))
-          .limit(1);
-        if (!req || !tsk) {
-          return reply.code(404).send({
-            error: { code: 'not_found', message: 'Requirement or task not found in this project' },
-          });
-        }
-        try {
-          await db
-            .insert(requirementTasks)
-            .values({ requirementId: reqId, taskId })
-            .onConflictDoNothing();
-        } catch {
-          // ignore duplicate
-        }
-        entityId = reqId;
-        break;
-      }
-
-      default:
-        return reply.code(400).send({
-          error: {
-            code: 'unsupported_action',
-            message: `Action ${action.actionType} is not supported`,
-          },
+      // Serialize approvals for this proposal and reject a replay. The lock is
+      // transaction-scoped, so it is released automatically on commit/rollback.
+      const approvalLockKey = `${projectId}:${proposalId}`;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${approvalLockKey}))`);
+      const [priorApproval] = await tx
+        .select({ id: auditEvents.id })
+        .from(auditEvents)
+        .where(
+          and(
+            eq(auditEvents.workspaceId, project.workspaceId),
+            eq(auditEvents.action, 'copilot_approved'),
+            sql`${auditEvents.metadata}->>'proposalId' = ${proposalId} AND ${auditEvents.metadata}->>'projectId' = ${projectId}`,
+          ),
+        )
+        .limit(1);
+      if (priorApproval) {
+        return reply.code(409).send({
+          error: { code: 'proposal_already_approved', message: 'This proposal has already been approved.' },
         });
-    }
+      }
 
-    // Write audit event
-    await db.insert(auditEvents).values({
-      workspaceId: project.workspaceId,
-      actorId: userId,
-      action: 'copilot_approved',
-      subjectType: action.actionType,
-      subjectId: entityId,
-      metadata: {
-        proposalId,
-        actionType: action.actionType,
-        description: action.description,
-        projectId,
-      },
+      switch (action.actionType) {
+        case 'create_task': {
+          if (!hasPermission(member.role, 'task:create')) {
+            return reply.code(403).send({
+              error: { code: 'forbidden', message: 'Insufficient permission to create tasks' },
+            });
+          }
+          if (payload.milestoneId) {
+            const [milestone] = await tx
+              .select({ id: milestones.id })
+              .from(milestones)
+              .where(and(eq(milestones.id, payload.milestoneId), eq(milestones.projectId, projectId)))
+              .limit(1);
+            if (!milestone) {
+              return reply.code(404).send({
+                error: { code: 'not_found', message: 'The proposed milestone does not belong to this project.' },
+              });
+            }
+          }
+          const [newTask] = await tx
+            .insert(tasks)
+            .values({
+              projectId,
+              createdBy: userId,
+              title: payload.title || action.description,
+              description: payload.description || `Created via Copilot proposal ${proposalId}`,
+              milestoneId: payload.milestoneId || null,
+              status: payload.status || 'todo',
+              priority: payload.priority || 'normal',
+            })
+            .returning({ id: tasks.id });
+          if (newTask) entityId = newTask.id;
+          break;
+        }
+
+        case 'update_task': {
+          if (!hasPermission(member.role, 'task:update')) {
+            return reply.code(403).send({
+              error: { code: 'forbidden', message: 'Insufficient permission to update tasks' },
+            });
+          }
+          const taskId = payload.taskId;
+          if (!taskId) {
+            return reply.code(400).send({
+              error: { code: 'validation_error', message: 'Missing taskId in payload' },
+            });
+          }
+          const updateData: Record<string, any> = { updatedAt: new Date() };
+          if (payload.status) updateData.status = payload.status;
+          if (payload.title) updateData.title = payload.title;
+          if (payload.description !== undefined) updateData.description = payload.description;
+          if (payload.priority) updateData.priority = payload.priority;
+          if (payload.milestoneId !== undefined) updateData.milestoneId = payload.milestoneId;
+
+          const [updatedTask] = await tx
+            .update(tasks)
+            .set(updateData)
+            .where(and(eq(tasks.id, taskId), eq(tasks.projectId, projectId)))
+            .returning({ id: tasks.id });
+          if (!updatedTask) {
+            return reply.code(404).send({
+              error: { code: 'not_found', message: 'The proposed task does not belong to this project or no longer exists.' },
+            });
+          }
+          entityId = taskId;
+          break;
+        }
+
+        case 'create_milestone': {
+          if (!hasPermission(member.role, 'project:update')) {
+            return reply.code(403).send({
+              error: { code: 'forbidden', message: 'Insufficient permission to create milestones' },
+            });
+          }
+          const [newMilestone] = await tx
+            .insert(milestones)
+            .values({
+              projectId,
+              title: payload.title || action.description,
+              description: payload.description || null,
+              dueDate: payload.dueDate ? new Date(payload.dueDate) : null,
+            })
+            .returning({ id: milestones.id });
+          if (newMilestone) entityId = newMilestone.id;
+          break;
+        }
+
+        case 'update_requirement': {
+          if (!hasPermission(member.role, 'requirement:update')) {
+            return reply.code(403).send({
+              error: { code: 'forbidden', message: 'Insufficient permission to update requirements' },
+            });
+          }
+          const reqId = payload.requirementId;
+          if (!reqId) {
+            return reply.code(400).send({
+              error: { code: 'validation_error', message: 'Missing requirementId in payload' },
+            });
+          }
+          const [updatedRequirement] = await tx
+            .update(requirements)
+            .set({
+              status: payload.status || 'active',
+              description: payload.description,
+              updatedAt: new Date(),
+            })
+            .where(and(eq(requirements.id, reqId), eq(requirements.projectId, projectId)))
+            .returning({ id: requirements.id });
+          if (!updatedRequirement) {
+            return reply.code(404).send({
+              error: { code: 'not_found', message: 'The proposed requirement does not belong to this project or no longer exists.' },
+            });
+          }
+          entityId = reqId;
+          break;
+        }
+
+        case 'request_evidence': {
+          if (!hasPermission(member.role, 'evidence:create')) {
+            return reply.code(403).send({
+              error: { code: 'forbidden', message: 'Insufficient permission to request evidence' },
+            });
+          }
+          const reqId = payload.requirementId;
+          if (!reqId) {
+            return reply.code(400).send({
+              error: { code: 'validation_error', message: 'Missing requirementId in payload' },
+            });
+          }
+          const [evidenceRequirement] = await tx
+            .select({ id: requirements.id })
+            .from(requirements)
+            .where(and(eq(requirements.id, reqId), eq(requirements.projectId, projectId)))
+            .limit(1);
+          if (!evidenceRequirement) {
+            return reply.code(404).send({
+              error: { code: 'not_found', message: 'The evidence request requirement does not belong to this project.' },
+            });
+          }
+          const [newEvidence] = await tx
+            .insert(evidence)
+            .values({
+              projectId,
+              requirementId: reqId,
+              authorUserId: userId,
+              type: 'note',
+              title: payload.evidenceTitle || 'Verification Request (Copilot)',
+              content: `Evidence requested via Copilot proposal ${proposalId}. Context: ${action.description}`,
+            })
+            .returning({ id: evidence.id });
+          if (newEvidence) entityId = newEvidence.id;
+          break;
+        }
+
+        case 'create_requirement': {
+          if (!hasPermission(member.role, 'requirement:create')) {
+            return reply.code(403).send({
+              error: { code: 'forbidden', message: 'Insufficient permission to create requirements' },
+            });
+          }
+          const [newReq] = await tx
+            .insert(requirements)
+            .values({
+              projectId,
+              title: payload.title || action.description,
+              description: payload.description || null,
+              category: payload.category || 'functional',
+              priority: payload.priority || 'normal',
+              status: 'draft',
+              sourceReference: payload.sourceReference || null,
+            })
+            .returning({ id: requirements.id });
+          if (newReq) entityId = newReq.id;
+          break;
+        }
+
+        case 'link_task_requirement': {
+          if (!hasPermission(member.role, 'requirement:update')) {
+            return reply.code(403).send({
+              error: {
+                code: 'forbidden',
+                message: 'Insufficient permission to link tasks to requirements',
+              },
+            });
+          }
+          const reqId = payload.requirementId;
+          const taskId = payload.taskId;
+          if (!reqId || !taskId) {
+            return reply.code(400).send({
+              error: {
+                code: 'validation_error',
+                message: 'Missing requirementId or taskId in payload',
+              },
+            });
+          }
+          const [req] = await tx
+            .select()
+            .from(requirements)
+            .where(and(eq(requirements.id, reqId), eq(requirements.projectId, projectId)))
+            .limit(1);
+          const [tsk] = await tx
+            .select()
+            .from(tasks)
+            .where(and(eq(tasks.id, taskId), eq(tasks.projectId, projectId)))
+            .limit(1);
+          if (!req || !tsk) {
+            return reply.code(404).send({
+              error: { code: 'not_found', message: 'Requirement or task not found in this project' },
+            });
+          }
+          try {
+            await tx
+              .insert(requirementTasks)
+              .values({ requirementId: reqId, taskId })
+              .onConflictDoNothing();
+          } catch {
+            // ignore duplicate
+          }
+          entityId = reqId;
+          break;
+        }
+
+        default:
+          return reply.code(400).send({
+            error: {
+              code: 'unsupported_action',
+              message: `Action ${action.actionType} is not supported`,
+            },
+          });
+      }
+
+      // Write audit event
+      await tx.insert(auditEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: userId,
+        action: 'copilot_approved',
+        subjectType: action.actionType,
+        subjectId: entityId,
+        metadata: {
+          proposalId,
+          actionType: action.actionType,
+          description: action.description,
+          projectId,
+        },
+      });
+      return entityId;
     });
+
+    if (typeof approvalResult !== 'string') return approvalResult;
+    const entityId = approvalResult;
 
     logger.info(
       { userId, projectId, proposalId, actionType: action.actionType },
@@ -499,6 +592,23 @@ export async function copilotRoutes(app: FastifyInstance, opts: CopilotRouteOpts
     if (!project) {
       return reply.code(404).send({
         error: { code: 'not_found', message: 'Project not found' },
+      });
+    }
+
+    const [member] = await db
+      .select({ role: workspaceMembers.role })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, project.workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!member || !hasPermission(member.role, 'ai:accept')) {
+      return reply.code(403).send({
+        error: { code: 'forbidden', message: 'Insufficient permission to reject AI proposals' },
       });
     }
 
